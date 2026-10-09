@@ -1,5 +1,17 @@
 # Detection: measuring an unknown repository
 
+Contents:
+- 1 Languages and manifests
+- 2 Real commands
+- 3 Domain boundaries
+- 4 Branch-to-environment mapping
+- 5 Commit conventions
+- 6 Prose language
+- 7 Existing quality tooling
+- 8 Existing agentic documentation
+- 9 Size and history
+- Profile handed to the writing phases
+
 Everything the skill must learn before it can write anything. The probes are independent: fan them out.
 
 **Output rule, absolute:** each probe yields either a verified fact or an explicit unknown. An unknown becomes a question to the human or an empty slot with a note. It never becomes a plausible-sounding sentence.

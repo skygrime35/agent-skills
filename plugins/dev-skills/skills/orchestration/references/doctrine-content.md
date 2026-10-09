@@ -1,5 +1,7 @@
 # Doctrine blocks
 
+Contents: B1 Model ladder | B7 Escalation | B2 Delegation | B3 Parallelism and isolation | B4 Ask before dispatch | B5 Session naming | B6 Reporting | B8 Briefing
+
 The menu of orchestration rules this skill can write into the base doc's owned section. Eight blocks, B1 to B8, generalized from a field-proven production system and from the practices summarized in `references/models.md`. For each: purpose, canonical text (English render source), variation points keyed to interview answers, instruction cost, and when to omit it. Block IDs are stable identifiers, not reading order: the written section follows the order of `templates/doctrine-section.md.tmpl` (B1, B7, B2, B8, B3, B4, B5, B6).
 
 **Boundary note.** Branch discipline (check the branch and cohabitation before any modification), general output style, and knowledge-graph usage belong to the base doc's behaviour section, owned by `/agents-md`. This skill never writes them; its audit only reports overlap when the owned section restates them.

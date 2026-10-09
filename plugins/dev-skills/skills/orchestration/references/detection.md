@@ -1,5 +1,7 @@
 # Detection probes
 
+Contents: D1 Base doc | D2 Existing section | D3 agents-md config | D4 Budget | D5 Agent types | D6 Statusline | D7 Language | D8 Delegation capability | D9 Isolation | D10 Existing checks | D11 Model facts | D12 Measured usage | Output profile
+
 Run in Phase 0 of every mode. The probes are independent: fan them out. Each yields a verified fact or an explicit unknown; nothing in between. The output is the profile YAML at the end, whose `unknowns:` list is never empty on a real repository. A run that reports zero unknowns has guessed somewhere.
 
 ## D1 - Base doc file
@@ -34,7 +36,7 @@ Read `language.written`, `budget.instructions`, `structure.root`, `guardrail_scr
 
 ## D4 - Instruction budget
 
-Same method as agents-md check P2.1: count normative statements (imperatives, "never", "always", "must", bullet rules) across every always-loaded file (base doc + pointer + anything they `@`-import). Then isolate the orchestration section's own share using D2's span. Report both numbers; the threshold is 150-200 minus roughly 50 the harness already spends.
+Same method as agents-md check P2.1: count normative statements (imperatives, "never", "always", "must", bullet rules) across every always-loaded file (base doc + pointer + anything they `@`-import). Then isolate the orchestration section's own share using D2's span. Report both numbers; the threshold and the harness share are owned by the agents-md skill (`references/structure.md`).
 
 ## D5 - Installed agent types
 
@@ -89,7 +91,7 @@ The second command is the only admissible evidence for `wired: true`. Script on 
 ## D11 - Model facts and built-in routing
 
 ```bash
-grep -m1 -n 'Verified:' ~/.claude/skills/orchestration/references/models.md
+grep -m1 -n 'Verified:' ${CLAUDE_SKILL_DIR}/references/models.md
 grep -n 'CLAUDE_CODE_SUBAGENT_MODEL' ~/.claude/settings.json .claude/settings.json .claude/settings.local.json 2>/dev/null
 grep -n '"model"' ~/.claude/settings.json .claude/settings.json 2>/dev/null
 ls ~/.claude/agents/Explore.md .claude/agents/Explore.md 2>/dev/null
@@ -102,7 +104,7 @@ Record the main model, `CLAUDE_CODE_SUBAGENT_MODEL` (and whether `_FORCE` is set
 ## D12 - Measured usage
 
 ```bash
-python3 ~/.claude/skills/orchestration/scripts/usage_by_agent_type.py --days 30
+python3 ${CLAUDE_SKILL_DIR}/scripts/usage_by_agent_type.py --days 30
 ```
 
 Reads the local Claude Code transcripts (`~/.claude/projects/*/*/subagents/*.jsonl` with their `.meta.json`) and prints, per agent type: runs, calls per run, context per call, estimated cost per run at API prices, and share of subagent spend; plus main-session spend per model. Read-only, local, nothing leaves the machine. Prices come from the script's table, which mirrors models.md: when D11 updates models.md, update the script's `PRICES` in the same batch.

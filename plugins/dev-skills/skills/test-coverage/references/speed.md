@@ -1,5 +1,14 @@
 # Speed — mode speed's rules: measurement, lever catalogue, invariants, flakiness, write surface, report, config
 
+## Contents
+1. Measurement first (per runner kind)
+2. Lever catalogue (pytest, vitest/jest, playwright/cypress, custom harness)
+3. Hard invariants
+4. Flakiness under parallelism
+5. Allowed write surface
+6. Report
+7. Config: the `speed:` block
+
 The whole mode rests on one sentence: **a lever that cannot be proven to detect exactly the same bugs is not applied.** Every lever below carries its precision invariant and the recipe that verifies it; an agent that cannot run the recipe returns the lever as *unverifiable*, never as *applied*. Nothing here touches a test body, an assertion, or application code — the allowed write surface (§5) is exhaustive and goes verbatim into every agent prompt.
 
 ## 1. Measurement first (per runner kind)
@@ -83,7 +92,7 @@ May write — and only these, each enumerated at the gate:
 
 Never: application code (anything outside `runners[].paths` and the files above), migrations, CI workflows that deploy or target production, `prod_hosts`, any assertion, any `skip`/`xfail`/`fixme`/`todo`/`only`, any test deletion or rename, a `retries` reduction without its replacing guard in the same lever. A needed change outside this surface is a **returned request** (finding for the human), not an improvisation.
 
-## 6. Report (French) — `.claude/test-coverage/speed-<YYYY-MM-DD>-<SHORTSHA>.md`
+## 6. Report (in the report language; headings shown in French) — `.claude/test-coverage/speed-<YYYY-MM-DD>-<SHORTSHA>.md`
 
 ```
 # Accélération de la suite — <PROJET> — <date> (<SHA>)
@@ -147,7 +156,7 @@ speed:
   serial_groups:                          # human-authored after the first write: drift shows the diff and asks
     - { runner: pytest, mechanism: "xdist_group('redis')", tests: ["apps/billing/tests/test_plan_cache.py"] }
   quarantine:                             # human-confirmed one by one; still executed; never skipped
-    - { runner: e2e-harness, step: "Checkout SCA (carte 3DS)", since_sha: ab12cd3, reason: "…", confirmed_by: "Romain", confirmed_at: 2026-08-28, review_after: 2026-10-01 }
+    - { runner: e2e-harness, step: "Checkout SCA (carte 3DS)", since_sha: ab12cd3, reason: "…", confirmed_by: "owner", confirmed_at: 2026-08-28, review_after: 2026-10-01 }
   touched_files: [backend/pytest.ini, backend/conftest.py, backend/pytest-cov.ini]   # V10 scope
   cov_profile: "cd backend && pytest -c pytest-cov.ini"                              # the coverage command that still exists, proven once
 ```

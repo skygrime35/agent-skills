@@ -1,4 +1,4 @@
-# Definition of Done — "abouti" as a mechanical checklist
+# Definition of Done: "finished" as a mechanical checklist
 
 Instantiated in `SPECS.md` at Phase 2 (so the user validates *what "done" will mean*), walked item by item at Phase 5 before the live checkpoint. Each item: **pass**, **fixed**, or **justified exception** presented at the checkpoint. Never silently dropped.
 
@@ -22,7 +22,7 @@ Instantiated in `SPECS.md` at Phase 2 (so the user validates *what "done" will m
 - [ ] **The whole stack is hosted** — backend, database, workers, every service the app needs — and **every must-have works end-to-end through the public URL** (never a front on a mocked or absent backend).
 - [ ] **Data persists across a container restart** (`docker compose restart` → previously entered data still there — named volumes verified).
 - [ ] HTTPS working (or HTTP with the certbot rate-limit exception stated in the report).
-- [ ] **Host-safety check passes mechanically**: `scripts/check-host-safety.sh diff <snapshot> --allow-name <project> --allow-port <port>` exits 0 — the only host changes are this deployment's own registered resources; nothing pre-existing modified, restarted or removed; disk above the floor.
+- [ ] **Host-safety check passes mechanically**: `${CLAUDE_SKILL_DIR}/scripts/check-host-safety.sh diff <snapshot> --allow-name <project> --allow-port <port>` exits 0 — the only host changes are this deployment's own registered resources; nothing pre-existing modified, restarted or removed; disk above the floor.
 - [ ] **Privacy gate applied**: private/sensitive data + no in-app auth ⇒ vhost basic auth in place (verified: unauthenticated curl gets `401`, authenticated gets through) and credentials delivered in the report — or the user's explicit "open to anyone" choice is on record.
 - [ ] `nginx -t` passed before every reload performed during the run.
 - [ ] App port bound to `127.0.0.1` only.
@@ -42,6 +42,6 @@ Instantiated in `SPECS.md` at Phase 2 (so the user validates *what "done" will m
 
 ## Post-GO items (Phase 6, checked before the final report)
 
-- [ ] Agentic docs in the **DebriefLab shape** via agents-md init: thin `CLAUDE.md` (`@AGENTS.md` + hierarchy), root `AGENTS.md` (guardrails, conventions, vital commands), `AGENTS/` on-demand knowledge with `ARCHITECTURE.md` map, sized to the project; the "docs updated in the same commit as the code" convention written into AGENTS.md.
+- [ ] Agentic docs produced by `agents-md init` and the orchestration section by `orchestration init` (the shape is theirs to define), docs agreeing with the code as built.
 - [ ] CI workflow (lint + test) present and **using the exact commands that passed locally**.
 - [ ] Pushed; `git ls-remote` confirms; repo is **private** unless told otherwise.

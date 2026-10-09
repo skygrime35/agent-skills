@@ -1,5 +1,7 @@
 # Document templates — minimal-set rule + French skeletons
 
+Contents: 0 Minimal-set rule · T1 Mentions légales · T2 CGU · T3 CGV · T4 Privacy · T5 Cookies · T6 Jeu-concours règlement · Notes for the drafting agent
+
 Templates are **substrate-agnostic content skeletons**: what a document says, section by section. Serialization into MDX / i18n JSON keys / markdown is `substrates.md`'s job. `{{SLOT}}` = interview-fillable; `{{#if COND}}` = feature-conditional (the condition is a detected feature or an interview answer, never a guess). Unfilled slot ⇒ placeholder protocol (`interview.md` §5).
 
 ## 0. Minimal-set rule

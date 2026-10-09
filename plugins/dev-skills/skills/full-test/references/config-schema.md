@@ -1,6 +1,13 @@
 # `.claude/full-test.yml` schema
 
-Per-project config, owned by this skill alone (it never reads another skill's config). **Auto-detection refreshes the structural fields on every run; human-authored `quirks`/overrides are never silently overwritten** — show a drift diff and ask. Its purpose: capture the singular, non-guessable specifics of a project, and make the guardrails checkable.
+## Contents
+
+- Secrets policy
+- Layout
+- Field notes
+- Freshness / drift
+
+Per-project config, owned by this skill alone: it never reads another skill's config. Single exception: the project's orchestration section in its base doc (CLAUDE.md / AGENTS.md) is read for agent-type policy; `.claude/orchestration.yml` is not. **Auto-detection refreshes the structural fields on every run; human-authored `quirks`/overrides are never overwritten**: keep the stored value and report the drift diff. Its purpose: capture the singular, non-guessable specifics of a project, and make the guardrails checkable.
 
 ## Secrets policy (non-negotiable)
 
@@ -14,7 +21,7 @@ Per-project config, owned by this skill alone (it never reads another skill's co
 ```yaml
 # --- committed: structural, shareable ---
 version: 1
-detected_at: { sha: <HEAD sha at detection>, note: "stamp after the run" }
+detected_at: { sha: <HEAD sha at detection> }
 
 # The guardrail data. Everything here is compared against before any write or test.
 prod:
@@ -71,13 +78,13 @@ fix_loop:
   retry_failed_once: true          # re-run a failed suite once before triage (flaky/slowness filter)
   watchdog:                        # mandatory self-resume cron (CronCreate) — cannot be disabled, only tuned
     interval_minutes: 10           # tick period of the watchdog cron
-    stall_after_ticks: 2           # no heartbeat change for N consecutive ticks ⇒ presumed stalled ⇒ resume
+    stall_after_cron_ticks: 2      # no heartbeat change for N consecutive 10-min cron ticks ⇒ presumed stalled ⇒ resume (distinct from follow.stall_after_ticks)
     max_resumes: 5                 # total auto-resumes per loop; beyond ⇒ abort with report, human needed
-  agents:                          # difficulty → subagent type; detected from installed types, override here
-    trivial: sonnet-quick
+  agents:                          # difficulty → subagent type; fallback matrix, the project's orchestration section wins if present
+    trivial: haiku-standard        # haiku-quick for purely mechanical edits
     standard: sonnet-standard
     complex: opus-standard
-    critical: opus-deep
+    critical: opus-deep            # only on explicit user request or after opus-standard failed
 
 reseed:
   command: "<the project's native seed command, verbatim>"
@@ -91,7 +98,7 @@ reseed:
 # Every suite that targets the DEPLOYED preprod. Built by detection; the Phase 6 menu.
 suites:
   - id: e2e-python
-    label: "E2E Playwright Python (38 phases)"
+    label: "E2E Playwright Python"
     route: workflow              # workflow | local | ssh
     command: 'gh workflow run "E2E Python" --ref <branch>'
     local_fallback: "bash scripts/tests/test.sh <PREPROD_URL>"
@@ -114,13 +121,13 @@ suites:
 local:
   preprod_ssh_host: "ubuntu@<ip>"
   prod_ssh_host: "ubuntu@<ip>"           # recorded ONLY so the skill can recognise and avoid it
-  runner_path: "/home/.../ReviewMaster"
+  runner_path: "/home/<user>/<project>"
   env_var_names: [E2E_SEED_PASSWORD, METRICS_TOKEN]   # NAMES only, never values
 
 # --- human-authored: the non-guessable specifics (never auto-overwritten) ---
 quirks:
   - "preprod is a single shared slot; a bot push can steal it mid-run"
-  - "E2E_DEEP off ⇒ ~53 SKIP by-design — not failures. Realistic target: 0 FAIL"
+  - "E2E_DEEP off ⇒ N SKIP by-design — not failures. Realistic target: 0 FAIL"
 ```
 
 ## Field notes
@@ -137,7 +144,7 @@ quirks:
 
 **`backup.target_proof`** obeys the same G3 logic as the reseed: no proof ⇒ no backup ⇒ **no reseed** ⇒ blind spot. A failed backup also blocks the reseed — the safety net must exist before the destructive step runs.
 
-**`fix_loop.agents`** names subagent types that must actually be installed on the machine (`~/.claude/agents/` or the project's `.claude/agents/`). When one is missing, fix-loop falls back to the Agent tool's `model` parameter with the effort stated in the prompt — it never silently downgrades the difficulty class.
+**`fix_loop.agents`** names subagent types that must be among those the Agent tool offers. When one is missing, fix-loop falls back to the Agent tool's `model` parameter with the effort stated in the prompt; it never silently downgrades the difficulty class.
 
 **`fix_loop.max_iterations` / `no_progress_limit`** each accept `none` to disable that limit independently. Both at `none` = unbounded loop, valid only as an explicit user choice.
 
@@ -147,6 +154,5 @@ quirks:
 
 ## Freshness / drift
 
-- Stamp `detected_at.sha` after a run.
-- Each run, diff detected vs stored. **Structural drift** (a suite added, a URL changed) → update and report it. **Drift touching `quirks` or a guardrail field** (`prod.branch`, `preprod.url`, `allowed_test_hosts`) → show the diff and **ask** before changing. A guardrail that silently rewrites itself is not a guardrail.
+- Each run, diff detected vs stored. **Structural drift** (a suite added, a URL changed) → update and report it. **Drift touching `quirks` or a guardrail field** (`prod.branch`, `preprod.url`, `allowed_test_hosts`) → keep the stored value, report the diff, and use the stored value for the guards. A guardrail that silently rewrites itself is not a guardrail.
 - Recommend committing the structural block and gitignoring `local:`, so several machines don't fight over paths and hosts.

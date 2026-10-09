@@ -17,7 +17,7 @@ Goal: extract the user's **real expectations** before a single line of code. A w
 
 - **AskUserQuestion salvos**, max 4 questions each, never one-at-a-time dripping.
 - Options **concrete and opinionated**, "(Recommended)" default, `multiSelect` where choices aren't exclusive — answering is ticking; "Other" always allows free text.
-- **Adaptive**: skip what the input, `--spec` or the preference file already answers; dig where an answer reveals complexity ("several people use it" → next round asks who can see/change what, in functional terms).
+- **Adaptive**: skip what the input, `--spec` or the learned-tastes file or plugin options already answers; dig where an answer reveals complexity ("several people use it" → next round asks who can see/change what, in functional terms).
 
 ## The funnel
 

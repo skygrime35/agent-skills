@@ -1,5 +1,7 @@
 # Audit grid — checks, finding taxonomy, report contract
 
+Contents: 0 Output contract · 1-9 Domain grids (IDENT, CONSO, RGPD, COOK, DSA, IP, FISC, JEUX) · 10 META cross-cutting checks · 11 Report skeleton
+
 ## 0. Output contract
 
 Findings are emitted **in French**, in the project's existing audit style when one exists (harvested in Phase 0), else this canonical block:
@@ -21,7 +23,7 @@ Findings are emitted **in French**, in the project's existing audit style when o
 
 **Severity ladder.** P0 = active legal exposure (obligation missing while paid production runs — e.g. registre placeholders with Stripe live). P1 = obligation missing, latent exposure with a named sanction (no règlement de jeu; médiateur announced but unsigned at payment opening). P2 = formal non-compliance / mechanical incoherence (version desync, locale parity, placeholder unregistered, doc silent on an actual processing). P3 = preventive / quality / wording (a dormant reCAPTCHA one flag from breaking the cookie regime ships as P3 + a proposed `checks:` entry + a quirk line).
 
-**Evidence rule.** No finding without evidence — a `file:line`, a probe output, or a dated official source. Wave-4 arbitration (opus-deep) kills anything that lacks it.
+**Evidence rule.** No finding without evidence — a `file:line`, a probe output, or a dated official source. Wave-4 arbitration kills anything that lacks it.
 
 **Accepted risks.** A finding matching an `accepted_risks:` entry is **not** emitted in the main P0–P3 list. It appears only in the dedicated « Risques assumés » section: ID, decision, date, rationale, original severity — plus a ⚠ re-open line **only if** context changed since acceptance (preprod → paid prod; feature scope grew; `review_after` passed). Everywhere outside audit (verify, build, interview) these are silent (WAIVED).
 
@@ -31,7 +33,7 @@ Findings are emitted **in French**, in the project's existing audit style when o
 
 ## 1–9. Domain grids
 
-Each row: verifiable question · how to verify · KB entry · default severity · ID stem. Verify-grid results (audit package #1) feed SYNC-* findings directly.
+Each row: verifiable question · how to verify · KB entry · default severity · ID stem. Verify-grid results (audit work package 1) feed SYNC-* findings directly.
 
 ### IDENT — mentions légales
 | Q | Verify by | KB | Sev | Stem |
@@ -55,7 +57,7 @@ Each row: verifiable question · how to verify · KB entry · default severity �
 ### RGPD — data protection
 | Q | Verify by | KB | Sev | Stem |
 |---|---|---|---|---|
-| Privacy policy covers every art. 13/14 item; every ACTUAL processing named (AI included)? | policy read × evidence from package 2 | RGPD-1 | P1 | RGPD-INFO |
+| Privacy policy covers every art. 13/14 item; every ACTUAL processing named (AI included)? | policy read × evidence from work package 2 | RGPD-1 | P1 | RGPD-INFO |
 | Registre art. 30 exists, matches the policy 2-way, no placeholders? | registre read × policy diff | RGPD-2 | P0 if paid prod | RGPD-REGISTRE |
 | Every third-party processor has a DPA + transfer basis recorded? | registre × detected processors | RGPD-1 | P2 | RGPD-SOUSTRAIT |
 | Rights implemented: export (art. 20), deletion (art. 17) with real purge/anonymization, and the docs promise only what runs? | code: routes, crons, tasks | RGPD-6 | P1 | RGPD-DROITS |
@@ -120,7 +122,7 @@ Périmètre : <scope> · KB : <area: reviewed_at…> · Blind spots : N
 ## Verdict             « Conforme sur le périmètre vérifié » ou la phrase honnête qui s'impose
 ```
 
-Trailer, fenced, machine-readable (build B1 parses it, build B6 updates it):
+Trailer, fenced, machine-readable (build step B1 parses it, build step B6 updates it):
 
 ```yaml
 treated: none                      # none | partial | full — stamped by build, never by audit
@@ -128,7 +130,7 @@ findings:
   - { id: JEUX-REGL-01, severity: P1, docs: [reglement-jeu], action: create, status: open }
   - { id: SYNC-VERSION-01, severity: P2, docs: [cgv], action: fix-constant, status: open }
   # action: create | amend | fix-constant | fix-code | register-gap | add-check | ask-professional
-  # status: open (audit writes only this) | applied | skipped | obsolete — updated by build B6
+  # status: open (audit writes only this) | applied | skipped | obsolete — updated by build step B6
 ```
 
-**Finding lifecycle.** The audit emits every finding `status: open` and `treated: none` — it never marks its own work done. After a build consumes the audit, B6 writes the outcome back: per finding, `applied` (fix shipped), `skipped` (human said no at the hard gate — stays actionable next time), or `obsolete` (re-verification showed the issue no longer exists); plus a human-readable `## Traitement` section appended to the report (build date, HEAD SHA, one line per finding) and the `treated:` stamp (`partial` if any `open`/`skipped` remains, `full` otherwise). A later build's worklist = `open` + `skipped` findings only — `applied` work is never re-proposed; a `skipped` finding is re-proposed once, and if refused again the human is offered to move it to `accepted_risks:` (decided once) or drop it to the next audit. A `full`-treated audit stops routing to build: the next sensible step is `verify` or a fresh audit.
+**Finding lifecycle.** The audit emits every finding `status: open` and `treated: none` — it never marks its own work done. After a build consumes the audit, build step B6 writes the outcome back: per finding, `applied` (fix shipped), `skipped` (human said no at the hard gate — stays actionable next time), or `obsolete` (re-verification showed the issue no longer exists); plus a human-readable `## Traitement` section appended to the report (build date, HEAD SHA, one line per finding) and the `treated:` stamp (`partial` if any `open`/`skipped` remains, `full` otherwise). A later build's worklist = `open` + `skipped` findings only — `applied` work is never re-proposed; a `skipped` finding is re-proposed once, and if refused again the human is offered to move it to `accepted_risks:` (decided once) or drop it to the next audit. A `full`-treated audit stops routing to build: the next sensible step is `verify` or a fresh audit.

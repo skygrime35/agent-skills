@@ -1,8 +1,10 @@
 # Guardrail scripts: generating and wiring
 
+Contents: The four checkers - Wiring: propose, never do - Wire after clearing, never before - Choosing thresholds - Allowlists
+
 A rule nobody checks decays. These scripts turn written prohibitions into mechanical ones.
 
-They live in `scripts/` of this skill and are **copied into the target project** (default `scripts/`, or wherever that project keeps its tooling). Pure standard library, no dependency, exit 1 on violation.
+They live in `${CLAUDE_SKILL_DIR}/scripts/` and are **copied into the target project** (default `scripts/`, or wherever that project keeps its tooling), e.g. `cp ${CLAUDE_SKILL_DIR}/scripts/check_*.py <target>/scripts/`. Pure standard library, no dependency, exit 1 on violation.
 
 ## The four checkers
 
@@ -29,7 +31,9 @@ This is not a detail. The first field run of the naive version produced four hit
 
 Hand the human the block for their detected platform. Do not edit the pipeline.
 
-**GitHub Actions**
+The blocks below go in the target project (its CI config), never in this skill.
+
+**GitHub Actions** (in the target project)
 
 ```yaml
   guardrails:
@@ -45,7 +49,7 @@ Hand the human the block for their detected platform. Do not edit the pipeline.
       - run: python scripts/check_forbidden_chars.py --chars dashes frontend/src
 ```
 
-**GitLab CI**
+**GitLab CI** (in the target project)
 
 ```yaml
 guardrails:
@@ -55,7 +59,7 @@ guardrails:
     - python scripts/check_monolith.py --file 400 backend/
 ```
 
-**pre-commit**
+**pre-commit** (in the target project)
 
 ```yaml
   - repo: local
@@ -67,7 +71,7 @@ guardrails:
         pass_filenames: true
 ```
 
-**Makefile / justfile**
+**Makefile / justfile** (in the target project)
 
 ```make
 guardrails:
@@ -85,7 +89,7 @@ If a checker fails today, wiring it makes the pipeline red on day one, and the r
 2. Zero violations: offer the CI block now.
 3. Non-zero: record the count in the debt register with the resorption plan, and offer the CI block **for after** that work. Set `wired: false` in the config with the blocking count.
 
-Observed instance: a forbidden-character rule adopted on a frontend carrying 1 524 existing violations. Wiring it immediately would have blocked every merge; the correct sequence was rule, then debt entry, then resorption, then CI.
+Observed instance: a forbidden-character rule adopted on a frontend carrying about 1,500 existing violations. Wiring it immediately would have blocked every merge; the correct sequence was rule, then debt entry, then resorption, then CI.
 
 ## Choosing thresholds
 

@@ -1,6 +1,15 @@
 # Detection
 
-Everything `/full-test` needs to learn about a project before it can act. Fan out subagents — these probes are independent.
+## Contents
+
+1. The branch -> environment mapping
+2. Environments and the version endpoint
+3. Enumerating preprod-targeting suites
+4. The reseed command
+5. Dispatchable vs branch-gated workflows
+6. Capability preflight
+
+Everything `/full-test` needs to learn about a project before it can act. Fan out subagents, since these probes are independent: `haiku-standard` for probes that return evidence (curl, `gh`, config reads), `Explore` for read-only file location.
 
 ## 1. The branch → environment mapping (the critical one)
 

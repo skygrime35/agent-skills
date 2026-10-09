@@ -1,5 +1,12 @@
 # Audit grid
 
+Contents:
+- P0 - active risk (P0.1-P0.4)
+- P1 - false facts (P1.1-P1.4)
+- P2 - structure and cost (P2.1-P2.5)
+- P3 - hygiene (P3.1-P3.4)
+- Non-regression check
+
 Each check states what it looks for, the command that runs it, and the severity of a hit. **No finding without the evidence that produced it.**
 
 Report most severe first. Every check that could not run is itself reported, as a blind spot.
@@ -79,7 +86,7 @@ grep -ohE '`[A-Za-z0-9_./-]+\.(md|py|ts|tsx|yml|yaml|json|sh|mjs)`' AGENTS.md AG
     done
 ```
 
-A partial path that resolves under no root is a genuine finding, and a common one after a compression pass: shortening `backend/apps/videos/infrastructure/…` to `infrastructure/…` reads fine and points nowhere.
+A partial path that resolves under no root is a genuine finding, and a common one after a compression pass: shortening `backend/apps/orders/infrastructure/…` to `infrastructure/…` reads fine and points nowhere.
 
 ### P1.3 Sections promised but absent
 
@@ -109,7 +116,7 @@ grep -c '^- ' AGENTS.md
 grep -oiE '\b(must|never|always|required|forbidden|shall|do not)\b' AGENTS.md | wc -l
 ```
 
-Sum across every always-loaded file (root, domain files, CLAUDE.md). Threshold: 150 to 200 total instructions before adherence degrades, and the harness already spends about 50. Report the count, the margin, and name the sections that would be cut first.
+Sum across every always-loaded file (root, domain files, CLAUDE.md). Threshold: the canonical figure in `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget). Report the count, the margin, and name the sections that would be cut first.
 
 ### P2.2 Balance
 

@@ -1,6 +1,8 @@
 # `.claude/safe-merge.yml` schema
 
-Per-project config. **Auto-detection refreshes the structural fields on every run; the human-authored `quirks`/overrides are never silently overwritten** (show a drift diff and ask). Its main purpose: capture the singular, non-guessable specifics of a project.
+Contents: secrets policy · layout · health_checks · freshness/drift · run journal (`journal.md`)
+
+Per-project config. **Auto-detection refreshes the structural fields on every run; the human-authored `quirks`/overrides are never silently overwritten** (keep and report on drift). Its main purpose: capture the singular, non-guessable specifics of a project.
 
 ## Secrets policy (non-negotiable)
 
@@ -14,7 +16,7 @@ Per-project config. **Auto-detection refreshes the structural fields on every ru
 ```yaml
 # --- committed: structural, shareable ---
 version: 1
-detected_at: { sha: <TARGET sha at detection>, note: "stamp after the run; scripts can't call Date.now" }
+detected_at: { sha: <TARGET sha at detection>, date: <YYYY-MM-DD at detection> }   # stamp date + SHA after each run
 
 project_type: web-service        # web-service | library | cli | mobile | static-site | monorepo
 branches:
@@ -39,18 +41,22 @@ tests:                           # harvested from CI (the oracle); mark side-eff
     run:  "E2E_DEEP=1 bash scripts/tests/test.sh <PREPROD_URL>"
 
 backups:
-  prod: "ssh <host>; bash scripts/reviewmaster-backup.sh prod"      # host in `local:` block
-  preprod: "ssh <host>; bash scripts/reviewmaster-backup.sh preprod"
+  prod: "ssh <host>; bash scripts/backup.sh prod"      # e.g.; host in `local:` block
+  preprod: "ssh <host>; bash scripts/backup.sh preprod"
   verify: "tail -5 <backup.log> ends with 'OK ... sha256=...'"
   restore: "scripts/restore-from-backup.sh <env> <dump>"
   prod_to_preprod_copy: "scripts/copy-prod-to-preprod.sh"           # prod→preprod ONLY
-  blind_spots: ["object storage not versioned", ".env not backed up", "Redis not backed up"]
+  blind_spots: ["object storage not versioned", ".env not backed up", "cache store not backed up"]   # e.g.
 
 db:
   system: postgres
   orm: django
   migration_glob: "**/migrations/*.py"
   statement_timeout_ms: 30000    # migrations exceeding this on real volume get killed
+
+health_checks:                   # post-deploy checks run in Phase 7 (e.g.; take them from the project, none assumed)
+  - { name: health, cmd: "curl -fsS <PROD_URL>/api/health | jq -e '.status==\"ok\"'" }
+  - { name: dependencies, cmd: "curl -fsS <PROD_URL>/api/health | jq -e '.checks | all(.ok)'" }   # e.g. db, cache, disk, worker checks
 
 changelog: { file: CHANGELOG.md, format: keep-a-changelog, language: fr }
 
@@ -62,14 +68,35 @@ local:
 
 # --- human-authored: the non-guessable specifics (never auto-overwritten) ---
 quirks:
-  - "Postgres UID must stay 70:999, never 999 (broke preprod once)"
+  # e.g. (neutral examples, replace with the project's own)
+  - "the database container's user/group ids must stay as pinned in compose"
   - "preprod is a single shared deploy slot — another push can steal it mid-E2E"
   - "media object storage is not versioned; deleted objects are unrecoverable"
-  - "deploy health-check hits /api/version (not /api/health) → functional bugs don't auto-rollback"
+  - "deploy health-check only hits the version endpoint → functional bugs don't auto-rollback"
 ```
 
 ## Freshness / drift
 
-- Stamp `detected_at.sha` after a run (scripts have no clock; use the git SHA as the stamp).
-- On each run, diff detected structural values vs stored. Structural drift → update automatically but **report it**. Drift touching a `quirks`/override → show the diff and **ask before changing**.
+- After a run, stamp `detected_at` with the date and the TARGET SHA.
+- On each run, diff detected structural values vs stored. Structural drift → update automatically but **report it**. Drift touching a `quirks`/override → **keep the stored value and report the difference** (never ask, never overwrite).
 - Recommend committing the structural block and gitignoring the `local` block (e.g. `.claude/safe-merge.local.yml`), so multiple machines don't fight over machine-specific paths.
+
+## Run journal (`.claude/safe-merge/journal.md`)
+
+The only journal format (gitignore `.claude/safe-merge/`). Markdown, rewritten after each phase:
+
+```markdown
+# safe-merge journal
+- run_id: <YYYYMMDD-HHMM>
+- mode: full | dry-run | revert
+- started: <ISO time>   updated: <ISO time>   # resume only if updated < 24 h ago
+- source: <branch> @ <sha>   target: <branch> @ <sha>   # resume only if both SHAs unchanged
+- preparation_authorized: yes | no   (at <ISO time>)
+- phase: <last completed phase, e.g. 3>
+## Checklist
+- [x] Phase 0 ... (fallback when TaskCreate is absent)
+## Results
+- backups: <paths + sha256>   - tests: <suite: result>   - rehearsal: <duration, verdict>
+- blind_spots: [...]   - degraded_tools: [...]
+- changelog_draft: <path>   - rollback_file: <path>
+```

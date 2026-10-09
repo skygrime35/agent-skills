@@ -40,7 +40,7 @@ runners:                              # mirror of inventory profile.frameworks +
     mutates_state: true
     skip_idiom: "test.fixme"
 
-prod_hosts:                           # the V8 / build guardrail list — confirmed human, never auto-shrunk
+prod_hosts:                           # (key name shared with the full-test config) the V8 / build guardrail list — confirmed human, never auto-shrunk
   - "app.exemple.org"
   - "api.exemple.org"
 
@@ -58,7 +58,7 @@ accepted_risks:                       # conscious human decisions — never auto
     rationale: "code en fin de vie; l'effort de test serait jeté avec lui"
     severity: P2                      # original severity, never downgraded
     accepted_at: 2026-08-11
-    accepted_by: "Romain"
+    accepted_by: "owner"
     review_after: 2026-12-01          # optional date that reopens the question
 
 # --- local: machine-specific (gitignore .claude/test-coverage.local.yml) ---

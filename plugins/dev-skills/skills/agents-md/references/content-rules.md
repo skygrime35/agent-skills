@@ -1,5 +1,19 @@
 # What to write, and what actively harms
 
+Contents:
+- 1 Generic content
+- 2 Counter-intuitive conventions
+- 3 Verified or absent
+- 4 Behaviour vs guardrails
+- 5 Imperative over justification
+- 6 Probe before externalising
+- 7 History
+- 8 Redundancy
+- 9 Mechanical checks
+- 10 CLAUDE.md pointer
+- 11 Prose density
+- 12 Concurrency rules
+
 The rules in this file decide the quality of everything the skill produces. They are ordered by how much damage ignoring them causes.
 
 ## 1. Generic content is worse than no content
@@ -38,7 +52,7 @@ Rank candidates by how surprising they are:
 
 Every command written into the documentation must have been **executed** in the target repository during this run. Every path must have been stat'd. Every branch must have been resolved.
 
-Field evidence: a documented `sudo docker compose` survived months in a file considered reliable, on a host where docker had long run unprivileged (the `sudo` triggered permission prompts and left root-owned files in the tree). A `gh run list --branch refactor/hexagonal` pointed at a branch deleted long before. Both were in the project's most-trusted file.
+Field evidence: a documented `sudo docker compose` survived months in a file considered reliable, on a host where docker had long run unprivileged (the `sudo` triggered permission prompts and left root-owned files in the tree). A `gh run list --branch refactor/old-layout` pointed at a branch deleted long before. Both were in the project's most-trusted file.
 
 When a fact resists verification, the options are: ask the human, or write the slot empty with a one-line note. Never write the plausible version.
 
@@ -52,15 +66,15 @@ When a fact resists verification, the options are: ask the human, or write the s
 
 This is what makes compression safe. Keep the prohibition and any numeric threshold; move everything else.
 
-Before (1046 characters):
+Before (verbose):
 
-> **Player asset auto-repair bounded by `VIDEO_AUTOREPAIR_CUTOFF`**: the periodic selection of degraded ready videos (`repair_degraded_player_assets`) never examines a video created before this bound (default `2026-08-01T00:00:00Z`), a mechanical guardrail (SQL filter, fail-closed if unreadable), not a comfort setting. Explicit product requirement: the production fleet existing when this engine shipped (38 videos, 37 healthy and in use by paying subscribers) must never be touched by an automatic repair. Only the support command [...]
+> **Invoice auto-repair bounded by `INVOICE_REPAIR_CUTOFF`**: the periodic selection of broken invoices (`repair_broken_invoices`) never examines an invoice created before this bound (default `2026-01-01T00:00:00Z`), a mechanical guardrail (SQL filter, fail-closed if unreadable), not a comfort setting. Explicit product requirement: the legacy invoices existing when this engine shipped (several thousand, all already sent to customers) must never be touched by an automatic repair. Only the support command [...]
 
-After (230 characters):
+After (compressed):
 
-> **Player asset auto-repair**: no automatic repair of a video created before `VIDEO_AUTOREPAIR_CUTOFF` (default `2026-08-01`, fail-closed SQL filter). Manual repair one `--video-id` at a time, never a bulk backfill. Rationale and procedure: `AGENTS/BACKEND_LOGIC_VIDEOS.md`.
+> **Invoice auto-repair**: no automatic repair of an invoice created before `INVOICE_REPAIR_CUTOFF` (default `2026-01-01`, fail-closed SQL filter). Manual repair one `--invoice-id` at a time, never a bulk backfill. Rationale and procedure: `AGENTS/BACKEND_LOGIC_BILLING.md`.
 
-The prohibition, the bound, the fail-closed behaviour and the no-backfill rule all survive. The fleet count, the task name and the rhetorical reinforcement do not.
+The prohibition, the bound, the fail-closed behaviour and the no-backfill rule all survive. The legacy count, the task name and the rhetorical reinforcement do not.
 
 ## 6. Never externalise without probing the destination
 

@@ -1,10 +1,12 @@
 # `.claude/orchestration.yml` schema
 
-Per-project config, owned by this skill alone (it never writes another skill's config; it *reads* `.claude/agents-md.yml` when present). **Detection refreshes the structural fields on every run; human-authored `quirks` and recorded `policy` decisions are never silently overwritten** (show a drift diff and ask).
+Contents: Plugin options | Secrets policy | Layout | Field rules
 
-## User defaults file
+Per-project config, owned by this skill alone (it never writes another skill's config; it *reads* `.claude/agents-md.yml` when present). **Detection refreshes the structural fields on every run; human-authored `quirks` and recorded `policy` decisions are never silently overwritten** (keep them, show the drift diff in the report).
 
-`~/.claude/orchestration-defaults.yml`, machine-wide, written by the skill at the end of a first run if absent, editable by hand or through `--interactive`. It holds `agents.location` and the `policy:` fields with the same names and values as below. Resolution order for every policy answer: argument, project `policy:`, this file, the recommended option (interview.md, Autopilot). A project's own recorded policy wins over the defaults; to bring a project back to the defaults, delete the field from its config.
+## Plugin options (machine-wide defaults)
+
+Machine-wide defaults are plugin options, changed with `/config`, not a file. Each `policy:` field below has an option `orchestration_<field>` (`agents.location` is `orchestration_agents_location`; `orchestration_report_language` has no policy field). Resolution order for every policy answer: argument, project `policy:`, plugin option, the recommended option (interview.md, Autopilot). A project's recorded policy wins over the options; to bring a project back to the options, delete the field from its config.
 
 ## Secrets policy (non-negotiable)
 
@@ -34,7 +36,7 @@ agents_md:                       # the sibling skill this one must never contrad
   budget:
     total: 138                   # normative statements across always-loaded files
     orchestration_share: 22      # this skill's section alone
-    threshold: "150-200 minus ~50 harness"
+    threshold: see-agents-md-skill
 
 agents:                          # subagent type definitions
   location: global               # global | project, human decision at init (Q0.1)
@@ -106,6 +108,6 @@ local:                           # machine-specific, gitignore candidate
 
 **`policy.language_resolution`**: populated whenever the base doc's language, a project language rule, and `--lang` disagree. Never resolve silently; record the human's decision and the date.
 
-**`quirks`**: the only human-authored block. On drift, show the diff and ask. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
+**`quirks`**: the only human-authored block. On drift, keep it and report the diff. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
 
 **`local`**: everything in it describes THIS machine, not the project. A repo cloned elsewhere gets a fresh `local:` from detection, which is precisely why the doctrine must carry its fallbacks (`fallback_documented: true`).

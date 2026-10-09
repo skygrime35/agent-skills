@@ -6,7 +6,7 @@
 
 - **Live URL** — the strongest proof, and the primary one for every web-reachable type: the user clicks and tries the must-haves themselves. The screenshot below is captured *through* that URL, as a record.
 
-- **Screenshot** — anything visual (web-app, static-site, tui, browser-ext). This machine is headless: drive a browser with Playwright (`npx playwright screenshot` or a short script) or the claude-in-chrome MCP if connected; for TUIs, capture the terminal buffer or render via `textual run --screenshot` where supported. Show the *interesting* screens (the must-haves working), not just the landing page. Deliver via SendUserFile.
+- **Screenshot** — anything visual (web-app, static-site, tui, browser-ext). This machine is headless: drive a browser with Playwright (`npx playwright screenshot` or a short script) or the claude-in-chrome MCP if connected; for TUIs, capture the terminal buffer or render via `textual run --screenshot` where supported. Show the *interesting* screens (the must-haves working), not just the landing page. Deliver via SendUserFile (if unavailable, give the file path).
 - **Transcript** — cli, library, bot-worker: the real commands and their real output, unedited, including at least one error-path demonstration (bad input → clean message).
 - **curl output** — api: each must-have endpoint hit for real, showing request and response.
 

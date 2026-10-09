@@ -1,6 +1,10 @@
 # Legal knowledge base — obligation matrix (French/EU law, web projects)
 
-file_reviewed_at: 2026-09  # RGPD-5, FISC-1, JEUX-1 refreshed 2026-09-01 (evabet audit); COOK-1/2 note: délib. 2020-091/092 amended by délib. 2025-131 (multi-device consent) and reco pixels de suivi 12/03/2026, not replaced
+Contents: 0 How to read · 1 Trigger index · 2 IDENT · 3 CGU / CONSO · 4 RGPD · 5 COOK · 6 DSA / hosting · 7 IP · 8 JEUX · 9 FISC · 10 COMM / MISC
+
+Freshness horizon: about 2027-02 (6 months after `file_reviewed_at`); re-check older entries online. **CONSO-2 is `moving`** (ordonnance 2026-2, décret 2026-3): re-check it online on the next run, whatever the horizon.
+
+file_reviewed_at: 2026-09  # RGPD-5, FISC-1, JEUX-1 refreshed 2026-09-01 (audit of a sample project); COOK-1/2 note: délib. 2020-091/092 amended by délib. 2025-131 (multi-device consent) and reco pixels de suivi 12/03/2026, not replaced
 
 ## 0. How to read this matrix
 

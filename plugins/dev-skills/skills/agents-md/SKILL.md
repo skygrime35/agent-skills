@@ -1,50 +1,44 @@
 ---
 name: agents-md
-argument-hint: "[init|audit|sync] [--tier=1|2|3] [--lang=en|fr] [--dry-run] [--help]"
-description: "Use to create, grade, or repair a project's agentic documentation system: the root AGENTS.md, a thin CLAUDE.md pointer, per-domain AGENTS.md files, an AGENTS/ knowledge folder with a maintained index, ADRs, and the mechanical guardrail scripts that keep the written rules real. Three modes: init builds the system from scratch at a size that fits the project (three tiers, proposed after measuring it); audit grades an existing system and reports dead references, false facts, contradictions, redundancy and instruction-budget overrun, writing nothing; sync applies those fixes in confirmed batches, never dropping a prohibition. Portable via per-run auto-detection plus a .claude/agents-md.yml config. Refuses to write what it has not verified: every documented command has been executed, every cited path exists, and anything unknown becomes a question or an explicitly empty slot."
+argument-hint: "[init|audit|sync] [--tier=1|2|3] [--lang=<code>] [--dry-run] [--help]"
+description: "Creates, grades or repairs a project's agent documentation: root AGENTS.md, thin CLAUDE.md pointer, per-domain AGENTS.md, AGENTS/ index, ADRs and guardrail scripts. Modes: init (tiered build), audit (read-only P0-P3 report: dead references, false facts, contradictions, budget overrun), sync (confirmed fixes, no prohibition dropped). Never writes unverified commands or paths."
+when_to_use: "AGENTS.md, CLAUDE.md, agent docs, instruction budget, audit my agent docs, set up agent instructions, fix stale agent documentation."
 ---
 
 # /agents-md
 
-Build, grade, or repair the **agentic documentation system** of any repository: the file set that tells an AI agent how this project works, what it must never do, and where the detailed knowledge lives.
-
-This skill is **portable across any project**. It measures the repository on every run (languages, real commands, domain boundaries, branch-to-environment mapping, existing tooling) and records the non-guessable specifics in a per-project `.claude/agents-md.yml`.
-
-Its central promise is a negative one: **it never writes what it has not verified.** Not a command it did not run, not a path it did not stat, not a convention it inferred from a filename.
+Builds, grades or repairs the file set that tells an AI agent how a repository works, what it must never do, and where detailed knowledge lives. Portable: every run measures the repository; non-guessable specifics go in `.claude/agents-md.yml`. Central promise: **it never writes what it has not verified** (no unexecuted command, no unstat'd path, no inferred convention).
 
 ## Usage
 
 ```
-/agents-md                  # interactive: detect the project, then propose init or audit
-/agents-md init             # build the system from scratch (refuses if AGENTS.md already exists)
+/agents-md                  # bare: detect, then auto-pick init (no AGENTS.md) or audit (exists); print the choice
+/agents-md init             # build from scratch (refuses if AGENTS.md already exists)
 /agents-md audit            # grade the existing system, write nothing, report P0-P3
-/agents-md sync             # audit, then apply fixes in confirmed batches
-/agents-md --tier=1|2|3     # force the size tier instead of asking
-/agents-md --lang=en|fr|... # force the documentation language instead of detecting
-/agents-md --dry-run        # print the execution plan. Zero writes
+/agents-md sync             # audit, then apply fixes in batches after one plan confirmation
+/agents-md --tier=1|2|3     # force the size tier
+/agents-md --lang=<code>    # force the documentation language
+/agents-md --dry-run        # init and sync: print the plan, zero writes
 /agents-md --help           # print this Usage block and stop
 ```
 
-If invoked with `--help`/`-h` and nothing else, print the Usage block above verbatim and stop.
+With `--help`/`-h` and nothing else, print the Usage block verbatim and stop.
 
-Arguments override questions. An argument never overrides a **guardrail**: `--tier=3` on a fifty-file repository still triggers the size warning, and `init` on a repository that already has an AGENTS.md still refuses.
+Resolution order for every policy: argument > `.claude/agents-md.yml` > plugin option `${user_config.<KEY>}` > recommended default. An argument never overrides a **guardrail**: `init` on a repository that already has an AGENTS.md still refuses (switch to `audit`).
 
-## What this skill is for / non-goals
+## Scope
 
-**For:** the documentation an *agent* reads to work correctly in this repository. Behaviour rules, absolute prohibitions, verified commands, layer boundaries, naming conventions, the index of detailed knowledge files, and the scripts that make the rules mechanically checkable.
-
-**Not for:** product documentation, README files aimed at humans, API references, or onboarding guides. **Not for** translating existing documentation. **Not for** generating a knowledge graph (it detects one and documents its use if present). **Not for** wiring CI: it writes the guardrail scripts and hands you the block to paste, but it does not touch your pipeline.
+**For:** documentation an *agent* reads: behaviour rules, absolute prohibitions, verified commands, layer boundaries, non-guessable naming, the knowledge index, and the scripts that make rules checkable. **Not for:** product docs, human READMEs, API references, onboarding guides, translating docs, generating a knowledge graph (detected and documented if present), or wiring CI (it hands over the block; see `${CLAUDE_SKILL_DIR}/references/guardrail-scripts.md`).
 
 ## Governing principles
 
-These override any convenience, in all three modes.
+These override convenience, in all three modes.
 
-1. **Verified or absent.** Every command written into the documentation has been executed in this repository. Every path cited has been stat'd. Every branch named has been resolved. If a fact cannot be established, it becomes a question to the human or an explicitly empty slot, never a plausible guess. A confidently wrong AGENTS.md is worse than a short one: agents follow it.
-2. **Generic content actively harms.** LLM-written agent instructions measurably degrade task success when they state the obvious. Never write "follow best practices", "write clean code", "handle errors properly". The convention worth documenting is the **counter-intuitive** one: the thing an agent would get wrong by reasoning from the code alone. See `references/content-rules.md`.
-3. **The instruction budget is finite.** Frontier models follow roughly 150-200 instructions before adherence degrades, and the harness already spends about 50. Past that, a rule you add **replaces** one already there instead of joining it. Count, report, and refuse to pad.
-4. **Behaviour stays, guardrails travel.** Behaviour rules apply on every turn regardless of the file being touched, so they live in the root AGENTS.md and are never externalised. Domain guardrails apply only when that domain is touched, so their detail belongs in the domain file, leaving the prohibition behind. See `references/structure.md`.
-5. **Never drop a prohibition.** Compression rewrites a rule's justification, never its imperative. Any `sync` that touches guardrails ends with a mechanical non-regression check: count before, count after, and grep for every prohibition marker.
-6. **Unknown is a finding, not a gap to fill.** In `audit`, an undetectable fact is reported as a blind spot. Never a green check, never an assumption dressed as a conclusion.
+1. **Verified or absent, unknown is a finding.** Every written command has been executed here; every cited path stat'd; every branch resolved. A fact that cannot be established becomes a question, an explicitly empty slot, or (in `audit`) a reported blind spot, never a plausible guess or a green check. A confidently wrong AGENTS.md is worse than a short one: agents follow it.
+2. **Generic content harms.** Never write "follow best practices" or "handle errors properly". Document the counter-intuitive convention an agent would get wrong from the code alone. See `${CLAUDE_SKILL_DIR}/references/content-rules.md`.
+3. **The instruction budget is finite.** Count, report, refuse to pad; a rule added displaces one already there. Canonical figure: `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget).
+4. **Behaviour stays, guardrails travel.** Behaviour rules live in the root AGENTS.md, never externalised. Domain guardrails keep the prohibition in the root and the detail in the domain file. See `${CLAUDE_SKILL_DIR}/references/structure.md`.
+5. **Never drop a prohibition.** Compression rewrites a justification, never an imperative. Any `sync` touching guardrails ends with a mechanical non-regression check: count before and after, grep every prohibition marker.
 
 ## Mode: init
 
@@ -52,11 +46,11 @@ Builds the system from scratch. **Refuses and switches to `audit` if a root AGEN
 
 **Phase 0 - measure.** Run the detection probes in `references/detection.md`. They are independent: fan them out. Produce a factual profile of the repository: languages, package managers, real commands, sub-projects, branch-to-environment mapping, commit conventions, existing quality tooling, dominant language of the existing prose.
 
-**Phase 1 - size it.** Propose a tier from the measurement (see `references/structure.md`), with its per-session token cost, and confirm with the human. Never impose tier 3 on a small repository: an instruction file that is not earned is a permanent tax.
+**Phase 1 - size it.** Resolve the tier: `--tier` > `.claude/agents-md.yml` > `${user_config.agents_md_tier_policy}` > the tier measured from the repository (see `${CLAUDE_SKILL_DIR}/references/structure.md`). Report the per-session token cost. With `auto`, never pick tier 3 for a small repository: an instruction file that is not earned is a permanent tax. A forced `--tier=3` on a small repository prints a warning with that cost and proceeds.
 
-**Phase 2 - ask only the non-inferable.** Which ref deploys production. What must never happen (the prohibitions no code can reveal). Which structural decisions are already settled. Which language to write in, if detection was ambiguous or conflicts with a rule found in the repository. Keep it to four questions or fewer: everything else was measured in Phase 0.
+**Phase 2 - resolve policies, ask nothing by default.** Resolve each policy in the same order (argument > project config > plugin option > recommended default): doc language (`${user_config.agents_md_doc_language}`), guardrail scripts (`${user_config.agents_md_install_guardrail_scripts}`, opt-out), commit convention (`${user_config.agents_md_commit_convention_policy}`: detect, enforce or skip). Ask only a blocking question: the production ref when it is undetectable, or a documentation-language rule found in the repository that conflicts with the resolved language. The prohibitions no code can reveal are never invented: unknown ones stay an explicitly empty slot, listed in the report. Then present ONE plan confirmation (tier, file set, scripts, language, empty slots) before the first write.
 
-**Phase 3 - write.** Generate the tier's file set from `templates/`, filled with measured facts. Generate the guardrail scripts the human accepted. Write `.claude/agents-md.yml`.
+**Phase 3 - write.** After the plan is confirmed, generate the tier's file set from `${CLAUDE_SKILL_DIR}/templates/`, filled with measured facts. Copy the guardrail scripts if enabled: `cp ${CLAUDE_SKILL_DIR}/scripts/check_*.py <target>/scripts/`. Write `.claude/agents-md.yml`. With `--dry-run`, print the plan and stop: zero writes.
 
 **Phase 4 - verify your own output.** Stat every path cited. Execute every command written. Confirm every cross-reference resolves to a file that exists and actually contains the section named. Fix or remove whatever fails. **This phase is not optional**: it is the difference between this skill and a template generator.
 
@@ -72,7 +66,7 @@ The seven families:
 - **False facts.** Commands are *executed*, not read. A documented `sudo docker` on a host where docker runs unprivileged is a finding. A CI command pinned to a branch that no longer exists is a finding. A file said to contain a section that it does not is a finding.
 - **Internal contradictions.** Rules that cancel each other, absolutes with no workable exception, a rule keyed to a named model where a role is meant, a rule whose enforcement mechanism is missing.
 - **Redundancy.** Passages repeated across sections, and the reliable tell: a "see above" or "cf. section X" that follows a restatement of section X.
-- **Instruction budget.** Count normative statements across every always-loaded file, compare against the 150-200 threshold, report the margin.
+- **Instruction budget.** Count normative statements across every always-loaded file, compare against the instruction budget in `${CLAUDE_SKILL_DIR}/references/structure.md`, report the margin.
 - **Balance.** Characters per section. A section that outweighs the project's own commands by several times is misallocated, whatever its merit.
 - **Coverage gaps.** What the repository does that the documentation never mentions: test suites, CI guardrails, deployment paths, environment quirks.
 
@@ -80,7 +74,7 @@ Findings are reported most severe first, each stating the check that found it an
 
 ## Mode: sync
 
-Runs `audit`, then applies fixes in **confirmed batches**, most valuable first. Three operations, never mixed within a batch:
+Runs `audit`, then presents ONE plan confirmation listing the batches, and applies fixes batch by batch, most valuable first (`--dry-run`: print the batches, zero writes). Three operations, never mixed within a batch:
 
 - **Correct.** False facts and dead references. Lowest risk, highest value, always offered first.
 - **Compress.** Keep the imperative and the numeric threshold; move the justification, the history and the procedure out. A guardrail works by its imperative form, not by its explanation.
@@ -96,17 +90,17 @@ Load on demand, not upfront:
 
 | File | When |
 |---|---|
-| `references/detection.md` | Phase 0 of any mode |
-| `references/structure.md` | Choosing a tier, deciding where a rule belongs |
-| `references/content-rules.md` | Writing any documentation content |
-| `references/audit-checks.md` | Modes audit and sync |
-| `references/guardrail-scripts.md` | Generating or wiring the scripts |
-| `references/config-schema.md` | Reading or writing `.claude/agents-md.yml` |
+| `${CLAUDE_SKILL_DIR}/references/detection.md` | Phase 0 of any mode |
+| `${CLAUDE_SKILL_DIR}/references/structure.md` | Choosing a tier, deciding where a rule belongs |
+| `${CLAUDE_SKILL_DIR}/references/content-rules.md` | Writing any documentation content |
+| `${CLAUDE_SKILL_DIR}/references/audit-checks.md` | Modes audit and sync |
+| `${CLAUDE_SKILL_DIR}/references/guardrail-scripts.md` | Generating or wiring the scripts |
+| `${CLAUDE_SKILL_DIR}/references/config-schema.md` | Reading or writing `.claude/agents-md.yml` |
 
-`templates/` holds the file skeletons; `scripts/` holds the guardrail checkers, copied into the target project on request.
+`${CLAUDE_SKILL_DIR}/templates/` holds the file skeletons; `${CLAUDE_SKILL_DIR}/scripts/` holds the guardrail checkers, copied into the target project. In `templates/adr-0001.md.tmpl`, fill `{{BUDGET_FIGURE}}` from the canonical budget in `structure.md`.
 
 ## Language
 
-The documentation is written in **English by default**, whatever the repository's own language, because English is measurably cheaper to tokenise and the audience is a model.
+The documentation language is `${user_config.agents_md_doc_language}` (default English: cheaper to tokenise, the audience is a model), overridden by `--lang` or `.claude/agents-md.yml`. Reports to the user follow the user's language.
 
-**If the repository states a conflicting language rule** (a guardrail imposing another language for documentation), do not silently override it: report the conflict, quote the rule and its location, and ask. A skill that quietly violates a project's own written rule is a bug, not a feature.
+**If the repository states a conflicting language rule** (a guardrail imposing another language for documentation), do not silently override it: report the conflict, quote the rule and its location, and ask (this is a blocking case). A skill that quietly violates a project's own written rule is a bug, not a feature.

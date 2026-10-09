@@ -1,5 +1,7 @@
 # `.claude/legal.yml` — per-project config
 
+Contents: Secrets policy · Layout · Field rules · Freshness / drift
+
 Owned by this skill alone (it never reads another skill's config). Lives at `PROJECT_ROOT/.claude/legal.yml`.
 
 ## Secrets policy (non-negotiable)
@@ -28,17 +30,17 @@ substrate:
   kind: i18n-json                    # mdx-routes | i18n-json | markdown | none
   authoritative_locale: fr           # la version faisant foi
   locales: [fr, en, es, de]
-  paths: { fr: frontend/messages/fr.json }   # mdx: a glob with {loc}; markdown: a dir
+  paths: { fr: messages/fr.json }   # mdx: a glob with {loc}; markdown: a dir
   key_prefix: legal                  # i18n-json only
   archive: null                      # e.g. "frontend/src/app/(legal)/archive/"
-  versioning_doc: null               # e.g. AGENTS/LEGAL_VERSIONING.md — read at write time
+  versioning_doc: null               # e.g. docs/LEGAL_VERSIONING.md — read at write time
 
 version_refs:                        # every place a doc version is declared; V1's raw input
-  - { doc: cgv, ref: "backend/apps/billing/services/subscriptions.py", extract: "CGV_CURRENT_VERSION" }
-  - { doc: cgv, ref: "frontend/messages/fr.json", extract: "legal.cgv.version" }  # normalized before compare
+  - { doc: cgv, ref: "server/billing/subscriptions.py", extract: "CGV_CURRENT_VERSION" }
+  - { doc: cgv, ref: "messages/fr.json", extract: "legal.cgv.version" }  # normalized before compare
 
 features:                            # refreshed each detection; evidence-backed
-  payments:  { present: true,  confidence: high, evidence: "backend/apps/billing" }
+  payments:  { present: true,  confidence: high, evidence: "server/billing" }
   accounts:  { present: true,  confidence: high }
   ugc:       { present: true,  confidence: high }
   minors:    { present: true,  confidence: low }      # low ⇒ confirmation salvo
@@ -58,7 +60,7 @@ law_profile:
 last_audit:
   path: ".claude/legal/audit-2026-08-09-ab12cd3.md"
   sha: ab12cd3
-  treated: none                    # none | partial | full — mirrored from the report trailer by build B6
+  treated: none                    # none | partial | full — mirrored from the report trailer by build step B6
   open_findings: 7                 # open + skipped count; 0 <=> treated: full; drives bare-/legal routing
   kb_state: { rgpd: 2026-08, conso: 2026-08, lcen-dsa: 2026-08, structure: 2026-08 }
   # snapshot of knowledge-base.md reviewed_at values the audit relied on; build warns
@@ -74,7 +76,7 @@ checks:                              # project-specific verify checks
 gaps:                                # placeholder register — machine-maintained
   - id: GAP-01
     doc: cgv
-    locus: "frontend/messages/fr.json :: legal.cgv.mediation.body"
+    locus: "messages/fr.json :: legal.cgv.mediation.body"
     placeholder: "Médiateur de la consommation : en cours de désignation — les coordonnées seront publiées ici dès la signature de la convention."
     needed: "médiateur signé (L616-1 C. conso) : nom, adresse postale, site"
     severity: P1
@@ -87,7 +89,7 @@ accepted_risks:                      # conscious human decisions — treated lik
     rationale: "association sans ligne dédiée; email répond sous 48h"
     severity: P1                     # original severity, never downgraded
     accepted_at: 2026-08-09
-    accepted_by: "Romain"
+    accepted_by: "Jane Doe"
     review_after: null               # optional date that reopens the question
 
 # --- local: machine-specific / non-public (gitignore .claude/legal.local.yml) ---
@@ -103,7 +105,7 @@ quirks:
 
 ## Field rules
 
-- **`editor:`** — asked once (interview R1), then `confidence: high`; drift (a probe finds a different SIRET in the published pages) is a V4 FAIL plus a question, never a silent overwrite in either direction.
+- **`editor:`** — asked once (interview R1; defaults from the `legal_editor_*` plugin options when config and published pages lack a value), then `confidence: high`; drift (a probe finds a different SIRET in the published pages) is a V4 FAIL plus a question, never a silent overwrite in either direction.
 - **`version_refs:`** — machine-refreshed each detection. `extract` is a constant name (grep) or a dotted JSON path (jq). In-text version strings are normalized (`"Version 1.0"` → `1.0`) before comparison.
 - **`features.*.confidence`** — `low` queues the flag for the Phase 0 confirmation salvo; an answered salvo raises it to `high` and records the answer's date implicitly via `detected_at`.
 - **`checks:`** — the audit may **propose** entries (`origin: detected`), presented for confirmation, never added silently. `origin: human` entries are untouchable by the machine.
@@ -112,4 +114,4 @@ quirks:
 
 ## Freshness / drift
 
-Detection re-runs every invocation; `detected_at.sha` is the timestamp (scripts have no clock — the git SHA is the stamp). Structural drift (substrate moved, a version_ref path died) updates the file with a one-line report. Human-authored drift (`quirks`, `accepted_risks`, `origin: human` checks, confirmed `editor:` fields) always shows the diff and asks. `last_audit.kb_state` older than 6 months on any area ⇒ build warns that consumed findings may rest on stale law and re-verifies them before acting.
+Detection re-runs every invocation; `detected_at.sha` is the timestamp (the git SHA is the stamp). Structural drift (substrate moved, a version_ref path died) updates the file with a one-line report. Human-authored drift (`quirks`, `accepted_risks`, `origin: human` checks, confirmed `editor:` fields) always shows the diff and asks. `last_audit.kb_state` older than 6 months on any area ⇒ build warns that consumed findings may rest on stale law and re-verifies them before acting.

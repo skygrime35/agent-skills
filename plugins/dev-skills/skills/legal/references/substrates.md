@@ -2,21 +2,21 @@
 
 The file that says *where legal text lives and how to write it* is the same file that says *what must stay true about it*: `verify` loads only this file (plus the config), and `build` cannot break an invariant it never read.
 
-## Write rituals (build B5 — single-threaded, post-gate only)
+## Write rituals (build step B5 — single-threaded, post-gate only)
 
 ### Common rules, all substrates
 
-1. **The project's own versioning doc is the oracle.** If `substrate.versioning_doc` is set (e.g. `AGENTS/LEGAL_VERSIONING.md`), read it **at write time** and follow it verbatim — never a memorized copy; the doc evolves. The ritual below is the default only when a project ships none.
+1. **The project's own versioning doc is the oracle.** If `substrate.versioning_doc` is set (e.g. `docs/LEGAL_VERSIONING.md`), read it **at write time** and follow it verbatim — never a memorized copy; the doc evolves. The ritual below is the default only when a project ships none.
 2. **FR first, locales derived.** Edit the authoritative-locale text, freeze it, then regenerate every other locale from the frozen FR — same structure (headings, sections, components/keys), plus the primacy clause (« Seule la version française fait foi. »). Never edit a translation independently.
 3. **Paired constants bump together.** Every `version_refs` entry for the touched doc changes in the same commit-sized change — frontend constant, backend constant, in-text version string, last-update date. A partial bump is exactly the V1 failure.
 4. **Enforce harvested conventions** (from Phase 0): site language rules, emoji bans, anti-TODO CI (published placeholders are professional French, never TODO/XXX), LOC caps, same-commit domain-doc updates.
 5. **Refactors ride separately.** De-hardcoding identity strewn across N files, adding a missing guard test, wiring a parity check — each is proposed as its own gated change, never smuggled into a content edit.
 
-### mdx-routes (DebriefLab shape)
+### mdx-routes (route-group MDX shape)
 
 Default ritual: (a) if `substrate.archive` is set and the doc is archivable, snapshot the **current** published version under `archive/vX.Y/<doc>/` first; (b) edit `content.fr.mdx`; (c) regenerate `content.{other}.mdx` from the frozen FR, preserving the MDX component skeleton (`LegalPage`, `LegalSection`, tables); (d) bump the version constants (frontend `company.ts`-style + backend `legal_versions.py`-style) in the same change; (e) run the project's guard tests. Identity values go through constants where the project routes them there; hardcoded occurrences follow rule 5.
 
-### i18n-json (evabet shape)
+### i18n-json (message-catalog shape)
 
 (a) Edit `legal.*` values in the authoritative locale file; (b) mirror the **exact key set** to every other locale file — parity is a check, so it is also a write rule: no missing key, no extra key; (c) bump the in-text version string and the backend constant together; (d) placeholders use professional French compatible with the project's anti-TODO CI; (e) run the key-parity script if the project has one, else the V2 probe.
 

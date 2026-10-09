@@ -2,7 +2,7 @@
 
 ## 0. Output contract
 
-Findings are emitted **in French**, canonical block:
+Findings are emitted **in the report language** (`${user_config.test_coverage_report_language}`; headings below shown in French), canonical block:
 
 ```markdown
 ### [TC-GAP-AUTH-03] Erreur « identifiants invalides » jamais vérifiée sur le flux de connexion

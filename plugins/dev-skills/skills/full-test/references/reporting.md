@@ -1,5 +1,15 @@
 # Reporting
 
+## Contents
+
+- The four outcomes
+- Stating the verdict
+- Failures
+- Run report template
+- Live ticks (Phase 7)
+- fix-loop tick table
+- fix-loop final report
+
 How to classify outcomes and what to write. The report is the deliverable — a run whose results are misread was a wasted run.
 
 ## The four outcomes (never collapse them)
@@ -13,7 +23,7 @@ How to classify outcomes and what to write. The report is the deliverable — a 
 
 Collapsing these is the classic reporting failure, and each collapse has a specific cost:
 
-- **Skip reported as failure** → the user hunts a bug that doesn't exist. Some suites skip *dozens* of steps by design; report the count **with its reason** ("~53 skipped: deep gating off + feature killswitches off — by design") or a healthy run reads as rot.
+- **Skip reported as failure** → the user hunts a bug that doesn't exist. Some suites skip *dozens* of steps by design; report the count **with its reason** ("N skipped: deep gating off + feature killswitches off - by design") or a healthy run reads as rot.
 - **Blind spot reported as pass** → the user believes something was verified that never ran. This is the one that gets people hurt, and it's why a declined suite is never simply omitted.
 - **Blind spot reported as failure** → infrastructure noise drowns the real signal.
 - **Invalid reported as failure** → see below.
@@ -24,7 +34,7 @@ Collapsing these is the classic reporting failure, and each collapse has a speci
 
 Be honest about scope. A run where three suites were declined is **not green** — it is "green on what ran". Write the verdict so that sentence is impossible to misread:
 
-> **Verdict: green on what ran.** 4 suites passed, 0 failed, ~53 steps skipped by design. **Not covered:** deep E2E (declined — costly), load tests (declined). The deep suite is the one that exercises real transcoding, so the transcode path is unverified by this run.
+> **Verdict: green on what ran.** 4 suites passed, 0 failed, N steps skipped by design. **Not covered:** deep E2E (declined — costly), load tests (declined). The deep suite is the one that exercises real transcoding, so the transcode path is unverified by this run.
 
 Name what the blind spot *means*, not just that it exists. "Load tests not covered" is a fact; "no evidence about behaviour under concurrent load" is the information.
 
@@ -51,7 +61,7 @@ Persist to `.claude/full-test/run-<TARGET_SHA>.md`:
 
 | Suite | Outcome | Detail |
 |---|---|---|
-| e2e-python | passed | 112 steps, 53 skipped by design (deep off + killswitches off) |
+| e2e-python | passed | M steps, N skipped by design (deep off + killswitches off) |
 | smoke-seo | passed | |
 | e2e-python-deep | not covered | declined (costly) — real transcode path unverified |
 | load-k6 | not covered | declined |
@@ -70,7 +80,7 @@ Persist to `.claude/full-test/run-<TARGET_SHA>.md`:
 
 Every 5 minutes, report only what you can **observe**: the suite in flight, elapsed time, counters if the harness exposes them, and the re-checked served SHA. Never invent progress — a percentage you inferred is worse than "running, 12 min elapsed, no counters exposed by this harness", because the first is believed.
 
-The tick is also a **watchdog** (default in every mode): when nothing observable has advanced for `stall_after_ticks` consecutive ticks, the tick row is replaced by a stall report — what stopped moving, since when, the probable cause from the native sources, and the action taken (cancel + one retry, or failed-infrastructure). A suite past the stall threshold is never still reported as "running".
+When nothing observable has advanced for `stall_after_ticks` consecutive ticks, the tick row is replaced by a stall report (what stopped moving, since when, probable cause, action taken); see `follow-up.md`. A suite past the threshold is never still reported as "running".
 
 Sources: `gh run view <id> --json status,jobs`, the harness log tail, the harness's own summary line. If the harness exposes nothing until it finishes, say that once at the start rather than emitting empty ticks.
 
@@ -81,7 +91,7 @@ In fix-loop mode, each 5-minute tick prints one recap row (same observability ru
 ```markdown
 | Iter | Suite in flight | Tests total | Done | ✅ | ❌ | Skips | Elapsed | ETA | Served SHA |
 |---|---|---|---|---|---|---|---|---|---|
-| 3/20 | e2e-python (12/38 phases) | 165 | 71 | 68 | 3 | 12 | 22 min | ~34 min | `a1b2c3d` ✓ |
+| 3/20 | e2e-python (12/N phases) | 165 | 71 | 68 | 3 | 12 | 22 min | ~34 min | `a1b2c3d` ✓ |
 ```
 
 - **ETA** is an estimate and is labeled as one: extrapolate from the observed pace of *this* suite this run, falling back to the config's `typical_duration`. No counters exposed → `—`, never an invented percentage.

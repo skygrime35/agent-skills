@@ -1,6 +1,6 @@
 # Detection reference
 
-How Phase 0 auto-detects a project's shape. Prefer **positive evidence**; when evidence is absent or contradictory, record `unknown` and surface it as a blind spot — **never assume the benign case**. Spawn parallel subagents for independent probes.
+How Phase 0 auto-detects a project's shape. Prefer **positive evidence**; when evidence is absent or contradictory, record `unknown` and surface it as a blind spot. Spawn parallel subagents for independent probes.
 
 ## 1. Project type
 
@@ -24,7 +24,7 @@ The type sets the **risk taxonomy** (Phase 2) and the **"what will happen"** nar
   - *Gitflow*: `develop` → `main`, with `release/*` and `hotfix/*`. If invoked from `release/x`, the SOURCE is that release branch, not `develop`.
   - *Promotion chain* `dev → staging → main`: never skip a stage — merging `dev→main` directly is wrong.
   - *Maintenance/backport lines* (`main` = v2, `1.x` = maintenance): SOURCE may legitimately be **behind** TARGET on some commits; don't read this as "divergence to investigate".
-- **When confidence is low, confirm the pair with the human** (Phase 0 step 10). Never merge into a branch you're unsure is the real release branch.
+- **When confidence is low, confirm the pair with the human** (Phase 0 step 9). Never merge into a branch you're unsure is the real release branch.
 
 ## 3. Deploy-trigger detection (broad; `unknown` is first-class)
 

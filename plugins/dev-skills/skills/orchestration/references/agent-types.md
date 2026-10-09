@@ -1,5 +1,7 @@
 # Agent type definitions
 
+Contents: The matrix | Built-in overrides | Frontmatter schema | Body rules | Location and fallback
+
 How the `agents` scope designs, writes and grades subagent type files. The model facts behind every choice here live in `references/models.md`; read it first and refresh it (probe D11) when it is stale.
 
 ## The matrix

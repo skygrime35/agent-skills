@@ -4,7 +4,12 @@
 # Exit codes: 0 = clean, 1 = violation (block the run/checkpoint), 2 = usage error.
 set -euo pipefail
 
-MIN_DISK_KB=$((3 * 1024 * 1024))  # 3 GB floor
+# Free-disk floor in GB: override with NP_MIN_DISK_GB (default 3: enough for one docker build on a shared host).
+MIN_DISK_GB="${NP_MIN_DISK_GB:-3}"
+case "$MIN_DISK_GB" in
+  ''|*[!0-9]*) echo "usage error: NP_MIN_DISK_GB must be a non-negative integer, got '$MIN_DISK_GB'"; exit 2 ;;
+esac
+MIN_DISK_KB=$((MIN_DISK_GB * 1024 * 1024))
 
 usage() {
   echo "usage: $0 snapshot <dir>"
@@ -18,6 +23,14 @@ capture() {
   ss -tlnp 2>/dev/null | awk 'NR>1 {print $4}' | sort -u > "$dir/listeners.txt"
   docker ps --format '{{.Names}}' 2>/dev/null | sort > "$dir/docker.txt"
   ls -1 /etc/nginx/sites-enabled 2>/dev/null | sort > "$dir/vhosts.txt"
+  # Optional listings (certs, cron, firewall): captured only when readable, so absence is never a violation.
+  ls -1 /etc/letsencrypt/live 2>/dev/null | grep -v '^README$' | sort > "$dir/certs.txt" || true
+  { crontab -l 2>/dev/null || true; } | grep -v '^#' | sort > "$dir/cron.txt" || true
+  if command -v ufw >/dev/null 2>&1; then
+    { ufw status 2>/dev/null || true; } | grep -iE 'allow|deny|reject|limit' | sort > "$dir/ufw.txt" || true
+  else
+    : > "$dir/ufw.txt"
+  fi
   df --output=avail -k / | tail -1 | tr -d ' ' > "$dir/disk.txt"
 }
 
@@ -45,7 +58,8 @@ case "$MODE" in
     FAIL=0
 
     # 1. Anything pre-existing that vanished = something was broken.
-    for f in listeners docker vhosts; do
+    for f in listeners docker vhosts certs cron ufw; do
+      [ -f "$DIR/$f.txt" ] || continue
       while IFS= read -r line; do
         [ -n "$line" ] || continue
         if ! grep -qxF "$line" "$NOW/$f.txt"; then
@@ -81,7 +95,7 @@ case "$MODE" in
     # 3. Disk floor.
     AVAIL=$(cat "$NOW/disk.txt")
     if [ "$AVAIL" -lt "$MIN_DISK_KB" ]; then
-      echo "VIOLATION: free disk below 3 GB floor ($((AVAIL / 1024)) MB left)"
+      echo "VIOLATION: free disk below ${MIN_DISK_GB} GB floor ($((AVAIL / 1024)) MB left)"
       FAIL=1
     fi
 

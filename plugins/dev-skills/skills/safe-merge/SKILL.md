@@ -1,98 +1,93 @@
 ---
 name: safe-merge
 argument-hint: "[<source>..<target>|revert] [--dry-run] [--help]"
-description: "Use before merging a development branch into a release/production branch — especially when merging that branch auto-deploys production with real users. Runs an exhaustive, portable pre-merge gate: capability preflight, git safety + topology checks, a ranked human-readable change report, secret scan, backups of everything backupable, a migration rehearsal on a clone of production data, the project's full test battery (E2E included), a format-aware CHANGELOG, then a hard go/no-go decision that only merges after explicit human confirmation — and prepares a ready-to-run revert procedure. Also runs in --dry-run (analyze only) and revert modes. Portable across any project via per-project auto-detection + a .claude/safe-merge.yml config; when anything is unknown it degrades to an explicit blind spot, never a green check."
+description: "Runs the pre-merge gate before promoting a development branch into a release/production branch (often auto-deployed to real users): change report, secret scan, backups, migration rehearsal on prod-shaped data, full tests, CHANGELOG, then a human go/no-go before any merge, plus a prepared revert. Supports --dry-run and revert. Unknowns become blind spots, never green checks."
+when_to_use: "Merge to main, promote to prod, release, ship develop, revert a release, roll back a deploy, pre-release checks, dry-run a merge."
 ---
 
 # /safe-merge
 
-Make merging a dev branch into a production/release branch **as close to infallible as possible**. Merging into the release branch often redeploys production, where real (often paying) users live, so this skill *is* the quality gate: it analyzes the whole batch, backs up everything backupable, rehearses migrations on real-shaped data, runs the full test battery, writes a non-technical CHANGELOG, and only merges **after an explicit human "go"** — with a pre-built revert procedure standing by.
-
-This skill is **portable across any project**. It auto-detects each project's branches, deploy trigger, tests, backups, DB/ORM and changelog conventions on every run, and remembers the non-guessable specifics in a per-project `.claude/safe-merge.yml`.
+Quality gate for promoting `SOURCE_BRANCH` (dev) into `TARGET_BRANCH` (release/prod) when a mistake reaches real users. Not for feature-branch merges without a production surface (use plain git), nor for rewriting history. Project specifics are auto-detected each run and the non-guessable ones remembered in `.claude/safe-merge.yml`.
 
 ## Usage
 
 ```
-/safe-merge                     # full gated run: analyze → back up → test → recap → (human go) → merge → watch
+/safe-merge                     # full gated run: analyze → prepare (backups, rehearsal, tests) → recap → (human go) → merge → watch
 /safe-merge --dry-run           # analyze only: phases 0-2 + recap. Zero writes, zero triggers, zero backups, no merge
 /safe-merge <source>..<target>  # override branch pair (default: auto-detected, usually develop..main)
 /safe-merge revert              # execute the revert procedure prepared by the most recent run (roll production back)
-/safe-merge --help              # print this Usage block and stop
+/safe-merge --help | -h         # print this Usage block and stop
 ```
 
-If invoked with `--help`/`-h` and nothing else, print the Usage block above verbatim and stop.
+With `--help`/`-h` and nothing else, print the Usage block verbatim and stop.
 
-## What this skill is for / non-goals
+## Governing principles (they override any convenience)
 
-**For:** de-risking the promotion of `SOURCE_BRANCH` (dev) → `TARGET_BRANCH` (release/prod) when a mistake reaches real users. **Not for:** everyday feature-branch merges with no production surface (use plain git), or rewriting history. It never touches production data destructively except an explicitly-confirmed revert restore.
+1. **Unknown means blind spot, never green.** If the deploy trigger, tests, backups, secret scanner or branch pair cannot be determined with confidence, record it as an explicit blind spot and carry it into the recap. A missing test suite is "zero coverage", never a pass. Ask the human only when no safe default exists.
+2. **The project's CI config is the oracle** for the real test/build/deploy commands (`.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`, ...). Harvest, do not guess.
+3. **Two authorization levels.**
+   - *Preparation authorization*: one confirmation in Phase 0, shown with the detected profile. It pre-authorizes only prod **reads**, prod **backups** and **preprod-only** mutations (prod→preprod copy, preprod redeploy/reseed, preprod test runs, a preprod-trigger push to SOURCE when no `workflow_dispatch` exists).
+   - *Phase 6 go* (plus the tier-3 double confirm in Phase R): required for the merge, any push to TARGET or to a prod-deploying branch/tag, any prod write, and any DB restore. Nothing in these categories happens before it.
+   - Anything outside both lists needs its own explicit confirmation. Mutations run single-threaded; only reads, analysis and independent tests run in parallel.
+4. **Reuse the project's native scripts** (backup / restore / prod→preprod copy / deploy / seed). Never reimplement what the repo ships.
+5. **Fan out subagents** for independent read, analysis and test work. Follow the project's orchestration section if present; otherwise: `haiku-standard` for detection probes, per-subsystem diff reads and independent suites; `opus-standard` for migration and risk analysis; fall back to the Agent tool `model` parameter if a type is missing. Cap at about 8 concurrent agents and batch huge diffs (about 50 files or 3000 changed lines per agent). Mutating steps stay single-threaded.
 
-## Five governing principles (these override any convenience)
+## Tooling and fallbacks
 
-1. **Unknown ⇒ explicit blind spot / ask the human — NEVER default to "safe/green".** If the deploy trigger, tests, backups, or branch pair can't be determined with confidence, say so loudly and ask. A missing test suite is reported as "zero coverage — blind spot", never as a passing check. This is the core of the "zero breakage" promise.
-2. **The project's CI config is the oracle** for the real test/build/deploy commands. Harvest them from `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`, etc. rather than guessing.
-3. **Mutations are serialized behind the human gate.** Backups that touch production, the merge, and any push happen only after explicit confirmation (backups per user policy in Phase 3). Only read/analysis/independent tests run in parallel.
-4. **Reuse the project's native scripts** (backup / restore / prod↔preprod copy / deploy / seed). Never reimplement what the repo already ships.
-5. **Fan out subagents liberally** (via the Agent tool) for any independent read/analysis/test work — detection probes, per-subsystem diff analysis, reading many migrations, running independent test suites. Use as many as help; keep all mutating steps single-threaded and gated.
+- **CLIs** (probed in Phase 0): `git`, `gh`, `docker`/`docker compose`, `ssh`, `curl` + `jq`, `psql`, `rclone`, `node`/`npx`, `python` + Playwright, a secret scanner (`gitleaks`/`trufflehog`/`detect-secrets` or the repo's `secret-scan` hook), push rights, free disk for dumps.
+- **Degradations (always reported in the recap):** no `TaskCreate`/`TaskUpdate` → keep the phase checklist in the journal; no `AskUserQuestion` → ask in plain text and wait; no `ScheduleWakeup`/`Monitor` → poll with `run_in_background` and bounded `sleep`/`curl` loops; no claude-in-chrome MCP → `curl` smoke only and report "no visual smoke (blind spot)".
+- Prod browser smoke covers **public, unauthenticated pages only**. A prod test credential may be supplied interactively, never persisted.
 
-## Tooling
+## Configuration (resolution order: command argument > `.claude/safe-merge.yml` > plugin option > recommended default)
 
-**External CLIs** (Phase 0 preflight tests each; if missing/unauthenticated, stop with a fix list): `git`, `gh` (`gh run watch`, `gh workflow run`, `gh pr list --merged`, releases), `docker`/`docker compose`, `ssh`, `curl` + `jq`, `psql`, `rclone`, `node`/`npx`, `python` + Playwright, and a secret scanner (`gitleaks` / `trufflehog` / `detect-secrets`, or the repo's own `secret-scan` hook). Also verify **push rights** on the remote and **free disk** for dumps.
-
-**Project-native scripts** (auto-detected, reused, never reimplemented): DB backup, restore, prod→preprod copy, deploy, E2E seed.
-
-**Claude Code capabilities:** the **Agent tool** for massive parallel fan-out (principle 5); the **claude-in-chrome MCP** for a visual post-deploy smoke test — **on production, public/unauthenticated pages only** (the skill has no prod account; authenticated depth is covered by preprod E2E; a dedicated prod test credential may be supplied *interactively* and never persisted); **TaskCreate/TaskUpdate** to track the long procedure and make it resumable; **Monitor / ScheduleWakeup** for the post-deploy surveillance window.
-
-## Reference files (load on demand)
-
-- `references/detection.md` — project types, deploy-trigger detection across platforms, harvesting test commands from CI, package managers, DB/ORM systems (incl. managed DBs), changelog formats, branch topologies.
-- `references/risky-migrations.md` — risky migration patterns per ORM, plus reversibility / backward-compat-with-running-code / lock-and-timeout analysis.
-- `references/changelog-format.md` — conforming to existing changelog tooling, audience language, the "no vulnerability details" rule, technical→plain-language rewriting.
-- `references/config-schema.md` — the `.claude/safe-merge.yml` schema, secrets policy, committed/gitignored split, freshness/drift.
-- `references/rollback-procedure.md` — the generated rollback file template and the three-tier recovery strategy.
-
----
+| Key | Default | Effect |
+|---|---|---|
+| `${user_config.safe_merge_backups_auto_run}` | `true` | `true`: run fully covered native backups without further asking. `false`: Phase 3 builds a backup plan and executes it only once validated (shown in the Phase 0 confirmation). |
+| `${user_config.safe_merge_offpeak_preference}` | `recommend` | `recommend`: advise an off-peak window in the recap. `require`: treat in-flight prod jobs or peak hours as a no-go unless the human overrides at the gate. `ignore`: skip the advice. |
+| `${user_config.safe_merge_changelog_review}` | `true` | `true`: the human reviews the CHANGELOG entry (done inside the Phase 6 recap, not as a separate stop). `false`: commit it as drafted after the go. |
+| `${user_config.safe_merge_surveillance_minutes}` | `15` | Length of the Phase 7 surveillance window. |
+| `${user_config.safe_merge_smoke_depth}` | `standard` | `basic`: health + version only. `standard`: plus login/media/queue checks from `health_checks`. `deep`: plus authenticated client flows when the diff touches build args or media. |
 
 # Procedure
 
-Follow the phases in order. Do not skip. Use `TaskCreate` to register the phases as a checklist at the start so progress is visible and the run is resumable. Placeholders are UPPERCASE (`SOURCE_BRANCH`, `TARGET_BRANCH`, `PROD_URL`, `PREPROD_URL`, `VERSION_ENDPOINT`). Any phase that fails a hard rule **stops the run** with a clear report; nothing downstream runs.
+Run the phases in order. Register them with `TaskCreate` and update them as you go. Placeholders are UPPERCASE (`SOURCE_BRANCH`, `TARGET_BRANCH`, `PROD_URL`, `PREPROD_URL`, `VERSION_ENDPOINT`). A phase failing a hard rule **stops the run** with a clear report.
 
-**Mode routing (do this first):**
-- `revert` → jump straight to **Phase R**.
-- `--dry-run` → run **Phases 0 → 2** then present the **Phase 6 recap**, and stop. Perform **no** writes, triggers, backups, commits, or merge.
-- default → run all phases.
+**Mode routing:**
+- `revert` → **Phase R**.
+- `--dry-run` → Phases 0 → 2 (Phase 0 without the authorization question), then the Phase 6 recap, and stop. No writes, triggers, backups, commits or merge.
+- Bare invocation → full run; print the auto-selected mode instead of asking.
 
-## Phase 0 — Preflight, profiling, capabilities, resumability
+## Phase 0 — Preflight, profiling, preparation authorization
 
-Goal: know exactly what kind of project this is, what "production" means here, and whether every capability you'll need actually works — before touching anything. Spawn parallel subagents for the independent detection probes (see `references/detection.md`).
+Detection details: [references/detection.md](references/detection.md). Config and journal formats: [references/config-schema.md](references/config-schema.md). Spawn parallel probes for the independent detections.
 
-1. **Resume check.** If `.claude/safe-merge/journal.md` (or `.json`) shows an in-progress run, read it and **offer to resume** at the last completed phase (skip already-done backups/tests). Do not blindly restart.
-2. **Load + refresh config.** Read `.claude/safe-merge.yml` if present. Re-run detection regardless (config can be stale). On any drift between detected and stored values, **show the diff and ask before overwriting a human-authored `quirks`/override field** — never silently clobber it. Enforce the secrets policy: config holds env-var **names**, never values (see `references/config-schema.md`).
-3. **Project type.** Classify: web-service / library / CLI / mobile / static-site / monorepo. This drives the risk taxonomy (Phase 2) and the "what will happen" narrative (Phase 6). A library's risk is semver/downstream breakage, not downtime; mobile has no rollback; a monorepo may fan out to many services.
-4. **Resolve SOURCE/TARGET.** Default `develop..main`, but resolve properly: `git symbolic-ref refs/remotes/origin/HEAD` for the default branch, **cross-referenced with whatever branch/tag actually triggers the production deploy** (the best "which branch is prod" oracle) and the live `VERSION_ENDPOINT`. Handle gitflow (`release/*`, `hotfix/*`), promotion chains (`dev→staging→main` — don't skip staging), and maintenance/backport lines (SOURCE may legitimately be *behind* TARGET on some commits). **When confidence is low, confirm the pair with the human.**
-5. **Deploy trigger — broad detection, `unknown` is first-class.** Look for GitHub Actions, `.gitlab-ci.yml`, `.circleci/`, `Jenkinsfile`, and platform configs (`vercel.json`, `netlify.toml`, `render.yaml`, `fly.toml`, `Procfile`/`app.json`, `amplify.yml`), and tag-based release. **Many platforms deploy from the platform side with nothing in the repo** — if you cannot positively identify the trigger, set `deploy_trigger: unknown` and **treat the merge as potentially production-impacting** (never assume safe). Confirm TARGET is really prod's source of truth (not a `production` branch or pinned tag).
-6. **Harvest test/build commands from CI (the oracle).** Extract the real commands the project runs in CI; detect the package manager from the lockfile. Classify each command **safe-to-run vs side-effecting** — never auto-run a mutating target (`make deploy`, `release`, `test:e2e:prod`).
-7. **Detect backups / preprod / DB / migrations.** Backup mechanisms; whether a preprod/staging exists and how it deploys/seeds; DB system + ORM (including **managed DBs** — Neon/Supabase/PlanetScale → provider **snapshot API**, not `pg_dump` over SSH); migration system.
-8. **Detect changelog** format/tool and **audience language**.
-9. **Capability preflight.** From the resolved config, enumerate and **actually test** every capability you'll need: `gh auth status`, SSH reachability to the prod/backup host, `docker`/`docker compose`, `curl`+`jq`, push rights on the remote (`git push --dry-run`), free disk for dumps, `PREPROD_URL` reachable. **Test each capability the way the project actually invokes it — not as a naive host-local `command -v`.** Many DB/backup tools (`psql`, `pg_dump`, `redis-cli`) are only ever reached **inside a container (`docker exec`) or over SSH on the prod host**; a host-local absence is then irrelevant and must **not** be reported as a blocker. Verify the real path: e.g. `ssh HOST 'docker exec <db_container> psql --version'` if that's how backups run. **Stop now** — with a precise "install/authenticate X" list — only for capabilities that are genuinely missing *along the path the project uses them*. Do not start Phase 1 half-equipped, but do not false-flag either.
-10. **Announce + confirm.** Present the detected profile, the estimated time/cost of a full run, and — via `AskUserQuestion` — confirm the SOURCE/TARGET pair and project type, and fill any non-guessable `quirks`. Write/refresh `.claude/safe-merge.yml`.
+1. **Resume.** If `.claude/safe-merge/journal.md` shows an in-progress run updated in the last 24 h (so backups and test results are still fresh) and SOURCE/TARGET SHAs are unchanged, resume at the last completed phase and say so. Otherwise start over and archive the old journal.
+2. **Config.** Read `.claude/safe-merge.yml` if present and re-run detection regardless. Structural drift: update and report. Drift on a human-authored `quirks`/override field: keep the stored value and report the difference. Config holds env-var **names**, never values.
+3. **Project type** (web-service / library / CLI / mobile / static-site / monorepo); it drives the Phase 2 risk taxonomy and the Phase 6 narrative.
+4. **Resolve SOURCE/TARGET** per detection.md §2. Low confidence on the pair is a blocking case: ask.
+5. **Deploy trigger**, broad detection (detection.md §3); `unknown` is a first-class state and the merge is then treated as production-impacting. Confirm TARGET is prod's real source of truth.
+6. **Harvest test/build commands from CI**, detect the package manager, classify each command safe-to-run vs side-effecting (never auto-run a side-effecting one).
+7. **Backups / preprod / DB / migrations / changelog format and language / `health_checks`** (the project's post-deploy checks, see config-schema.md).
+8. **Capability preflight.** Test each capability along the path the project actually uses it (e.g. `ssh HOST 'docker exec <db_container> psql --version'`, not a host-local `command -v`); a host-local absence is irrelevant when the tool only runs in a container or on the prod host. Stop with a precise "install/authenticate X" list only for capabilities genuinely missing on their real path.
+9. **Preparation authorization (the single early stop).** Present the detected profile, the planned preparation actions (backups, prod→preprod copy, preprod redeploy/reseed, test runs), the estimated time, and ask once to authorize preparation. When detection confidence is high there is no other early confirmation; low confidence on the branch pair or project type is asked in the same prompt. Write/refresh `.claude/safe-merge.yml` and start the journal. Without the authorization, run read-only phases only and stop before Phase 3.
 
-## Phase 1 — Git safety & topology
+## Phase 1 — Git safety and topology
 
 1. `git fetch --all --prune`.
-2. Verify **both** branches are in sync with their upstreams (`git rev-list --left-right --count SOURCE_BRANCH...@{u}` etc.): no unpushed local commits, no unpulled remote commits. Out of sync → stop and report.
-3. **Outcomes — and do NOT mistake `--no-ff` merge nodes for a hotfix.** A repo that promotes with `git merge --no-ff SOURCE` leaves **merge commits on TARGET that SOURCE never has by construction**, so `git log SOURCE..TARGET` is routinely non-empty on a perfectly healthy branch — that is the normal state, not a divergence. Decide with **non-merge commits**, never the raw commit list. (Note: `git diff SOURCE..TARGET` is **not** a benign-test either — when SOURCE is ahead it shows SOURCE's own work *inverted*, so it is never empty; do not use it here.)
-   - `git rev-list --count --no-merges SOURCE_BRANCH..TARGET_BRANCH` == 0 → TARGET has no real work of its own; the extra commits are benign merge nodes. **Proceed** (this is the common case for a `--no-ff` promotion workflow).
-   - count **> 0** → a genuine hotfix/commit landed on TARGET and wasn't back-merged → **offer to back-merge TARGET→SOURCE first** (and re-run). Distinguish a legitimate maintenance/backport line, where TARGET-only commits are expected.
-   - `git rev-list --count TARGET_BRANCH..SOURCE_BRANCH` == 0 → nothing to merge → clean exit: "already up to date".
-   - Both sides have **real** (non-merge) unique commits → warn of a likely merge conflict in Phase 7.
+2. Both branches in sync with their upstreams (`git rev-list --left-right --count SOURCE_BRANCH...@{u}`): no unpushed or unpulled commits. Out of sync → stop and report.
+3. Outcomes. A repo promoting with `git merge --no-ff` leaves merge commits on TARGET that SOURCE lacks, so `git log SOURCE..TARGET` is routinely non-empty and `git diff SOURCE..TARGET` is never a benign test. Decide on **non-merge commits**:
+   - `git rev-list --count --no-merges SOURCE_BRANCH..TARGET_BRANCH` == 0 → proceed.
+   - \> 0 → real work on TARGET was not back-merged: offer to back-merge TARGET→SOURCE first and re-run (expected on maintenance/backport lines).
+   - `git rev-list --count TARGET_BRANCH..SOURCE_BRANCH` == 0 → "already up to date", clean exit.
+   - Real unique commits on both sides → warn of a likely conflict in Phase 7.
 4. Working tree clean (`git status --porcelain` empty).
-5. **Record the pre-merge TARGET SHA** (`git rev-parse TARGET_BRANCH`) — the foundation of the revert procedure.
+5. Record the pre-merge TARGET SHA (`git rev-parse TARGET_BRANCH`) for the revert procedure.
 
-## Phase 2 — Exhaustive diff analysis + risk taxonomy
+## Phase 2 — Diff analysis and risk taxonomy
 
-Goal: a complete, ranked picture of what this batch changes and every way it could hurt production. Fan out subagents by subsystem. See `references/risky-migrations.md`.
+Fan out per subsystem (principle 5). Reference: [references/risky-migrations.md](references/risky-migrations.md).
 
-1. **Collect** the full change set:
+1. **Collect** the change set:
    ```bash
    git log --oneline TARGET_BRANCH..SOURCE_BRANCH
    git shortlog -sn TARGET_BRANCH..SOURCE_BRANCH
@@ -101,85 +96,79 @@ Goal: a complete, ranked picture of what this batch changes and every way it cou
    git diff --dirstat=files,0 TARGET_BRANCH..SOURCE_BRANCH
    git log --oneline --merges TARGET_BRANCH..SOURCE_BRANCH
    ```
-   For squash-merge repos, also pull PR metadata: `gh pr list --state merged --base SOURCE_BRANCH --json number,title,labels,mergedAt`.
-2. **Categorize** by project type: Features / Fixes / Refactors / Perf / Infra & config / DB migrations / Dependencies / Docs / Tests / (semver-affecting API for libraries). If the repo uses Conventional Commits, use them; **otherwise fall back to diff content** (added/modified/deleted functions, `tests/`, `migrations/`) **and PR titles/labels** — never rely on bare "wip" messages.
-3. **Secret scan — hard stop, before backups.** Run a secret scanner on `TARGET_BRANCH..SOURCE_BRANCH` and flag any sensitive path in the diff (`**/.env`, `secrets/**`, `cookies/**`, key/pem files). Any hit → **stop the entire run**; the secret must be purged from history before merging. **If no scanner is installed** (`gitleaks`/`trufflehog`/`detect-secrets`, or the repo's own `secret-scan` hook): first **offer to install one** (or run the repo's hook). If none can be run, fall back to a sensitive-path + high-entropy string grep over the diff **and explicitly report "no secret scanner — reduced coverage (blind spot)"** — never let an un-scanned diff read as "clean/green".
-4. **Migration analysis.** For each migration in the diff, determine: destructive DDL patterns (drop/rename/type-change/`RunPython` value rewrites/`NOT NULL` without default); **reversibility** (reversible / irreversible); **backward-compatibility with the code still running during rollout** (migrations often apply at container boot before new code is fully live); and **real production row counts** for targeted tables (via SSH `psql -tAc "select count(*) from <table>"`, command shown + confirmed). Cross the estimated duration against any DB `statement_timeout` (e.g. 30s) — a long migration on a large table will be **killed mid-way**, potentially leaving a partial schema. Estimate lock/downtime.
-5. **Config surface.** Diff `settings*`, `.env.example`, `docker-compose*` **including `build.args` (e.g. `NEXT_PUBLIC_*`, baked at build time)**, `Dockerfile*`, `nginx/`, `infra/`, and dependency lockfiles.
-6. **New env keys.** Extract env keys newly referenced by the diff (`config("X")`, `os.environ[...]`, `process.env.X`) and **cross-check they exist in the real prod env** — which is typically **outside git** (SSH `grep` into the prod `.env`, command shown + confirmed) — plus a **preprod↔prod env delta** to catch keys present in preprod (so preprod tests pass) but absent in prod (so prod boots broken).
-7. **Manual-step flags.** Flag compose/infra changes and Postgres `ALTER SYSTEM`-type changes that require a manual action the deploy script won't perform.
-8. **Media/storage.** Flag any `MEDIA_*`/`R2_*`/object-storage change as its own risk category (signed-URL secrets, worker config, backend fallback to local).
-9. **Output** the ranked **biggest-to-smallest** change list — the raw material for the Phase 6 recap and the Phase 5 CHANGELOG.
+   Squash-merge repos: add `gh pr list --state merged --base SOURCE_BRANCH --json number,title,labels,mergedAt`.
+2. **Categorize** by project type (Features / Fixes / Refactors / Perf / Infra & config / DB migrations / Dependencies / Docs / Tests / semver-affecting API for libraries). Use Conventional Commits if present, otherwise diff content and PR titles/labels, never bare "wip" messages.
+3. **Secret scan — hard stop, before any backup.** Scan `TARGET_BRANCH..SOURCE_BRANCH` and flag sensitive paths (`**/.env`, `secrets/**`, `cookies/**`, key/pem files). Any hit stops the run: purge it from history first. No scanner available → offer to install one or run the repo's hook; failing that, grep sensitive paths and high-entropy strings and report "no secret scanner — reduced coverage (blind spot)".
+4. **Migration analysis** on the four axes of risky-migrations.md. Production row counts are read-only queries (command shown; covered by the preparation authorization). Cross the estimated duration with `statement_timeout`.
+5. **Config surface.** Diff `settings*`, `.env.example`, `docker-compose*` (including `build.args` baked at build time), `Dockerfile*`, `nginx/`, `infra/`, lockfiles.
+6. **New env keys.** Extract keys newly referenced by the diff and cross-check them against the real prod env (usually outside git; read-only, command shown) and against the preprod↔prod env delta.
+7. **Manual-step flags.** Compose/infra or database-server settings changes (e.g. a Postgres `ALTER SYSTEM`) that the deploy script will not apply.
+8. **Media/storage.** Any object-storage or media-backend setting change is its own risk category.
+9. **Output** the change list ranked biggest to smallest.
 
-## Phase 3 — Backups (blocking, interactive, + config-infra snapshot)
+## Phase 3 — Backups (blocking; needs the Phase 0 preparation authorization)
 
-Per the user's policy: detect the project's backup mechanisms, judge coverage, then either run them autonomously or propose a plan and iterate. **Backups run before the merge, but they are still gated by user validation when they touch production.**
+1. **Decision tree.** No persistent state → skip cleanly. State exists but no backup mechanism detected → loud blocker (danger, not "nothing to do").
+2. **Map coverage and blind spots:** prod DB, preprod DB, media/object storage, `.env`/secrets, volumes, cache/queue stores. Note what cannot be backed up or restored.
+3. **Run.** Full native coverage and `safe_merge_backups_auto_run` true → run the native backups for prod and preprod (managed DB → provider snapshot API) and verify success as a hard gate (e.g. the log's checksum line). Otherwise propose the best-fit plan, iterate until validated, then execute. Add a dedicated backup at a controlled instant even if the deploy script also backs up.
+4. **Snapshot non-DB rollback state:** prod env var **names + hashes** (never values into git), compose/infra config, media backend, feature flags.
+5. **Verify the rollback is armed:** the previous-release artifact (e.g. a `:rollback` image) exists and matches the current prod SHA, and the new backup's checksum is valid. If not, say so before the gate.
+6. Record paths, checksums and blind spots in the journal and the rollback file.
 
-1. **Decision tree.** Is there persistent state (DB, uploaded media, volumes)? **No → skip cleanly** (a library/CLI has nothing to back up — that's fine). **State exists but NO backup mechanism is detected → loud blocker/alert** (this is danger, not "nothing to do"). Do not conflate the two.
-2. **Map coverage + blind spots:** prod DB, preprod DB, media/object storage, `.env`/secrets, volumes, Redis. Note what genuinely **cannot** be backed up/restored (e.g. non-versioned object storage, secrets not in any vault).
-3. **Full coverage → run native backups autonomously**, prod **and** preprod, and **verify success as a hard gate** (e.g. the `OK … sha256=…` log line). Managed DB → trigger a provider snapshot via API. Do not reimplement what the deploy script already does automatically; add a dedicated manual backup taken at a controlled instant.
-4. **Blind spots → propose the best-fit backup plan** for everything (prod + preprod), have the user validate, iterate, then execute the agreed plan.
-5. **Snapshot non-DB rollback state:** current prod env values (record **names + hashes**, never secret values into git), compose/infra config, media backend, feature flags — so a config-caused break can be reverted too.
-6. **Verify the rollback is ARMED:** the deploy's `:rollback` image (or equivalent previous-release artifact) exists **and matches the current prod SHA** (a shared preprod slot can make it diverge); the freshly taken backup's checksum is valid. If the escape hatch isn't real, say so before the gate.
-7. Record everything (paths, checksums, blind spots) into the run journal and the rollback file (Phase 6.5).
+## Phase 4 — Test battery (preparation authorization; never target production)
 
-## Phase 4 — Full test battery: static/unit + migration rehearsal + E2E deep
+Parallelize independent suites.
 
-Run everything the user asked for. Parallelize independent suites; never target production.
+1. **Static / unit / build / arch** from the CI-harvested commands. Force CI mode (`CI=true`, `--run`, `--watchAll=false`), start required services, never run a side-effecting command. Any red → stop, fix on SOURCE, re-run.
+2. **Migration rehearsal on a clone of production data** (only if the batch has migrations; the highest-value check):
+   - Backups of both DBs exist (Phase 3).
+   - Copy prod → preprod with the project's native script — **direction prod→preprod only, never the reverse**. Preprod must run SOURCE's code so the new migrations are the ones exercised; the script's trailing `migrate` is the rehearsal.
+   - Measure wall-clock duration (the downtime/lock estimate), success, `statement_timeout` overruns, integrity (row counts preserved, no silent 0/NULL backfill).
+   - No copy script → restore the prod dump into a throwaway ephemeral DB and migrate there.
+3. **E2E deep on preprod.**
+   - If `.claude/full-test.yml` exists, **delegate to `/full-test`** (it redeploys, waits for the SHA, reseeds, runs the suites) and consume its per-suite report. Otherwise:
+   - Trigger the preprod deploy with `gh workflow run` (`workflow_dispatch`); this avoids empty commits and `paths:` filters. If only a push trigger exists, push one real commit (e.g. the finalized CHANGELOG) to SOURCE, never repeated empty commits.
+   - Wait for the deploy; verify `PREPROD_URL` `VERSION_ENDPOINT` == SOURCE SHA. Reseed preprod with the project's seed command. Run the deep suite (its own gating flag, e.g. `E2E_DEEP=1`).
+   - Re-verify the preprod SHA immediately before and after the suite; the slot is often shared, and a stolen slot invalidates the results (re-run). Never point E2E at prod.
+4. No preprod → E2E is "NOT COVERED (blind spot)". No tests at all → "zero coverage".
 
-1. **Static / unit / build / arch checks** from the CI-harvested commands. Force **CI mode** (`CI=true`, `--run`, `--watchAll=false`) to avoid watch-mode hangs; bring up required services (testcontainers); never run a side-effecting command. Any red → stop, fix on SOURCE, re-run.
-2. **Migration rehearsal on a clone of production data** (only if the batch contains migrations — this is the single highest-value check):
-   - Backups of both DBs already taken (Phase 3).
-   - **Copy prod → preprod** using the project's native script — **direction prod→preprod ONLY, never the reverse** (the reverse would overwrite prod). Ensure preprod is running SOURCE's code so the new migrations are the ones exercised; the script's trailing `migrate` **is** the rehearsal, now running against real prod-shaped, prod-volume data.
-   - **Measure:** wall-clock duration (= the real downtime/lock estimate), success/failure, `statement_timeout` overruns, and integrity (row counts preserved, no silent 0/NULL backfill).
-   - **Portable fallback** when no prod→preprod script exists: restore the prod dump into a throwaway ephemeral DB and run the migrations there.
-3. **E2E deep on preprod:**
-   - **Trigger the preprod deploy via `gh workflow run` (workflow_dispatch)** in preference to empty commits (which pollute history and may miss `paths:` filters). If only a push trigger exists, use a single real commit (e.g. the CHANGELOG once finalized) rather than repeated empty commits.
-   - Wait for the deploy; **verify `PREPROD_URL` `VERSION_ENDPOINT` == SOURCE SHA**.
-   - Reseed the preprod DB with the project's seed command.
-   - Run the deep/expensive suite (its own gating flag, e.g. `E2E_DEEP=1`).
-   - **Re-verify the preprod SHA immediately before AND after** the suite — the preprod slot is often shared; if another push stole it mid-run, the results are invalid → re-run. Never point E2E at prod.
-4. **Graceful degradation:** no preprod → mark E2E **NOT COVERED (blind spot)**, not "failed infra". No tests at all → report **"zero coverage — blind spot"**, never a green check.
+## Phase 5 — CHANGELOG (prepared now, committed only after the go)
 
-## Phase 5 — CHANGELOG (format-aware, decoupled from the trigger, committed after "go")
+Rules, tooling detection, language and entry structure: [references/changelog-format.md](references/changelog-format.md) (append-only, newest on top; defer to any tool that owns the changelog).
 
-**Append-only, newest-on-top — never rewrite from scratch.** The CHANGELOG is a cumulative history: **prepend** this merge's entry at the very top and **preserve every existing entry verbatim** below it. Create the file only if it doesn't exist yet. Never regenerate, reorder, reword, or drop prior entries — one new dated block per merge, accreting over time.
+1. Write a non-technical entry from the Phase 2 ranked list, with no vulnerability details.
+2. Keep it as a draft file or in the journal; **do not commit it before the Phase 6 go** (a no-go would leave an orphan release entry). It is committed in Phase 7.
+3. Review: with `${user_config.safe_merge_changelog_review}` true the draft is shown inside the Phase 6 recap and the human's edits applied at the go.
 
-1. **Detect and conform to any existing changelog tooling** (Keep a Changelog, towncrier `changelog.d/`, changesets `.changeset/`, release-please). If a tool owns the changelog, **defer to it** (create a changeset/news fragment) instead of prepending prose that would corrupt its format. Monorepo → per-package changelog.
-2. **Audience language** = the existing changelog's language by default (an OSS library's CHANGELOG is English even if the team speaks French). Otherwise the project's user-facing language.
-3. Write a **non-technical** entry from the Phase 2 ranked list — grouped (New / Improved / Fixed / Other), plain language, **no vulnerability details** (don't hand attackers a map; see `references/changelog-format.md`).
-4. **Have the user review/edit** the entry.
-5. **Decouple from the preprod trigger** (that's `workflow_dispatch`). **Do NOT commit the CHANGELOG before the human "go"** — a no-go would leave an orphan "Release" entry. Commit it as part of the Phase 7 merge (or on a throwaway branch), not now.
+## Phase 6 — Recap and hard gate
 
-## Phase 6 — Consolidated recap + hard gate
+Present in this order:
 
-Present, in this order:
+- **(A) What changes** — the ranked list with risk flags: migration reversibility and estimated duration/downtime; new env keys missing from prod; manual steps; media/storage changes; secret-scan status.
+- **(B) What secured the merge** — backups (what/where/checksums); every test result including migration-rehearsal timing; "rollback armed" status; every accepted blind spot; any degraded tool (see fallbacks); the CHANGELOG draft.
+- **Live prod state probe** taken just before the gate — active background jobs, in-flight uploads, live sessions, load, time of day — applying `${user_config.safe_merge_offpeak_preference}`.
+- **(C) Go/no-go verdict**, explicit and argued.
+- **(D) What will happen on merge**, conditional on `deploy_trigger` (auto-deploy / tag-or-manual / unknown, framed conservatively), with estimated downtime including migration duration, and stated plainly: **the automatic rollback restores CODE only, NOT the database; a destructive/irreversible migration's only recovery is a backup restore with up to RPO_X of data loss.** Name the real user impact.
+- **HARD GATE:** ask for explicit confirmation (`AskUserQuestion`, or plain text). Anything other than a clear "go" → stop; nothing is merged.
 
-- **(A) What changes** — the exhaustive biggest-to-smallest list, each item carrying its risk flags: migration reversibility + estimated duration/downtime; new env keys missing from prod `.env`; config/infra changes needing a manual step; media/storage changes; "secret scan: clean".
-- **(B) What secured the merge** — backups taken (what / where / checksums) + the explicitly-accepted blind spots; every test run + its result, **including the migration-rehearsal timing**; the **"rollback armed" status**.
-- **Live prod state probe, taken just before the gate** — active background/Celery jobs, in-flight uploads, open live sessions, current load and time-of-day. **Recommend an off-peak window** if the deploy interrupts long-running jobs or many users are active.
-- **(C) Go/no-go verdict** — explicit and argued.
-- **(D) Exactly what will happen on merge** — **conditional on the `deploy_trigger` state**: auto-deploy / tag-or-manual / **unknown** (frame conservatively). Include estimated downtime **inclusive of migration duration**, and state plainly: **the automatic rollback restores CODE only, NOT the database — a destructive/irreversible migration's only recovery is a backup restore with up to RPO_X of data loss.** Name the real user impact.
-- **HARD GATE:** ask for explicit confirmation via `AskUserQuestion`. Anything other than a clear "go" → **stop; nothing is merged.**
+## Phase 6.5 — Prepare the revert procedure (before the push)
 
-## Phase 6.5 — Prepare the revert procedure (BEFORE the push)
-
-Write a durable `.claude/safe-merge/rollback-<TIMESTAMP>.md` (template in `references/rollback-procedure.md`) capturing: the pre-merge TARGET SHA, the `:rollback` image status, backup paths + checksums, the **migration reversibility verdict and whether a DB restore is required**, the config/infra snapshot, the media backend, and the **exact commands** for each of the three recovery tiers. This must exist *before* the merge so `revert` mode can run even in a fresh session.
+Write `.claude/safe-merge/rollback-<TIMESTAMP>.md` from [references/rollback-procedure.md](references/rollback-procedure.md): pre-merge TARGET SHA, rollback-artifact status, backup paths and checksums, migration reversibility verdict and `db_restore_required`, config snapshot, exact commands for each recovery tier. It must exist before the merge so `revert` works in a fresh session.
 
 ## Phase 7 — Execute the merge (only after "go")
 
-1. **Concurrency re-assertion:** confirm the SHA you tested still equals the SHA about to merge; re-fetch and handle a **non-fast-forward** push and a **merge conflict** with a clean abort path.
-2. `git checkout TARGET_BRANCH` → `git merge --no-ff SOURCE_BRANCH -m "merge(TARGET): <summary>"` → commit the finalized CHANGELOG → **squash/clean any preprod-trigger commits** so they don't leak onto TARGET → `git push origin TARGET_BRANCH`.
-3. **Monitor the deploy** with the project's native tool (e.g. `gh run watch <id> --interval 20 --exit-status`).
-4. **Active surveillance window (N minutes) — the human is the monitor; say so, since there is usually no external alerting:** authenticated detailed health (`checks.db/redis/disk/celery_beat`), a **real login** smoke, a **media read** (object storage), Celery queue drain, `disk.free_pct`; plus a **browser-MCP visual smoke of public prod pages**. If the diff touched frontend build args, drive an **authenticated client flow** (catches the mixed-content trap that leaves `/api/health` green while the app is broken). If media was touched, read a real segment/thumbnail and check the signing-secret coherence.
+1. Re-assert that the SHA tested still equals the SHA about to merge; re-fetch; handle a non-fast-forward push or a conflict with a clean abort path.
+2. `git checkout TARGET_BRANCH` → `git merge --no-ff SOURCE_BRANCH -m "merge(<target-branch>): <summary>"` (substitute the real target branch name and a one-line summary) → commit the finalized CHANGELOG → `git push origin TARGET_BRANCH`. **Never rewrite pushed history.** Preprod-trigger commits are avoided by using `workflow_dispatch`; if one was pushed to SOURCE it stays; only unpushed local commits may be cleaned.
+3. Monitor the deploy with the project's native tool (e.g. `gh run watch <id> --interval 20 --exit-status`).
+4. **Surveillance window** of `${user_config.safe_merge_surveillance_minutes}` minutes. The human is the monitor (there is usually no external alerting): say so. Run the project's `health_checks` (config-schema.md), then per `${user_config.safe_merge_smoke_depth}`: a real login, a media read, queue drain, disk headroom, and a browser-MCP smoke of public prod pages. If the diff touched frontend build args, drive an authenticated client flow (a green health endpoint can hide a broken app, e.g. a mixed-content failure). If media was touched, read a real asset and check signing-secret coherence.
 5. Anything broken → **Phase R**.
 
-## Phase R — Revert mode (`/safe-merge revert`, or "it's broken")
+## Phase R — Revert (`/safe-merge revert`, or "it's broken")
 
-Load the most recent `.claude/safe-merge/rollback-<TIMESTAMP>.md`. Choose the **fastest safe recovery tier**:
+Load the most recent `.claude/safe-merge/rollback-<TIMESTAMP>.md` and choose the **lowest tier that fully restores service** (details: [references/rollback-procedure.md](references/rollback-procedure.md)):
 
-1. **Image/code rollback** (e.g. the deploy's `:rollback` retag) if the deploy itself failed or the break is code-only.
-2. **`git revert` of the merge commit + push** (redeploys the previous code) for a functional bug the health check didn't catch.
-3. **DB restore from the pre-merge backup** — last resort, **only if a destructive/irreversible migration mutated data** (code revert alone would leave old code against an incompatible schema). Accept the RPO data-loss window; this is the irreversible `DROP DATABASE`/restore path, so double-confirm.
+1. **Image/code rollback** if the deploy failed or the break is code-only.
+2. **`git revert` of the merge commit + push** for a functional bug the health check missed.
+3. **DB restore from the pre-merge backup** — last resort, only if a destructive/irreversible migration mutated data. Irreversible with RPO data loss: **double-confirm**.
 
-Confirm the chosen tier, execute it, then **verify the return to the pre-merge state**: health `ok`, `VERSION_ENDPOINT` back to the pre-merge SHA, at-risk table counts consistent. Write a short incident note.
+Confirm the chosen tier, execute it (the revert push and any restore are prod writes: the revert request plus the confirmation here is the gate), then verify the return to the pre-merge state: health ok, `VERSION_ENDPOINT` back to the pre-merge SHA, at-risk table counts consistent. Write a short incident note.

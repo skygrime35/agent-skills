@@ -1,5 +1,7 @@
 # CHANGELOG reference
 
+Contents: 0 append-only rule · 1 existing tooling · 2 audience and language · 3 entry structure · 4 hard rules
+
 Goal: a `CHANGELOG.md` entry (or the project's native changelog artifact) that a **non-technical reader** understands, produced at merge time.
 
 ## 0. Cardinal rule: append-only, newest-on-top

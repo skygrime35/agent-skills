@@ -88,4 +88,4 @@ findings:
   # status: open (audit writes only this) | applied | skipped | obsolete — updated by build B7
 ```
 
-Lifecycle mirrors the legal skill: build's worklist = `open` + `skipped`; `applied` is never re-proposed; a twice-refused `skipped` finding is offered to `accepted_risks:` (decided once) or dropped to the next audit; `treated: full` routes bare invocations to verify or a fresh audit.
+Same lifecycle as the legal skill's findings (open/applied/skipped, treated); keep both in sync. Rules: build's worklist = `open` + `skipped`; `applied` is never re-proposed; a twice-refused `skipped` finding is offered to `accepted_risks:` (decided once) or dropped to the next audit; `treated: full` routes bare invocations to verify or a fresh audit.

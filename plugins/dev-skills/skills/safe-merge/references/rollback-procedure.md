@@ -6,7 +6,7 @@ Phase 6.5 writes a durable `.claude/safe-merge/rollback-<TIMESTAMP>.md` **before
 
 1. **Code/image rollback** — retag the previous release image and recreate containers (e.g. the deploy's `:rollback`→`:latest`), or redeploy the pre-merge SHA. Seconds; **no DB change**. Correct when the deploy failed or the break is code-only. Precondition: the previous-release artifact exists and matches the pre-merge SHA (verified in Phase 3).
 2. **`git revert` of the merge commit + push** — creates a revert commit that redeploys the previous code through the normal pipeline. Minutes (a rebuild). Correct for a functional bug the health check didn't catch, when **no migration mutated data incompatibly**.
-3. **DB restore from the pre-merge backup** — last resort. Required when a **destructive/irreversible migration** changed data such that old code can't run against the new schema. This is the irreversible `DROP DATABASE`/restore path with **up to RPO of data loss** (every write since the backup). Double-confirm; stop background workers first; restore; re-run reversible migrations to the old code's expected state; restart.
+3. **DB restore from the pre-merge backup** — last resort. Required when a **destructive/irreversible migration** changed data such that old code can't run against the new schema. This is the irreversible `DROP DATABASE`/restore path with **up to RPO of data loss** (every write since the backup). Double-confirm; stop background workers first; restore; restart. **Do NOT re-run migrations after a restore**: the backup already holds the pre-merge schema, and old code expects exactly that.
 
 Pick the **lowest tier that fully restores service.** Never jump to tier 3 if tier 1 suffices.
 

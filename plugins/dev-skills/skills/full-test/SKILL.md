@@ -1,181 +1,164 @@
 ---
 name: full-test
-argument-hint: "[fix-loop] [--suites=a,b|--all] [--deep] [--redeploy=dispatch|empty|wip|no] [--reseed|--no-reseed] [--dry-run] [--max-iterations=N] [--no-progress-limit=N] [--help]"
-description: "Use to run a project's full battery of tests against its PREPRODUCTION environment — especially to validate a branch end-to-end before promoting it. One governed run: detect the branch→environment mapping and every preprod-targeting suite, decide whether to redeploy, optionally reseed the preprod database, wait until the deployed SHA matches the branch under test, run every selected suite, poll progress every 5 minutes, and report per-suite results with explicit blind spots. Also runs as an autonomous fix loop (/full-test fix-loop): redeploy → backup+reseed → test → triage → fix via orchestrated subagents → commit+push → repeat until 0 failures, then interview the human to unlock remaining skips. Production is mechanically out of reach: never pushes the prod-deploying branch, never tests the prod URL, never reseeds the prod database. Supports --dry-run (detect and plan only). Portable via auto-detection + a .claude/full-test.yml config; unknowns become explicit blind spots, never a green check."
+argument-hint: "[fix-loop] [--suites=..|--all] [--redeploy=..] [--reseed|--no-reseed] [--dry-run]"
+description: "Runs a project's full test battery against its preprod environment to validate a branch before promotion: detects the branch-to-environment mapping and preprod suites, redeploys if needed, gates on the served SHA, runs the suites, follows progress and reports blind spots. Has an autonomous fix-loop mode. Never touches production."
+when_to_use: "test preprod, validate my branch, run all tests on preprod, full test, redeploy and test, make preprod green, fix-loop"
 ---
 
 # /full-test
 
-Run **everything a project can test against its deployed preproduction environment**, as one governed procedure instead of a remembered ritual: detect → decide (redeploy / reseed / suites) → wait for the right SHA → run it all → follow along → report.
+Run **everything a project can test against its deployed preproduction environment** as one governed procedure: detect -> decide (redeploy / reseed / suites) -> wait for the right SHA -> run it all -> follow -> report. Portable: the branch->environment mapping, preprod URL, SHA endpoint, suites and reseed command are auto-detected on every run; non-guessable specifics live in `.claude/full-test.yml`.
 
-This skill is **portable across any project**. It auto-detects the branch→environment mapping, the preprod URL, the SHA-serving endpoint, every preprod-targeting test suite and the reseed command on every run, and remembers the non-guessable specifics in a per-project `.claude/full-test.yml`.
-
-Its central promise is a negative one: **production is never touched.** Not the prod-deploying branch, not the prod URL, not the prod database.
+Central promise: **production is never touched** (not the prod-deploying branch, not the prod URL, not the prod database).
 
 ## Usage
 
 ```
-/full-test                       # interactive run: detect → questions → (redeploy) → (reseed) → test → follow → report
-/full-test --suites=e2e,smoke    # explicit selection; skip the menu question
-/full-test --all                 # every detected suite except the ones marked costly (those get their own confirmation)
-/full-test --deep                # turn on the project's "deep" gating (E2E_DEEP=1 or equivalent)
-/full-test --redeploy=dispatch|empty|wip|no   # force the redeploy strategy instead of asking
-/full-test --reseed | --no-reseed             # force the reseed decision instead of asking
-/full-test --dry-run             # detect and print the execution plan. Zero writes, pushes, reseeds or tests
-/full-test --help                # print this Usage block and stop
-
-/full-test fix-loop              # autonomous loop: redeploy → backup+reseed → test → fix (agents) → repeat until 0 failures, then handle skips
-/full-test fix-loop --max-iterations=20|none      # total iteration cap (default 20)
-/full-test fix-loop --no-progress-limit=5|none    # stop when the same failures persist N consecutive iterations (default 5)
+/full-test [fix-loop] [--suites=..|--all] [--redeploy=..] [--reseed|--no-reseed] [--dry-run]
 ```
 
-`fix-loop` composes with `--suites`, `--all`, `--deep`, `--reseed`/`--no-reseed`, and `--dry-run` (which prints the loop plan — iteration cycle, limits, agent matrix — and executes nothing).
+- `--suites=a,b` explicit selection; `--all` every detected suite except costly ones (own confirmation); `--deep` turns on the project's deep gating (`E2E_DEEP=1` or equivalent).
+- `--redeploy=dispatch|empty|wip|no` forces the redeploy strategy (defined in Phase 3). `--reseed` / `--no-reseed` forces the reseed decision.
+- `--dry-run` runs Phases 0-3 read-only and prints the plan. Zero writes: no commit, push, dispatch, reseed, test, and `.claude/full-test.yml` is not written.
+- `fix-loop` = autonomous loop (redeploy -> backup+reseed -> test -> fix -> repeat until 0 failures, then skips endgame). Limits: `--max-iterations=20|none`, `--no-progress-limit=5|none`. It composes with every flag above; with `--dry-run` it prints the loop plan (cycle, limits, backup command, agent matrix).
+- `--help` / `-h` alone: print this Usage block and stop.
 
-If invoked with `--help`/`-h` and nothing else, print the Usage block above verbatim and stop.
+**Resolution order for every policy answer:** command argument > `.claude/full-test.yml` > plugin option > recommended default. **Arguments never override G1-G4** (`--redeploy=wip` on the prod branch still stops the run).
 
-Arguments override questions; anything not passed as an argument is asked interactively. An argument never overrides a **guardrail** — `--redeploy=wip` on the prod branch still stops the run.
+| Plugin option | Default | Meaning |
+|---|---|---|
+| `${user_config.full_test_redeploy}` | `dispatch-if-possible` | dispatch when the deploy workflow is dispatchable, else empty commit; skip when already up to date |
+| `${user_config.full_test_reseed}` | `if-proven` | reseed only when the target is proven preprod (G3) and the route does not reseed itself |
+| `${user_config.full_test_suites}` | `all-non-costly` | suite selection without a menu |
+| `${user_config.full_test_confirm_profile}` | `false` | `true` = wait for confirmation after the Phase 0 announce |
+| `${user_config.full_test_commit_pending}` | `false` | `true` = commit + push pending work in a non-fix-loop run |
 
-## What this skill is for / non-goals
+Ask only when: a costly suite is selected, a guardrail is hit, or the prod mapping is ambiguous. Without AskUserQuestion, ask in plain text; either way the degradation is not silent: say so in the report.
 
-**For:** exercising a real, deployed preprod against a known SHA — E2E suites, tests that run inside the preprod containers, post-deploy smoke checks, load tests: whatever the project actually ships.
+## Scope
 
-**In `fix-loop` mode the mandate widens:** the skill also *writes code fixes* and *commits + pushes autonomously* (no per-push approval), looping redeploy→test→fix until zero failures. This wider mandate exists **only** inside fix-loop, and it never touches the guardrails: G1–G4 remain absolute — full-auto means "no approval questions", never "no guards". Outside fix-loop, nothing changes: the skill tests, it does not fix.
+**For:** exercising a real deployed preprod against a known SHA (E2E, in-container tests, post-deploy smoke, load tests).
+**fix-loop widens the mandate:** it writes code fixes and commits + pushes without per-push approval. Guards are unchanged: "full-auto" removes approval questions, never guards. Outside fix-loop the skill tests, it does not fix.
+**Not for:** local/static checks (`pytest`, `tsc`, `next build`: project pre-push routine or `/safe-merge`); merging, releasing or deploying production; testing production (say plainly that this skill cannot, and why); writing missing tests (use `/test-coverage`).
 
-**Not for:** local/static checks that don't need a deployed environment (`pytest`, `mypy`, `ruff`, `tsc`, `next build`) — those belong to the project's pre-push routine or to `/safe-merge`. **Not for** merging, releasing, or deploying production. **Not for** testing production: if that is what the user wants, say plainly that this skill cannot do it and why.
+## Governing principles (override any convenience)
 
-## Five governing principles (these override any convenience)
-
-1. **Production is out of reach, mechanically.** The prod-deploying branch and the prod URL live in the config; compare against them before *every* write (commit, push, reseed) and *every* test target. **Doubt about which environment you are addressing = refuse.** Never "probably preprod". This is the whole point of the skill.
-2. **Unknown ⇒ explicit blind spot / ask the human — NEVER default to "green".** An undetected suite is reported as "not covered — blind spot", never silently dropped. A preprod that can't be identified stops the run rather than guessing a target.
-3. **The served SHA is the only proof.** You never test "preprod", you test a specific SHA. Verify it before the first suite and re-verify at every follow-up tick — a shared preprod slot can be stolen mid-run, which invalidates results.
-4. **Reuse the project's native scripts** (test harness, seed command, deploy workflow, load-test wrapper). Never reimplement them, and **never bypass their own guardrails** — a harness that refuses a URL is protecting the user, not obstructing you.
-5. **Serialize what mutates, parallelize what reads.** On a single shared preprod slot, two mutating suites running at once corrupt each other's data. Fan out subagents (Agent tool) for independent read-only suites; keep mutating suites single-file.
+1. **Production is out of reach, mechanically.** Compare against the config's prod branch and prod URL before every write (commit, push, reseed) and every test target. Doubt about the environment = refuse; never "probably preprod".
+2. **Unknown => blind spot or ask; never default to green.** An undetected suite is reported "not covered", never dropped.
+3. **The served SHA is the only proof.** Verify before the first suite and at every tick; a shared slot can be stolen mid-run.
+4. **Reuse the project's native scripts** (harness, seed, deploy workflow) and never bypass their own guards.
+5. **Serialize what mutates, parallelize what reads.**
 
 ## Tooling
 
-**External CLIs** (Phase 0 preflight tests each along its real invocation path): `git`, `gh` (`gh workflow run`, `gh run list/view/watch`), `curl` + `jq`, `ssh`, `docker`/`docker compose`, `node`/`npx`, `python` + Playwright, `k6` (usually via `docker run`).
-
-**Project-native scripts** (auto-detected, reused, never reimplemented): the E2E harness entrypoint, the DB seed/reset command, the deploy workflow, smoke/observability scripts, the load-test wrapper.
-
-**Claude Code capabilities:** **TaskCreate/TaskUpdate** to register the phases so a long run stays visible and resumable; the **Agent tool** to fan out independent read-only suites and detection probes; **claude-in-chrome MCP** for an optional visual smoke of preprod pages.
+- CLIs (preflighted along their real invocation path): `git`, `gh`, `curl` + `jq`, `ssh`, `docker`, plus whatever the suites need (`node`/`npx`, Playwright, `k6`).
+- Agent types: follow the project's orchestration section if present, else the matrix in `references/fix-loop.md`. Detection fan-out uses `haiku-standard` (probes returning evidence) or `Explore` (read-only file location); if a type is missing, use the Agent tool `model` parameter.
+- Optional tools and degradation (each degradation is reported as a blind spot): TaskCreate/TaskUpdate absent -> checklist in the journal; AskUserQuestion absent -> plain-text question; `CronCreate`/`CronList`/`CronDelete` absent -> no watchdog cron: run long steps with `run_in_background` + `Monitor` or polling, and report "no self-resume watchdog" as a blind spot; claude-in-chrome MCP is optional (visual smoke).
 
 ## Reference files (load on demand)
 
-- `references/detection.md` — how to establish the branch→environment mapping across CI platforms, find the preprod URL and the SHA-serving endpoint, enumerate preprod-targeting suites, find the reseed command, and tell dispatchable workflows from branch-gated ones.
-- `references/guardrails.md` — the anti-production rules, how to *prove* a target is preprod, and the edge cases (shared slot, ambiguous mapping, prod-shaped URLs, seeds guarded only by a password).
-- `references/config-schema.md` — the `.claude/full-test.yml` schema, secrets policy, committed/local split, drift handling.
-- `references/reporting.md` — the run-report template, how to classify pass / fail / by-design skip / blind spot, the fix-loop tick table and the loop final report.
-- `references/fix-loop.md` — the fix-loop mode: iteration cycle, failure triage, fix-agent orchestration (difficulty→model×effort matrix, parallelization), stop conditions, the skips endgame, loop journal/resume. **Load whenever `fix-loop` is invoked.**
+- `${CLAUDE_SKILL_DIR}/references/detection.md`: Phase 0 probes (mapping, URLs, SHA endpoint, suites, reseed, dispatchable workflows).
+- `${CLAUDE_SKILL_DIR}/references/guardrails.md`: **canonical G1-G4**, fix-loop G4 extension, proof of target, edge cases. Load before Phase 1.
+- `${CLAUDE_SKILL_DIR}/references/config-schema.md`: `.claude/full-test.yml` schema, secrets policy, drift.
+- `${CLAUDE_SKILL_DIR}/references/follow-up.md`: Phase 7 stall detection and host resource watch.
+- `${CLAUDE_SKILL_DIR}/references/reporting.md`: outcomes, run report, fix-loop tick table and final report. Load for Phases 7-8.
+- `${CLAUDE_SKILL_DIR}/references/fix-loop.md`: iteration cycle, triage, fix-agent matrix, stop conditions, skips endgame, watchdog, journal. **Load whenever `fix-loop` is invoked.**
 
 ---
 
 # Procedure
 
-Follow the phases in order. Register them with `TaskCreate` at the start so progress is visible and the run is resumable. Placeholders are UPPERCASE (`PROD_BRANCH`, `PREPROD_URL`, `PROD_URL`, `VERSION_ENDPOINT`, `TARGET_SHA`). Any phase that fails a hard rule **stops the run** with a clear report; nothing downstream runs.
+Follow the phases in order; register them with TaskCreate. Placeholders are UPPERCASE: `PROD_BRANCH`, `PREPROD_URL`, `PROD_URL`, `VERSION_ENDPOINT`, and `TARGET_SHA` (the full SHA of the HEAD under test, fixed after any push; the SHA gate compares the served value to it). Any phase that fails a hard rule **stops the run** with a clear report.
 
-**Mode routing (do this first):**
-- `--help` → print Usage, stop.
-- `--dry-run` → run **Phases 0 → 3** in read-only form (ask nothing that would mutate; present the decisions you *would* take), print the execution plan, stop. **No** commit, push, dispatch, reseed, or test. With `fix-loop`, also print the loop plan (iteration cycle, limits, backup command, agent matrix) — still zero writes.
-- `fix-loop` → load `references/fix-loop.md`, run Phases 0–2 as written, **arm the watchdog** (a 10-minute session cron via `CronCreate` that reads the loop journal and resumes the loop when it stalls — mandatory, see fix-loop.md "Watchdog"), then enter the loop it describes. The phase amendments below apply on every iteration.
-- default → run all phases.
+**Mode routing (first):**
+- `--help` -> print Usage, stop.
+- `--dry-run` -> Phases 0-3 read-only, print the plan, stop.
+- `fix-loop` -> load `references/fix-loop.md`, run Phases 0-2, arm the watchdog (mandatory, see fix-loop.md "Watchdog"), enter the loop.
+- bare invocation -> run all phases; print the mode chosen from detection instead of asking.
 
-**Phase amendments in fix-loop mode** (the detail lives in `references/fix-loop.md`; the phases below stay authoritative for everything not amended):
-- **Phase 3** — the redeploy is no longer a question: commit + push automatically (pending work is included at iteration 1; empty commit when there is nothing to push; fix commits on later iterations). G1 is re-asserted before **every** push.
-- **Phase 5** — **backup the preprod database before every reseed, on every iteration**, using the project's native backup command (`backup:` in the config). The backup target needs the same class of proof as the reseed target; no proof ⇒ no backup ⇒ no reseed, reported as a blind spot.
-- **Phase 6** — the suite selection is asked **once**, at iteration 1; later iterations reuse it unchanged so results stay comparable across the loop.
-- **Phase 7** — each 5-minute tick prints the fix-loop recap table (iteration, totals, done, pass/fail, skips, elapsed, ETA, served SHA — template in `references/reporting.md`) and refreshes the journal heartbeat.
-- **Watchdog (all phases)** — the loop runs under a 10-minute `CronCreate` watchdog armed before iteration 1 and deleted on every exit path. It reads `journal.md`'s heartbeat (`iteration`, `step`, `step_detail`, `heartbeat_at`); if nothing advanced for `watchdog.stall_after_ticks` ticks (default 2 = 20 min) it resumes the loop at the recorded iteration and step, bounded by `watchdog.max_resumes` (default 5), guardrails unchanged. Because the cron only fires while the session is idle, fix-loop never blocks the REPL: every foreground command has a `timeout`, long waits go through `run_in_background`/`Monitor`, and no turn ends on a question outside the skips endgame.
+**Fix-loop amendments** (detail in `references/fix-loop.md`):
+- **Phase 3:** redeploy is automatic (pending work committed at iteration 1; fix commits later); G1 re-asserted before every push.
+- **Phase 5:** native DB backup before every reseed, every iteration; no target proof => no backup => no reseed (blind spot).
+- **Phase 6:** suite selection made once at iteration 1, reused unchanged.
+- **Phase 7:** each tick prints the recap table (`references/reporting.md`) and refreshes the journal heartbeat.
+- **Watchdog:** a 10-minute cron resumes a stalled loop from the journal; armed before iteration 1, deleted on every exit (`references/fix-loop.md`).
 
-## Phase 0 — Preflight, detection, capabilities
+## Phase 0 - Preflight, detection, capabilities
 
-Goal: know exactly what "preprod" means in *this* project, and that every capability you'll need actually works — before touching anything. Fan out subagents for the independent detection probes (see `references/detection.md`).
+Know what "preprod" means in *this* project and that every capability works, before touching anything. Fan out subagents for the independent probes (`references/detection.md`).
 
-1. **Resume check.** If `.claude/full-test/journal.md` shows an in-progress run — or a `.claude/full-test/fix-loop-*/journal.md` shows an in-progress loop — read it and **offer to resume** at the last completed phase (or the loop's recorded iteration and step) rather than blindly restarting (a redeploy already done should not be redone).
-2. **Load + refresh config.** Read `.claude/full-test.yml` if present. **Re-run detection regardless** — config goes stale. On drift between detected and stored values, report it; if the drift touches a human-authored `quirks`/override field, **show the diff and ask before overwriting**. Enforce the secrets policy: env-var **names** only, never values.
-3. **Detect the branch→environment mapping — the critical one.** Which branch (or tag) deploys **production**, which deploys **preprod**, and by what mechanism. Beware catch-all triggers (`branches: ["**"]`) where the routing lives in a conditional inside the job, not in the trigger. Establish `PROD_BRANCH` and the preprod rule.
-4. **Detect the environments:** `PREPROD_URL`, `PROD_URL`, and `VERSION_ENDPOINT` — the endpoint that exposes the *running SHA*. Verify it actually returns a SHA (some `/version` endpoints deliberately withhold it without auth); if none does, that's a blind spot that costs you principle 3 — say so.
-5. **Enumerate every preprod-targeting suite** and, for each: the exact command, the execution route (dispatchable workflow vs local), whether it **mutates** preprod data, whether it **reseeds by itself**, its gating flag (`E2E_DEEP=1` or equivalent), its cost class (light / moderate / **costly**), and where it writes logs/artifacts.
-6. **Detect the reseed command** and, crucially, **what identifies its target** (host, compose project, database name, email domain scope). In fix-loop mode, also detect the **DB backup command** (`pg_dump`/`mysqldump` wrapper, a `make backup` target, an ops script) with the same target-proof requirement — fix-loop refuses to reseed without a fresh backup.
-7. **Hard stop if preprod can't be established.** If `PREPROD_URL`, the deploy mechanism, or the branch→env mapping can't be determined **with certainty**, stop and list precisely what is missing and where to declare it in `.claude/full-test.yml`. Do **not** fall back to another environment, do **not** ask "which URL should I test?" as a substitute for knowing — the human filling in the config is the fix.
-8. **Capability preflight.** Test each capability **the way the project actually invokes it**, not with a naive host-local `command -v`: if the seed only ever runs as `ssh HOST 'docker compose … exec backend …'`, test *that*, and a host-local absence of `psql`/`docker` is irrelevant. Check `gh auth status`, `PREPROD_URL` reachability, push rights if a push may happen. Stop only for capabilities genuinely missing along the real path — with a precise fix list. Don't false-flag.
-9. **Announce + confirm.** Present the detected profile (prod branch, preprod URL, suites found with cost classes, reseed command) and an estimated run time. Write/refresh `.claude/full-test.yml`.
+1. **Resume check.** If `.claude/full-test/journal.md` or a `.claude/full-test/fix-loop-*/journal.md` shows an in-progress run with a heartbeat or update less than 24 h old, resume automatically at the recorded phase (or loop iteration and step) and say so; an older journal: report it and start fresh.
+2. **Load + refresh config.** Read `.claude/full-test.yml` if present; re-run detection regardless. Structural drift: update and report. Drift on a human-authored field (`quirks`, overrides, guardrail fields): **keep the stored value and report the diff, do not ask**. Env-var names only, never values.
+3. **Branch->environment mapping (critical).** Establish `PROD_BRANCH` and the preprod rule. Beware catch-all triggers with routing inside a job conditional.
+4. **Environments:** `PREPROD_URL`, `PROD_URL`, `VERSION_ENDPOINT` (verify it returns a SHA; none does => principle 3 has no proof, a blind spot).
+5. **Suites:** per suite the command, route, mutates, reseeds-itself, gating flag, cost class (light / moderate / **costly**), log paths.
+6. **Reseed command** and what identifies its target. In fix-loop, also the **DB backup command** with the same proof requirement.
+7. **Hard stop if preprod cannot be established** with certainty (URL, deploy mechanism, mapping): list what is missing and where to declare it in `.claude/full-test.yml`. Never fall back to another environment or ask "which URL?" instead of knowing.
+8. **Capability preflight** along the real path (not host-local `command -v`): `gh auth status`, `PREPROD_URL` reachability, push rights if a push may happen. Stop only for capabilities genuinely missing, with a precise fix list.
+9. **Announce.** Print the detected profile (prod branch, preprod URL, suites with cost classes, reseed command, estimated duration) and write/refresh `.claude/full-test.yml` (not in `--dry-run`). Wait for confirmation only if `${user_config.full_test_confirm_profile}` is true or the mapping is ambiguous.
 
-## Phase 1 — Guardrails (before any write)
+## Phase 1 - Guardrails (before any write)
 
-Assert all of these now, and re-assert each one immediately before the action it protects. See `references/guardrails.md`.
+Full text: `${CLAUDE_SKILL_DIR}/references/guardrails.md`. Assert now, re-assert immediately before the action each protects:
 
-1. **Current branch == `PROD_BRANCH` → STOP.** No commit, no push, no dispatch. Explain that pushing here would deploy production. **Offer** to move to a development branch; do not do it yourself — a test skill does not rearrange the user's branches. This holds even under `--redeploy=wip`.
-2. **Test target ∈ the preprod whitelist, never `PROD_URL`.** Compare the resolved host, not a substring. If the harness has its own target guard, that guard is authoritative — **never work around it**; if it refuses your URL, the URL is wrong, not the guard.
-3. **Reseed target must be *proven* preprod** — by host, compose project, database name, or the seed's own scoping — before the command runs. A guard that a password alone can lift is not proof. **No proof ⇒ no reseed**, reported as a blind spot rather than attempted.
-4. **Never widen an existing guard** to make a run possible (adding a URL to a whitelist, exporting a password to lift a fail-closed check, passing `--prod`). If a run needs that, it is the wrong run.
+1. **G1:** current branch == `PROD_BRANCH` -> STOP (no commit, push, dispatch); offer a dev branch, never switch yourself.
+2. **G2:** test target host is in the preprod allowlist, never `PROD_URL`; the harness's own guard is authoritative.
+3. **G3:** reseed target proven preprod; no proof => no reseed (blind spot).
+4. **G4:** never widen a guard to make a run possible.
 
-## Phase 2 — Git state + served SHA (read-only)
+## Phase 2 - Git state + served SHA (read-only)
 
-1. `git rev-parse --abbrev-ref HEAD`, `git status --porcelain` (pending work), `git rev-parse HEAD`, and the upstream — **resolved before you use it**:
+1. `git rev-parse --abbrev-ref HEAD`, `git status --porcelain`, `git rev-parse HEAD`, and the upstream:
 
    ```bash
    git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || echo "NO_UPSTREAM"
    ```
 
-   **Handle `NO_UPSTREAM` explicitly — it is a trap, not an edge case.** `git rev-list --count @{u}..HEAD` *fails* on a branch with no upstream and hands back an empty string, which reads as `0` — i.e. "nothing unpushed", the exact opposite of the truth. A branch with no upstream has **never been pushed**: all of its commits are unpushed, and the preprod cannot possibly be serving it (any matching SHA is a coincidence of the branch point, not evidence your work is deployed). Say so plainly, and remember that pushing it later needs `git push -u origin <branch>`.
-2. `curl -fsS PREPROD_URL/VERSION_ENDPOINT` → the served SHA. **Compare it as a prefix of the full SHA** (`served == full[:len(served)]`), never against `git rev-parse --short HEAD` — short-SHA length is not stable across clones, and the mismatch lies convincingly. See `references/detection.md` §2.
-3. Conclude and state plainly: **is preprod already serving this branch's HEAD, and is there uncommitted or unpushed work?**
+   `NO_UPSTREAM`: the branch was never pushed, so all its commits are unpushed and preprod cannot serve it (`git rev-list @{u}..HEAD` fails and reads as 0). A matching served SHA is only the branch point. Later push needs `git push -u origin <branch>`.
+2. `curl -fsS PREPROD_URL/VERSION_ENDPOINT` -> served SHA, compared as a **prefix of the full SHA**, never against `git rev-parse --short HEAD` (`references/detection.md` section 2).
+3. State plainly: is preprod serving this branch's HEAD, and is there uncommitted or unpushed work?
 
-## Phase 3 — Redeploy decision
+## Phase 3 - Redeploy decision
 
-- **Already up to date** (served SHA == HEAD **and** clean tree **and** an upstream exists with nothing unpushed) → say so and **propose skipping the redeploy** — it saves the whole deploy wait. Default to skipping if the user just confirms. **A branch with no upstream never qualifies**, even when the served SHA matches: that match means the branch still points at its (already deployed) branch point, not that your branch is deployed. Skipping there would test the wrong code and call it green.
-- **Otherwise, ask whether to redeploy.** If yes and there is pending work, present the choice honestly:
-  - **Commit + push the pending work** → it gets deployed and tested. Stage **file by file** (never `git add -A`), write a message in the project's commit convention, show it for approval before pushing. No upstream → `git push -u origin <branch>`; note that on a project where every non-prod branch deploys preprod, **pushing a brand-new branch triggers a deploy by itself** and can take the shared slot from whoever holds it.
-  - **Redeploy what is already pushed** → the pending work stays local and **will not be tested**. Say this in those words; it is the trap this question exists to prevent.
-- **How to redeploy without new code:** prefer **`gh workflow run <deploy-workflow> --ref <branch>`** when the deploy workflow is dispatchable — it keeps history clean. Fall back to an empty commit (`git commit --allow-empty`) only when no dispatch route exists, and say why.
-- Re-assert guardrail 1 immediately before any push or dispatch.
+Policy: `--redeploy` > config > `${user_config.full_test_redeploy}`.
 
-## Phase 4 — Redeploy + SHA gate
+- **Already up to date** (served SHA == HEAD, clean tree, upstream exists with nothing unpushed) -> skip the redeploy. A branch with no upstream never qualifies.
+- **Strategies:**
+  - `dispatch`: `gh workflow run <deploy-workflow> --ref <branch>` (requires a dispatchable workflow; deploys only what is already pushed).
+  - `empty`: `git commit --allow-empty` + push (fallback when no dispatch route exists; say why).
+  - `wip`: commit the pending work **file by file** (never `git add -A`) in the project's commit convention, then push (`-u origin <branch>` without upstream). Pushing a brand-new branch can itself deploy and take a shared slot.
+  - `no`: no redeploy; test what is served (the SHA gate still applies).
+- **Pending work:** unless `wip` is chosen or `${user_config.full_test_commit_pending}` is true, pending work stays local. **Always warn in those words: the pending work stays local and will not be tested.**
+- Re-assert G1 immediately before any push or dispatch.
 
-1. Trigger the chosen strategy; follow the run with the project's native tool (`gh run watch <id> --interval 20 --exit-status`).
-2. **Gate on the SHA, not on health.** Poll `VERSION_ENDPOINT` until the served SHA == `TARGET_SHA`, with a bounded timeout. A healthy preprod serving *someone else's* commit is a failure, not a pass.
-3. Timeout → **stop and report explicitly**: deploy failed, or the shared preprod slot was taken by another branch (name it if the CI shows it). Never start a suite against an unverified SHA.
+## Phase 4 - Redeploy + SHA gate
 
-## Phase 5 — Reseed (optional)
+1. Trigger the strategy; follow with the native tool (`gh run watch <id> --interval 20 --exit-status`).
+2. **Gate on the SHA, not on health:** poll `VERSION_ENDPOINT` until served == `TARGET_SHA`, bounded timeout.
+3. Timeout -> stop and report (deploy failed, or slot taken by another branch: name it). Never start a suite against an unverified SHA.
 
-1. If the chosen execution route **already reseeds** (many E2E workflows do), say so and **do not reseed twice**.
-2. Otherwise ask, then re-prove the target (guardrail 3) and run the project's native seed command. Prefer the project's documented mode (a full `--reset` is often required rather than an idempotent seed — accumulated state drifts and causes false failures).
-3. Report what the seed destroys and recreates, so the user knows what state the suites will find.
+## Phase 5 - Reseed
 
-## Phase 6 — Suite menu + execution
+Policy: `--reseed`/`--no-reseed` > config > `${user_config.full_test_reseed}`.
 
-1. **Build the menu from detection**, never from a hardcoded list. Offer multi-select plus an "everything" entry. Mark **costly** suites (deep/expensive gating, load tests) — they are **excluded from "everything"** and each require their own confirmation, with their real cost stated (shared VPS, real transcodes, minutes of load).
-2. **Schedule by mutation class:** mutating suites strictly serial; read-only suites in parallel via subagents; **load tests alone** (concurrent traffic invalidates their numbers, and they invalidate everyone else's).
-3. **A failure stops nothing.** Record it, keep going, report at the end (Phase 8). Only a guardrail breach or a lost SHA gate aborts the run.
+1. Route already reseeds -> say so, do not reseed twice.
+2. Otherwise, when selected: re-prove the target (G3) and run the native seed in the project's documented mode (a full `--reset` is often required).
+3. Report what the seed destroys and recreates.
 
-## Phase 7 — Follow-up (5-minute tick)
+## Phase 6 - Suite selection + execution
 
-**This phase always runs — every mode, every option combination.** No flag reduces or disables it: any run that launches at least one suite is followed on a 5-minute tick until every suite finishes. Waiting silently on a command and hoping it returns is not following.
+1. Build the list from detection, never hardcoded. Selection: `--suites`/`--all` > config > `${user_config.full_test_suites}` (default: every non-costly suite, no menu).
+2. **Costly suites** (deep gating, load tests) are excluded from "everything"; each needs its own confirmation with its real cost stated. This gate is kept in every mode.
+3. **Schedule by mutation class:** mutating suites strictly serial; read-only suites in parallel via subagents; load tests alone.
+4. A failure stops nothing: record, continue, report. Only a guardrail breach or a lost SHA gate aborts.
 
-At each tick, report: the suite in flight, elapsed time, current pass/fail/skip counters if the harness exposes them, and **the served SHA re-checked**. If the SHA changed mid-run, the slot was stolen: mark the affected results **invalid** (not "failed"), say which suites are compromised, and offer to re-run once the slot is back.
+## Phase 7 - Follow-up (5-minute tick)
 
-**Stall detection (default behavior).** The tick is a watchdog, not just a progress report. Record what each tick observed (counter values, the CI job's current step, log tail offset, run status). If **nothing observable has advanced for `stall_after_ticks` consecutive ticks** (default 3 = 15 min) — same counters, same step, log not growing — the suite is presumed **stalled**, and waiting longer is not the response:
+Always runs, every mode, no flag disables it. Each tick reports what is observable: suite in flight, elapsed, counters if exposed, served SHA re-checked. SHA changed => results **invalid** (not failed). Details in `${CLAUDE_SKILL_DIR}/references/follow-up.md`.
 
-1. **Investigate** via the native sources: `gh run view <id> --json status,jobs` (job hung? runner lost? queued behind another run?), the harness log tail (last line and its age), preprod reachability + served SHA (environment down or redeployed?).
-2. **Name the cause** if visible (hung job, lost runner, dead preprod, deploy queue) and report it at the tick instead of another identical row.
-3. **Act once, bounded**: a run the CI itself marked as hung/lost → cancel and retry it **once**; a dead preprod → this is an environment incident, stop the affected suite and report. If the retry stalls again, classify the suite **failed (infrastructure)** with the evidence — never leave the run hanging indefinitely and never report a stalled suite as still "running" past the threshold.
-4. **Calibrate before flagging**: a suite whose config `typical_duration` is long and whose harness exposes no counters is not "stalled" just because it is quiet — for those, the threshold applies to the *sources* (log growth, job step changes), and if genuinely nothing is observable, say so once at the start and fall back to `typical_duration` + margin as the stall deadline.
+- **Stall detection:** nothing observable advanced for `stall_after_ticks` ticks (default 3 = 15 min) -> investigate, name the cause, act once (cancel + retry once, then failed-infrastructure).
+- **Host resource watch:** when a `resources:` block exists, disk/RAM are sampled each tick; above threshold run only the declared safe clean commands, then report an environment risk.
 
-In fix-loop mode, a suite that ends **failed (infrastructure)** after a stall is triaged as infra (see `references/fix-loop.md`) — it is not a product bug and spawns no fix agent; if the same suite stalls on consecutive iterations, that is a no-progress signal, not something to fix in code.
+## Phase 8 - Report
 
-**Host resource watch (when the environment or the suites run on a reachable host).** A preprod that runs out of disk or RAM mid-suite produces failures that look like product bugs and can freeze the whole VPS. When the config declares a `resources:` block — or when detection establishes that the tests, the runner, or the preprod stack share the local machine — each tick also samples disk and RAM usage on that host. Above the thresholds (`resources.disk_max_pct`, default 85; `resources.ram_max_pct`, default 90):
-
-1. Run the project's declared **safe clean commands** (`resources.clean` — declared per project because "safe" is project-specific: on a shared VPS, global docker prunes are typically forbidden while `docker builder prune -af` is fine). Never improvise a cleanup beyond that list.
-2. Re-sample. Still above threshold → report it at the tick as an **environment risk** (with the numbers), and treat any suite failure that follows as candidate-infrastructure, not product, until resources recover.
-3. Never let a cleanup touch test artifacts of the run in flight, DB backups within their `keep_last` rotation, or anything the project's guardrails protect.
-
-Prefer the project's native progress source (`gh run view <id> --json status,jobs`, the harness log tail). Do not invent progress you can't observe.
-
-## Phase 8 — Report
-
-Present, then persist to `.claude/full-test/run-<TARGET_SHA>.md` (template in `references/reporting.md`):
-
-- **Per-suite table:** passed / **failed** / skipped-by-design / **not covered (blind spot)** — these are four distinct outcomes and must never be collapsed. By-design skips (a gating flag off, a feature killswitch off) are **not** failures; say so, with the count and the reason, or they read as rot.
-- **Failures:** the log excerpt that matters, not the whole log, plus artifact paths.
-- **Context:** the SHA tested, whether it held throughout, what was reseeded, what was skipped and why.
-- **Verdict** — explicit, and honest about what was *not* covered. A run where three suites were declined is not "green"; it is "green on what ran".
+Present, then persist to `.claude/full-test/run-<TARGET_SHA>.md` (template in `references/reporting.md`): per-suite table with the four distinct outcomes (passed / failed / skipped by design / not covered), the log excerpt that matters, context (SHA tested and whether it held, reseed, skips), and an honest verdict ("green on what ran").

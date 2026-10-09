@@ -1,5 +1,14 @@
 # Sizing the system, and deciding where a rule belongs
 
+Contents:
+- The three tiers
+- Where a rule belongs
+- Root AGENTS.md section order
+- The behaviour section
+- INDEX.md
+- Knowledge graph
+- Instruction budget
+
 ## The three tiers
 
 Measure first, propose, confirm. Never impose a tier: an instruction file that is not earned is a permanent tax on every session.
@@ -109,3 +118,7 @@ Update it in the same commit as any file it lists. An index that lies is worse t
 Detect (`graphify-out/`, `.graph.json`, similar). If found, document in the root file: how to query it, that it **locates but does not adjudicate** (read the real code before concluding), and the freshness check comparing its build commit to HEAD. A stale graph costs more than a plain grep, through false leads.
 
 Never generate one. Never treat it as a source of truth.
+
+## Instruction budget
+
+Canonical figure (as of 2026-10), the single copy: frontier models follow roughly 150-200 instructions before adherence degrades, and the harness already spends about 50. Past that, a rule added **replaces** one already there. Other skills and files cite this section instead of restating the figure; refresh the date here when it is re-checked.

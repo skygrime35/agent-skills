@@ -1,31 +1,41 @@
-# `~/.claude/new-project.yml` — user-level preferences
+# Learned tastes and options
 
-Lives at **user level**, not project level (the project doesn't exist yet when it's needed). Missing file = first run: use matrix defaults, create the file at Phase 6. This file is the main lever of "minimum user time": by the third project the interview and the stack question mostly disappear.
+Contents: learned-tastes file, plugin options, enrichment rules.
 
-## Schema
+## Where settings live
+
+- **Plugin options** (`${user_config.<KEY>}`) hold every policy default: UI language, docs language, look and feel baseline, privacy default, auto-name, host domain pattern, port range, deploy host, disk floor, agents fallback. They are the autonomy levers.
+- **`~/.claude/new-project.yml`** is only the **learned-tastes file** (stacks, license, conventions, quirks, projects directory, identity). It lives at user level because the project does not exist yet when it is needed. Missing file = first run: matrix defaults, file created at Phase 6. Resolution order: command argument > this file > plugin option > recommended default.
+
+## Plugin options used by the skill
+
+| Option | Default | Used for |
+|---|---|---|
+| `new_project_ui_language` | English | language of questions and reports |
+| `new_project_docs_language` | English | README and human-facing docs (code stays English) |
+| `new_project_look_and_feel` | clean, sober, modern | baseline when the user gives no reference apps |
+| `new_project_privacy_default` | basic-auth | `basic-auth` or `open` for the vhost when data is private and no in-app auth exists |
+| `new_project_auto_name` | false | use the recommended name without waiting for a choice |
+| `new_project_host_domain_pattern` | `<dashed-ip>.nip.io` | base domain of `<project>.<base>`; a real wildcard domain takes precedence |
+| `new_project_port_range_start` / `_end` | 6400 / 6499 | loopback ports reserved for deployments |
+| `new_project_deploy_host` | localhost VPS | where the app is hosted (only the local VPS is implemented; anything else = `--no-host` plus a blind spot) |
+| `new_project_min_disk_gb` | 3 | free-disk floor, passed to the script as `NP_MIN_DISK_GB` |
+| `new_project_agents_fallback` | model-parameter | when dedicated agent types are missing: `model-parameter` uses the Agent tool's `model` argument with session-default effort; `main-loop` runs every package inline |
+
+## Learned-tastes schema
 
 ```yaml
-# ~/.claude/new-project.yml — preferences for /new-project. Enriched after each confirmed run.
+# ~/.claude/new-project.yml: learned tastes for /new-project. Enriched after each confirmed run.
 identity:
-  author: ""              # goes into LICENSE / package metadata
+  author: ""              # LICENSE / package metadata
   github_user: ""         # detected from `gh auth status` on first run
   default_license: MIT
-  docs_language: fr       # language for README and human-facing docs (code stays English)
 
 projects_dir: ~/projects  # default parent for new projects
+registry: ~/.claude/new-project-deployments.yml
 
-defaults:
-  repo_visibility: private
-  ci: github-actions
-
-hosting:
-  enabled: true           # false = behave as --no-host by default
-  base_domain: ""         # e.g. "apps.example.com" (wildcard DNS) — empty = <dashed-public-ip>.nip.io
-  port_range: [6400, 6499] # loopback ports reserved for this skill's deployments; collision-checked against the live host
-  registry: ~/.claude/new-project-deployments.yml
-
-stacks:                   # per-type overrides of the matrix in stacks.md
-  web-app: ""             # e.g. "nextjs" — empty = matrix default
+stacks:                   # per-type overrides of the matrix in stacks.md; empty = matrix default
+  web-app: ""
   api: ""
   cli: ""
   tui: ""
@@ -35,14 +45,14 @@ stacks:                   # per-type overrides of the matrix in stacks.md
   browser-ext: ""
 
 conventions:              # free-form lines injected into every spec, human-authored
-  - ""                    # e.g. "commit messages in English", "UI copy in French"
+  - ""
 
 quirks: []                # human-authored notes the skill must respect but never rewrite
 ```
 
 ## Enrichment rules (Phase 6, after a GO'd run)
 
-1. Only **confirmed** choices are written back — a stack the user validated at Checkpoint 1 and didn't regret at the live checkpoint, a license they accepted, the resolved `github_user`.
-2. **Show the diff before writing.** Never silently rewrite `conventions` or `quirks` — those are human-authored; propose additions, don't edit existing lines.
-3. One run's choice becomes a *default*, not a law: the spec at Checkpoint 1 always states which preferences were applied, so overriding stays a one-comment correction.
-4. Secrets never belong in this file — env var **names** at most, never values.
+1. Only **confirmed** choices are written back (a stack validated at Checkpoint 1 and not regretted at the live checkpoint, an accepted license, the resolved `github_user`).
+2. **Show the diff before writing.** Never rewrite `conventions` or `quirks` (human-authored); propose additions only.
+3. A run's choice becomes a default, not a law: the spec states which preferences were applied.
+4. Secrets never belong in this file.

@@ -2,6 +2,479 @@
   "name": "dev-skills",
   "version": "1.0.0",
   "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects",
-  "author": { "name": "Romain Gadani" },
-  "userConfig": {}
+  "author": {
+    "name": "Romain Gadani"
+  },
+  "userConfig": {
+    "agents_md_doc_language": {
+      "type": "string",
+      "title": "Documentation language",
+      "description": "Language code of generated agent documentation (English by default: the audience is a model).",
+      "default": "en"
+    },
+    "agents_md_tier_policy": {
+      "type": "string",
+      "title": "Tier policy",
+      "description": "Size tier for init: auto picks from the measured repository, or force 1, 2 or 3.",
+      "options": [
+        "auto",
+        "1",
+        "2",
+        "3"
+      ],
+      "default": "auto"
+    },
+    "agents_md_install_guardrail_scripts": {
+      "type": "boolean",
+      "title": "Install guardrail scripts",
+      "description": "Copy the check_*.py guardrail scripts into the target project by default (opt-out).",
+      "default": true
+    },
+    "agents_md_commit_convention_policy": {
+      "type": "string",
+      "title": "Commit convention policy",
+      "description": "detect: document the convention found in history; enforce: require conventional commits; skip: document none.",
+      "options": [
+        "detect",
+        "enforce",
+        "skip"
+      ],
+      "default": "detect"
+    },
+    "full_test_redeploy": {
+      "type": "string",
+      "title": "Redeploy strategy",
+      "description": "Default redeploy policy: dispatch the deploy workflow when possible (else empty commit), skip when preprod already serves HEAD.",
+      "options": [
+        "dispatch-if-possible",
+        "dispatch",
+        "empty",
+        "wip",
+        "no"
+      ],
+      "default": "dispatch-if-possible"
+    },
+    "full_test_reseed": {
+      "type": "string",
+      "title": "Reseed policy",
+      "description": "Reseed the preprod database only when the target is proven preprod and the suite does not reseed itself.",
+      "options": [
+        "if-proven",
+        "always",
+        "never"
+      ],
+      "default": "if-proven"
+    },
+    "full_test_suites": {
+      "type": "string",
+      "title": "Suite selection",
+      "description": "Which suites run without a menu. Costly suites always need their own confirmation.",
+      "options": [
+        "all-non-costly",
+        "ask"
+      ],
+      "default": "all-non-costly"
+    },
+    "full_test_confirm_profile": {
+      "type": "boolean",
+      "title": "Confirm detected profile",
+      "description": "Wait for confirmation after the Phase 0 announce of the detected profile.",
+      "default": false
+    },
+    "full_test_commit_pending": {
+      "type": "boolean",
+      "title": "Commit pending work",
+      "description": "Commit and push uncommitted work before redeploying in a non-fix-loop run.",
+      "default": false
+    },
+    "legal_editor_name": {
+      "type": "string",
+      "title": "Editor legal name",
+      "description": "Default legal name for mentions légales when config and published pages lack it",
+      "default": ""
+    },
+    "legal_editor_form": {
+      "type": "string",
+      "title": "Editor legal form",
+      "description": "Default legal form (e.g. association-1901, sasu, sas, ei)",
+      "default": ""
+    },
+    "legal_editor_siret": {
+      "type": "string",
+      "title": "Editor SIRET",
+      "description": "Default SIRET (public legal-notice data)",
+      "default": ""
+    },
+    "legal_editor_address": {
+      "type": "string",
+      "title": "Editor registered address",
+      "description": "Default registered address (siège)",
+      "default": ""
+    },
+    "legal_editor_publication_director": {
+      "type": "string",
+      "title": "Publication director",
+      "description": "Default directeur de la publication",
+      "default": ""
+    },
+    "legal_editor_contact_email": {
+      "type": "string",
+      "title": "Editor contact email",
+      "description": "Default public contact email",
+      "default": ""
+    },
+    "legal_tone": {
+      "type": "string",
+      "title": "Document tone",
+      "description": "Drafting tone for generated legal texts",
+      "options": [
+        "rassurant",
+        "neutre",
+        "formel"
+      ],
+      "default": "rassurant"
+    },
+    "legal_en_bref": {
+      "type": "boolean",
+      "title": "En bref summaries",
+      "description": "Add a short summary box at the head of each article",
+      "default": true
+    },
+    "legal_risk_appetite": {
+      "type": "string",
+      "title": "Accepted-risk appetite",
+      "description": "Whether measured risks may be proposed for the accepted_risks register",
+      "options": [
+        "max-compliance",
+        "accept-measured-risks"
+      ],
+      "default": "max-compliance"
+    },
+    "legal_dpo_stance": {
+      "type": "string",
+      "title": "DPO stance",
+      "description": "Default DPO section",
+      "options": [
+        "none-generic-contact",
+        "designated"
+      ],
+      "default": "none-generic-contact"
+    },
+    "legal_mediator_default": {
+      "type": "string",
+      "title": "Médiateur default",
+      "description": "Default when no consumer-mediation agreement is known",
+      "options": [
+        "placeholder",
+        "signed"
+      ],
+      "default": "placeholder"
+    },
+    "legal_min_age": {
+      "type": "number",
+      "title": "Minimum age default",
+      "description": "Default minimum user age",
+      "default": 15
+    },
+    "legal_report_language": {
+      "type": "string",
+      "title": "Report language",
+      "description": "Language of findings and reports; published legal texts stay French",
+      "default": "fr"
+    },
+    "new_project_ui_language": {
+      "type": "string",
+      "title": "UI language",
+      "description": "Language of questions and reports shown to the user (code and commits stay English).",
+      "default": "French"
+    },
+    "new_project_docs_language": {
+      "type": "string",
+      "title": "Docs language",
+      "description": "Language of README and human-facing project docs.",
+      "default": "French"
+    },
+    "new_project_look_and_feel": {
+      "type": "string",
+      "title": "Look and feel baseline",
+      "description": "Visual baseline used when the user gives no reference apps.",
+      "default": "clean, sober, modern"
+    },
+    "new_project_privacy_default": {
+      "type": "string",
+      "title": "Privacy default",
+      "description": "Vhost protection when data is private and the app has no auth of its own.",
+      "options": [
+        "basic-auth",
+        "open"
+      ],
+      "default": "basic-auth"
+    },
+    "new_project_auto_name": {
+      "type": "boolean",
+      "title": "Auto-name",
+      "description": "Use the recommended project name without waiting for a choice at the checkpoint.",
+      "default": false
+    },
+    "new_project_host_domain_pattern": {
+      "type": "string",
+      "title": "Host domain pattern",
+      "description": "Base domain for <project>.<base>; <dashed-ip>.nip.io or a real wildcard domain.",
+      "default": "<dashed-ip>.nip.io"
+    },
+    "new_project_port_range_start": {
+      "type": "number",
+      "title": "Port range start",
+      "description": "First loopback port reserved for deployments.",
+      "default": 6400
+    },
+    "new_project_port_range_end": {
+      "type": "number",
+      "title": "Port range end",
+      "description": "Last loopback port reserved for deployments.",
+      "default": 6499
+    },
+    "new_project_deploy_host": {
+      "type": "string",
+      "title": "Deploy host",
+      "description": "Where the app is hosted; only the local VPS is implemented.",
+      "default": "localhost VPS"
+    },
+    "new_project_min_disk_gb": {
+      "type": "number",
+      "title": "Free-disk floor (GB)",
+      "description": "Minimum free disk checked by the host-safety script (NP_MIN_DISK_GB).",
+      "default": 3
+    },
+    "new_project_agents_fallback": {
+      "type": "string",
+      "title": "Agents fallback",
+      "description": "What to do when dedicated agent types are missing.",
+      "options": [
+        "model-parameter",
+        "main-loop"
+      ],
+      "default": "model-parameter"
+    },
+    "orchestration_agents_location": {
+      "type": "string",
+      "title": "Agent types location",
+      "description": "Where subagent type files live: global (~/.claude/agents/, shared by all projects) or project (.claude/agents/, versioned).",
+      "options": [
+        "global",
+        "project"
+      ],
+      "default": "global"
+    },
+    "orchestration_cost_posture": {
+      "type": "string",
+      "title": "Cost posture",
+      "description": "Model choice policy: cheapest adequate rung, balanced, or capability-first.",
+      "options": [
+        "cheapest-capable",
+        "balanced",
+        "capability-first"
+      ],
+      "default": "cheapest-capable"
+    },
+    "orchestration_matrix": {
+      "type": "string",
+      "title": "Agent type matrix",
+      "description": "Number of subagent types: five (quick/standard per tier plus top deep), three, or none (model parameter only).",
+      "options": [
+        "five-types",
+        "three-types",
+        "none"
+      ],
+      "default": "five-types"
+    },
+    "orchestration_deep_gate": {
+      "type": "string",
+      "title": "Deep type gate",
+      "description": "When the top deep type may run.",
+      "options": [
+        "explicit-or-after-failure",
+        "orchestrator-judgment"
+      ],
+      "default": "explicit-or-after-failure"
+    },
+    "orchestration_builtin_overrides": {
+      "type": "string",
+      "title": "Built-in overrides",
+      "description": "Built-ins to override, comma-separated: explore (Explore agent on the low model), subagent-model-env (CLAUDE_CODE_SUBAGENT_MODEL in settings.json). Use none to skip.",
+      "default": "explore,subagent-model-env"
+    },
+    "orchestration_delegation_threshold": {
+      "type": "string",
+      "title": "Delegation threshold",
+      "description": "When delegation is mandatory.",
+      "options": [
+        "exploration-iteration-or-multi-file",
+        "large-multi-file-only",
+        "advisory"
+      ],
+      "default": "exploration-iteration-or-multi-file"
+    },
+    "orchestration_delegation_rationale": {
+      "type": "boolean",
+      "title": "Context-economy rationale",
+      "description": "Include the one-sentence context-economy rationale in the delegation rule.",
+      "default": true
+    },
+    "orchestration_delegation_fallback": {
+      "type": "string",
+      "title": "Delegation fallback",
+      "description": "What to do when delegation is unavailable.",
+      "options": [
+        "do-it-yourself-and-say-so",
+        "stop-and-ask"
+      ],
+      "default": "do-it-yourself-and-say-so"
+    },
+    "orchestration_report_style": {
+      "type": "string",
+      "title": "Subagent report style",
+      "description": "Style imposed on subagent reports.",
+      "options": [
+        "high-density",
+        "free"
+      ],
+      "default": "high-density"
+    },
+    "orchestration_parallelism": {
+      "type": "string",
+      "title": "Parallelism",
+      "description": "Parallelism appetite for unrelated requests.",
+      "options": [
+        "default-on",
+        "on-request",
+        "never"
+      ],
+      "default": "default-on"
+    },
+    "orchestration_isolation": {
+      "type": "string",
+      "title": "Isolation policy",
+      "description": "Isolation required for concurrent agents.",
+      "options": [
+        "escalating",
+        "worktrees-always",
+        "disjoint-only"
+      ],
+      "default": "escalating"
+    },
+    "orchestration_shared_tree_bans": {
+      "type": "string",
+      "title": "Shared-tree bans",
+      "description": "Comma-separated commands banned on a shared working tree.",
+      "default": "git stash,git add -A,git checkout,git reset"
+    },
+    "orchestration_cite_incident": {
+      "type": "boolean",
+      "title": "Cite field incident",
+      "description": "Cite the stash/orphan-migration incident as one clause in the parallelism rule.",
+      "default": true
+    },
+    "orchestration_ask_before_dispatch": {
+      "type": "string",
+      "title": "Ask before dispatch",
+      "description": "Whether the orchestrator asks questions freely before decomposing, or biases to action.",
+      "options": [
+        "freely",
+        "minimal"
+      ],
+      "default": "freely"
+    },
+    "orchestration_session_naming": {
+      "type": "string",
+      "title": "Session naming",
+      "description": "Dispatched session label variant: auto (badge if a statusline script exists, prefix otherwise), badge-with-fallback, or prefix.",
+      "options": [
+        "auto",
+        "badge-with-fallback",
+        "prefix"
+      ],
+      "default": "auto"
+    },
+    "orchestration_check_script_path": {
+      "type": "string",
+      "title": "Check script path",
+      "description": "Where check_agent_refs.py is copied: auto (scripts/ if it exists, else .claude/orchestration/) or a path.",
+      "default": "auto"
+    },
+    "orchestration_report_language": {
+      "type": "string",
+      "title": "Report language",
+      "description": "Language of reports to the user: auto (conversation language) or a code such as en or fr. Written documents follow the base doc language.",
+      "default": "auto"
+    },
+    "safe_merge_backups_auto_run": {
+      "type": "boolean",
+      "title": "Auto-run backups",
+      "description": "Run fully covered native backups without further asking; false builds a backup plan and executes it only once validated.",
+      "default": true
+    },
+    "safe_merge_offpeak_preference": {
+      "type": "string",
+      "title": "Off-peak preference",
+      "description": "recommend: advise an off-peak window; require: in-flight prod jobs or peak hours are a no-go unless overridden at the gate; ignore: skip the advice.",
+      "options": [
+        "recommend",
+        "require",
+        "ignore"
+      ],
+      "default": "recommend"
+    },
+    "safe_merge_changelog_review": {
+      "type": "boolean",
+      "title": "Review CHANGELOG entry",
+      "description": "Show the CHANGELOG draft inside the Phase 6 recap for human edits; false commits it as drafted after the go.",
+      "default": true
+    },
+    "safe_merge_surveillance_minutes": {
+      "type": "number",
+      "title": "Post-merge surveillance minutes",
+      "description": "Length of the post-deploy surveillance window.",
+      "default": 15
+    },
+    "safe_merge_smoke_depth": {
+      "type": "string",
+      "title": "Smoke-test depth",
+      "description": "basic: health and version only; standard: plus login, media and queue checks; deep: plus authenticated client flows when the diff touches build args or media.",
+      "options": [
+        "basic",
+        "standard",
+        "deep"
+      ],
+      "default": "standard"
+    },
+    "test_coverage_default_scope": {
+      "type": "string",
+      "title": "Default scope",
+      "description": "Which part of the inventory a run targets when no --domains is given: every domain, or only domains that drifted since the last audit.",
+      "options": [
+        "all",
+        "drifted-domains"
+      ],
+      "default": "all"
+    },
+    "test_coverage_dynamic_pass": {
+      "type": "boolean",
+      "title": "Dynamic exploration pass",
+      "description": "Run the dynamic (running-app) exploration pass during audit when the app is launchable. Off turns it into a declared blind spot.",
+      "default": true
+    },
+    "test_coverage_speed_target_minutes": {
+      "type": "number",
+      "title": "Speed target (minutes)",
+      "description": "Suite wall-clock target for speed mode when the project config sets no speed.target_minutes.",
+      "default": 10
+    },
+    "test_coverage_report_language": {
+      "type": "string",
+      "title": "Report language",
+      "description": "Language of generated reports and findings (all files and identifiers stay English).",
+      "default": "fr"
+    }
+  }
 }

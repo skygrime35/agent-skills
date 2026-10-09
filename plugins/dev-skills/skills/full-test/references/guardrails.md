@@ -1,6 +1,6 @@
 # Guardrails
 
-The anti-production rules, how to *prove* a target is preprod, and the edge cases. This file is the skill's reason to exist: everything else is convenience, this is the promise.
+Canonical text of G1-G4 (SKILL.md Phase 1 and fix-loop.md only link here), how to *prove* a target is preprod, and the edge cases. Arguments never override G1-G4. This file is the skill's reason to exist: everything else is convenience.
 
 ## The shape of the danger
 

@@ -1,5 +1,7 @@
 # Interview
 
+Contents: Autopilot (default) | Full interview | S0 Placement | S1 Cost posture and models | S2 Delegation | S3 Parallelism and isolation | S4 Interaction and naming | Answer-to-artifact map
+
 Runs in Phase 1 of `init`, and in `sync` only when a batch changes policy. The goal is to give every doctrine variation point an answer.
 
 ## Autopilot (default)
@@ -8,21 +10,19 @@ Runs in Phase 1 of `init`, and in `sync` only when a batch changes policy. The g
 
 1. a command-line argument;
 2. the project's recorded `policy:` in `.claude/orchestration.yml`;
-3. the user's defaults file `~/.claude/orchestration-defaults.yml` (same layout as `policy:`, plus `agents.location`), which is what keeps the orchestration identical across projects;
+3. the plugin option `${user_config.<key>}` of the same name (`orchestration_cost_posture`, `orchestration_matrix`, `orchestration_deep_gate`, `orchestration_builtin_overrides`, `orchestration_delegation_threshold`, `orchestration_delegation_rationale`, `orchestration_delegation_fallback`, `orchestration_report_style`, `orchestration_parallelism`, `orchestration_isolation`, `orchestration_shared_tree_bans`, `orchestration_cite_incident`, `orchestration_ask_before_dispatch`, `orchestration_session_naming`, `orchestration_check_script_path`, and `orchestration_agents_location` for Q0.1), which keeps the orchestration identical across projects. Option defaults equal the **(Recommended)** answers below;
 4. the answer marked **(Recommended)** in this file, applied with the probe results (D5, D6, D9, D11, D12) that the recommendation depends on.
 
-Q1.1 has no recommended option: in autopilot the available models are the current lineup of `references/models.md` (after D11), minus any model whose resolution dispatch fails in Phase 4.
-
-No defaults file on this machine: write it at the end of the run with the answers actually used, so the next project inherits them.
+Q1.1 has no recommended option: in autopilot the available models are the current lineup of `models.md` (after D11), minus any model whose resolution dispatch fails in Phase 4.
 
 Only these may still interrupt the run, each because no default can be safe:
 - **Q0.2** several candidate base docs or orchestration headings (D1/D2 ambiguous);
 - **Q4.3** a language conflict with a rule the project states (guardrail, never resolved silently);
 - an **O2.3 contradiction** with a rule elsewhere in the base doc (for example "never spawn subagents").
 
-Everything else, including the creation of global agent types on a machine that has none and the `settings.json` block, goes into the **single plan confirmation of Phase 2**, listed as decisions taken with the source of each (argument, project, user defaults, recommended). The human can amend any line there; that is the only stop.
+Everything else, including the creation of global agent types on a machine that has none and the `settings.json` block, goes into the **single plan confirmation of Phase 2**, listed as decisions taken with the source of each (argument, project, plugin option, recommended). The human can amend any line there; that is the only stop.
 
-`--interactive` restores the full interview below. It is also the way to change the user defaults: answers given interactively are offered for saving into `~/.claude/orchestration-defaults.yml`.
+`--interactive` restores the full interview below. Its answers are not saved anywhere machine-wide: the run ends by showing each answer as the `/config` plugin option to change (and the project `policy:` field it was recorded in) so the human can make it the new default.
 
 ## Full interview (`--interactive`)
 

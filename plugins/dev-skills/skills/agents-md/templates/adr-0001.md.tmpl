@@ -7,7 +7,7 @@
 
 AI agents work in this repository. Without written rules they re-derive conventions from the code on every session, guess at prohibitions that no code expresses, and repeat mistakes already paid for.
 
-Two failure modes had to be avoided. A file too generic wastes the instruction budget stating what the model already knows, and measurably degrades task success. A file too large stops being followed at all: adherence degrades past roughly 150-200 instructions, and the harness already spends about 50.
+Two failure modes had to be avoided. A file too generic wastes the instruction budget stating what the model already knows, and measurably degrades task success. A file too large stops being followed at all: adherence degrades past the instruction budget ({{BUDGET_FIGURE}}).
 
 ## Decision
 

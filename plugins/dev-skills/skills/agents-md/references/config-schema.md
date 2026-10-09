@@ -1,6 +1,11 @@
 # `.claude/agents-md.yml` schema
 
-Per-project config, owned by this skill alone (it never reads another skill's config). **Detection refreshes the structural fields on every run; human-authored `quirks` and overrides are never silently overwritten** (show a drift diff and ask).
+Contents:
+- Secrets policy
+- Layout
+- Field rules
+
+Per-project config, owned by this skill alone (it never reads another skill's config). **Detection refreshes the structural fields on every run; human-authored `quirks` and overrides are never silently overwritten** (keep them and report the drift diff).
 
 ## Secrets policy (non-negotiable)
 
@@ -12,7 +17,12 @@ Per-project config, owned by this skill alone (it never reads another skill's co
 ## Layout
 
 ```yaml
-version: 1
+version: 1                       # schema version; bump rules in Field rules
+policy:                          # run policies; command argument > this file > plugin option > recommended default
+  language: en                   # doc language
+  tier: auto                     # auto | 1 | 2 | 3
+  install_guardrail_scripts: true
+  commit_convention: detect      # detect | enforce | skip
 detected_at:
   sha: <HEAD sha at detection>
   date: <ISO date>
@@ -37,7 +47,7 @@ structure:                       # every file this skill generated or now owns
 
 commands:                        # ONLY entries actually executed during a run
   test:      {cmd: "docker compose exec backend pytest -v", verified: true,  source: ci.yml}
-  lint:      {cmd: "ruff check apps/notifications",          verified: true,  source: ci.yml}
+  lint:      {cmd: "ruff check apps/billing",          verified: true,  source: ci.yml}
   typecheck: {cmd: "mypy apps/a apps/b config",              verified: true,  source: ci.yml}
   build:     {cmd: "npx next build",                         verified: false, note: "slow, not run"}
   privilege: {docker_needs_sudo: false, proof: "docker ps exits 0 unprivileged"}
@@ -51,7 +61,7 @@ environments:
 commit_convention:
   enforced: true
   format: conventional
-  scopes: [videos, users, ui, infra]
+  scopes: [billing, users, ui, infra]
 
 guardrail_scripts:               # what was installed and whether it is wired
   - {name: check_no_todo,        path: scripts/check_no_todo.py,        wired: false}
@@ -62,24 +72,26 @@ guardrail_scripts:               # what was installed and whether it is wired
 
 budget:                          # measured at last run
   instructions: 138
-  threshold: "150-200 minus ~50 harness"
+  threshold: "see references/structure.md#instruction-budget"   # canonical figure lives there only
   always_loaded_chars: 24391
 
 knowledge_graph:                 # detected, never generated
   present: true
-  path: AGENTS/graphify-out/
-  built_at_commit: 06c88c6d
-  drift_commits: 897             # vs HEAD at detection
+  path: graphify-out/
+  built_at_commit: 1a2b3c4d
+  drift_commits: 250             # vs HEAD at detection
   usable: false                  # drift too large to trust
 
 quirks:                          # HUMAN-AUTHORED. Never rewritten by detection.
   - "Preprod runs pytest inside the live container: a cache.clear() flushes the real Redis."
 
 local:                           # machine-specific, gitignore candidate
-  env_var_names: [DEPLOY_TOKEN_NAME]
+  env_var_names: [EXAMPLE_API_KEY_NAME]
 ```
 
 ## Field rules
+
+**`version`**: a bump means the layout changed. On read of an older version, migrate in memory, show the diff in the plan confirmation, and write the new version only with the batch; never drop unknown or human-authored fields.
 
 **`commands`**: an entry with `verified: false` must carry a `note` saying why. A command that failed is never written into the documentation as if it worked.
 
@@ -89,6 +101,6 @@ local:                           # machine-specific, gitignore candidate
 
 **`budget`**: recomputed on every audit and sync. A rise past the threshold is reported, not accepted.
 
-**`quirks`**: the only human-authored block. On drift, show the diff and ask. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
+**`quirks`**: the only human-authored block. On drift, keep it and report the diff. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
 
 **`knowledge_graph.usable`**: `false` when drift makes it more expensive than a plain grep. Report it, and point at the refresh command.
