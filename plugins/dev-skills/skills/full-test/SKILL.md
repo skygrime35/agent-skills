@@ -7,7 +7,9 @@ when_to_use: "test preprod, validate my branch, run all tests on preprod, full t
 
 # /full-test
 
-Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files write bundled paths as `${CLAUDE_SKILL_DIR}/...`: that variable is not set in the shell, so substitute this directory before running or copying anything.
+Plugin options appear in this file as their configured value. In reference files they stay as `user_config.<key>` placeholders: use the value this file shows. If a value still shows as a placeholder here (option never configured), use its `default` in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json`.
+
+Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files mark bundled paths with the CLAUDE_SKILL_DIR variable in dollar-brace form; the shell does not set it, so replace it with this directory before running or copying anything.
 
 Run **everything a project can test against its deployed preproduction environment** as one governed procedure: detect -> decide (redeploy / reseed / suites) -> wait for the right SHA -> run it all -> follow -> report. Portable: the branch->environment mapping, preprod URL, SHA endpoint, suites and reseed command are auto-detected on every run; non-guessable specifics live in `.claude/full-test.yml`.
 

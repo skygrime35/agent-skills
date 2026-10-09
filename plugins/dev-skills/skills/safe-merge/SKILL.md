@@ -7,6 +7,8 @@ when_to_use: "Merge to main, promote to prod, release, ship develop, revert a re
 
 # /safe-merge
 
+Plugin options appear in this file as their configured value. In reference files they stay as `user_config.<key>` placeholders: use the value this file shows. If a value still shows as a placeholder here (option never configured), use its `default` in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json`.
+
 Quality gate for promoting `SOURCE_BRANCH` (dev) into `TARGET_BRANCH` (release/prod) when a mistake reaches real users. Not for feature-branch merges without a production surface (use plain git), nor for rewriting history. It never touches production data destructively, except a DB restore confirmed in Phase R. Project specifics are auto-detected each run and the non-guessable ones remembered in `.claude/safe-merge.yml`.
 
 ## Usage

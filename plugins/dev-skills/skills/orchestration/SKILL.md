@@ -7,7 +7,7 @@ when_to_use: "orchestration doctrine, subagent types, model ladder, delegation r
 
 # /orchestration
 
-Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files write bundled paths as `${CLAUDE_SKILL_DIR}/...`: that variable is not set in the shell, so substitute this directory before running or copying anything. In reference files, `${user_config.<key>}` is not substituted: use the value this file shows for that option.
+Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files mark bundled paths with the CLAUDE_SKILL_DIR variable in dollar-brace form; the shell does not set it, so replace it with this directory before running or copying anything. Plugin options appear in this file as their configured value. In reference files they stay as `user_config.<key>` placeholders: use the value this file shows. If a value still shows as a placeholder here (option never configured), use its `default` in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json`.
 
 Builds, grades or repairs the **agent-orchestration layer** of a repository's agentic documentation, in three scopes: `doctrine` (prose rules in the base doc: model ladder, delegation, parallelism under isolation), `agents` (subagent type definitions, a model x effort matrix, plus overrides of built-ins that inherit the session model), `checks` (the script verifying the two agree). Sibling of `/agents-md`; owns exactly one section of the file agents-md governs. Portable: it measures on every run and records non-guessable specifics in `.claude/orchestration.yml`.
 

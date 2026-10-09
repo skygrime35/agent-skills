@@ -7,7 +7,7 @@ when_to_use: "CGU, CGV, mentions légales, politique de confidentialité, RGPD, 
 
 # /legal
 
-In reference files, `${user_config.<key>}` is not substituted: use the value this file shows for that option.
+Plugin options appear in this file as their configured value. In reference files they stay as `user_config.<key>` placeholders: use the value this file shows. If a value still shows as a placeholder here (option never configured), use its `default` in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json`.
 
 Makes a web project's legal corpus (CGU, CGV, mentions légales, privacy/cookie policies, giveaway rules) match what its code does and contain nothing its features do not legally require. Auto-detects the substrate (MDX route groups, i18n JSON keys, plain markdown, or none), paired version constants and features on every run; stores non-guessable specifics in `.claude/legal.yml`. Central promise: it never writes a legal statement it cannot source (code, knowledge base, dated official web source, or the human); anything else is a placeholder plus a registered gap.
 

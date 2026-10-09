@@ -7,7 +7,7 @@ argument-hint: "<idea|path-to-spec> [--quick|--auto] [--spec=<file>] [--dir=<pat
 
 # /new-project
 
-Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files write bundled paths as `${CLAUDE_SKILL_DIR}/...`: that variable is not set in the shell, so substitute this directory before running or copying anything. In reference files, `${user_config.<key>}` is not substituted: use the value this file shows for that option.
+Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files mark bundled paths with the CLAUDE_SKILL_DIR variable in dollar-brace form; the shell does not set it, so replace it with this directory before running or copying anything. Plugin options appear in this file as their configured value. In reference files they stay as `user_config.<key>` placeholders: use the value this file shows. If a value still shows as a placeholder here (option never configured), use its `default` in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json`.
 
 Start a project from **an idea or a spec** and deliver **a finished, live thing**: linted to zero, tested to green, built, deployed with a clickable URL (web-reachable types; artifact + proof otherwise), documented, under CI, committed atomically and pushed to a fresh private GitHub repo, using as little of the user's time as possible.
 

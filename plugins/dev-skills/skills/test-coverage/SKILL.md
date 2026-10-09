@@ -7,7 +7,7 @@ argument-hint: "[audit|build|verify|speed] [--dry-run] [flags...]"
 
 # /test-coverage
 
-In reference files, `${user_config.<key>}` is not substituted: use the value this file shows for that option.
+Plugin options appear in this file as their configured value. In reference files they stay as `user_config.<key>` placeholders: use the value this file shows. If a value still shows as a placeholder here (option never configured), use its `default` in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json`.
 
 Auto-detects surfaces, test frameworks, launchability and persists its state in `.claude/test-coverage.yml` and `.claude/test-coverage/inventory.yml` (stable IDs, timestamped by git SHA). It **never fixes application code and never touches production**: a test that reveals a bug stays as an annotated skip plus a P0/P1 finding. In `speed` it may edit test **infrastructure** only (runner configs, conftest/setup, harness runner), never a test body, an assertion or application code.
 

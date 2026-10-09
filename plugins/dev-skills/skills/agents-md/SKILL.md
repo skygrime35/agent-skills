@@ -7,7 +7,9 @@ when_to_use: "AGENTS.md, CLAUDE.md, agent docs, instruction budget, audit my age
 
 # /agents-md
 
-Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files write bundled paths as `${CLAUDE_SKILL_DIR}/...`: that variable is not set in the shell, so substitute this directory before running or copying anything.
+Plugin options appear in this file as their configured value. In reference files they stay as `user_config.<key>` placeholders: use the value this file shows. If a value still shows as a placeholder here (option never configured), use its `default` in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json`.
+
+Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files mark bundled paths with the CLAUDE_SKILL_DIR variable in dollar-brace form; the shell does not set it, so replace it with this directory before running or copying anything.
 
 Builds, grades or repairs the file set that tells an AI agent how a repository works, what it must never do, and where detailed knowledge lives. Portable: every run measures the repository; non-guessable specifics go in `.claude/agents-md.yml`. Central promise: **it never writes what it has not verified** (no unexecuted command, no unstat'd path, no inferred convention).
 
