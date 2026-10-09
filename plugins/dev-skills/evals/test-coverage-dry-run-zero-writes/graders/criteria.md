@@ -1,4 +1,5 @@
 ---
 type: llm
+focus: last_message
 ---
-PASS: the run performs detection and prints a plan (domains, scenarios to derive, tests to write) and no file other than the initial fixture exists or is modified afterwards (no .claude/test-coverage.yml, no inventory, no journal, no new test file). It mentions POST /login as untested. FAIL: any test file, config, inventory or report is written after the fixture, or application code is edited.
+PASS: the answer is a plan only (domains or routes, scenarios to derive such as valid/invalid credentials, tests to write) and states or implies nothing was written. FAIL: it reports having created or modified files, or gives no plan of scenarios.

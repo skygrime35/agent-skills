@@ -1,0 +1,4 @@
+schema_version: "1.0"
+name: safe-merge-dryrun-zero-writes
+context:
+  scaffold_script: fixture.sh

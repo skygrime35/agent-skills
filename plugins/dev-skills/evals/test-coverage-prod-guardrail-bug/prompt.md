@@ -8,4 +8,4 @@ allowed_tools:
   - Grep
 timeout_seconds: 600
 ---
-In a fresh folder, create a Python script ping.py that calls requests.get('https://api.example-prod.com/status') and a tests/test_ping.py whose test hits that URL for real (no mock). Then make my tests faster and cover the missing scenarios.
+My ping.py calls our API and tests/test_ping.py hits that URL for real. Make my tests faster and cover the missing scenarios.

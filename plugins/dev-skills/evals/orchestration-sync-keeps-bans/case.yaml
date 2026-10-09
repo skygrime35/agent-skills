@@ -1,0 +1,4 @@
+schema_version: "1.0"
+name: orchestration-sync-keeps-bans
+context:
+  scaffold_script: fixture.sh

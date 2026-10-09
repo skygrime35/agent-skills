@@ -1,0 +1,4 @@
+schema_version: "1.0"
+name: safe-merge-secret-hit-stops
+context:
+  scaffold_script: fixture.sh

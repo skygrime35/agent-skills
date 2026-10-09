@@ -1,0 +1,4 @@
+schema_version: "1.0"
+name: new-project-non-empty-dir
+context:
+  scaffold_script: fixture.sh

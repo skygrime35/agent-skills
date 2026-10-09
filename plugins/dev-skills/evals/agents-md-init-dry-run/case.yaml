@@ -1,0 +1,4 @@
+schema_version: "1.0"
+name: agents-md-init-dry-run
+context:
+  scaffold_script: fixture.sh
