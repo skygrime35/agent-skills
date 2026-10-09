@@ -72,13 +72,14 @@ Verified against the Claude Code field set (see models.md). Required by this ski
 name: sonnet-standard    # equals the filename stem (skill convention; Claude Code does not require it)
 description: ...         # states WHEN TO SPAWN it, 1-2 sentences, in the output language
 model: sonnet            # an alias, or the full ID when the alias resolves to an older model (models.md)
+                         # while an alias is unstable (resolution differs across CLI versions), pin the full model id for that tier and record it in quirks (O8.10)
 effort: medium           # low | medium | high | xhigh | max
 maxTurns: 180             # cap on agentic turns; partial result on reaching it
 color: blue              # ramp green -> cyan -> blue -> yellow -> red, ascending with cost
 ---
 ```
 
-The `description` is the dispatch contract: it must let an orchestrator choose the type without opening the body, and it should name the neighbouring tiers ("for X; for Y use `{MID}-standard`"). Keep it short: every type's description is loaded into the orchestrator's context in every session. A description that says what the agent IS instead of when to SPAWN it is finding O6.1.
+The `description` is the dispatch contract: it must let an orchestrator choose the type without opening the body, and it should name the neighbouring tiers ("for X; for Y use `{MID}-standard`"). Keep it short: every type's description is loaded into the orchestrator's context in every session. A description that says what the agent IS instead of when to SPAWN it is finding O6.1. Never hardcode a model version number in a description ("Haiku 4.5, medium"): it goes stale at the next release and misleads the dispatcher; name the tier and effort only.
 
 ## Body rules
 

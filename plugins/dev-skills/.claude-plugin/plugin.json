@@ -1,6 +1,6 @@
 {
   "name": "dev-skills",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"
@@ -179,8 +179,8 @@
     "legal_report_language": {
       "type": "string",
       "title": "Report language",
-      "description": "Language of findings and reports. Published legal texts follow the project audience language (French for French law).",
-      "default": "en"
+      "description": "Language of findings and reports: auto (the user's conversation language, fallback en) or a code such as en or fr. Published legal texts follow the project audience language (French for French law).",
+      "default": "auto"
     },
     "new_project_ui_language": {
       "type": "string",
@@ -411,8 +411,8 @@
     "orchestration_report_language": {
       "type": "string",
       "title": "Report language",
-      "description": "Language of reports to the user: auto (conversation language) or a code such as en or fr. Written documents follow the base doc language.",
-      "default": "en"
+      "description": "Language of reports to the user: auto (the user's conversation language, fallback en) or a code such as en or fr. Written documents follow the base doc language.",
+      "default": "auto"
     },
     "safe_merge_backups_auto_run": {
       "type": "boolean",
@@ -479,8 +479,8 @@
     "test_coverage_report_language": {
       "type": "string",
       "title": "Report language",
-      "description": "Language of generated reports and findings (all files and identifiers stay English).",
-      "default": "en"
+      "description": "Language of generated reports and findings: auto (the user's conversation language, fallback en) or a code such as en or fr (all files and identifiers stay English).",
+      "default": "auto"
     }
   }
 }

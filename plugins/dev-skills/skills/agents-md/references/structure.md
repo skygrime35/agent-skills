@@ -122,3 +122,10 @@ Never generate one. Never treat it as a source of truth.
 ## Instruction budget
 
 Canonical figure (as of 2026-10), the single copy: frontier models follow roughly 150-200 instructions before adherence degrades, and the harness already spends about 50. Past that, a rule added **replaces** one already there. Other skills and files cite this section instead of restating the figure; refresh the date here when it is re-checked.
+
+**Counting method (defined once, here).** Audits cite this paragraph and never restate it.
+
+- **Unit:** one normative statement = one imperative bullet or sentence (a rule an agent must follow), or a sentence carrying a normative modal (`must`, `never`, `always`, `required`, `forbidden`, `shall`, `do not`). A bullet that also contains a modal counts once, not twice; several modals in one sentence count once.
+- **Files:** every always-loaded file: the root doc, the thin pointer (CLAUDE.md), and every file they pull in with an `@import` (followed recursively). On-demand files (`AGENTS/*.md`, domain files not imported) are not counted.
+- **Harness share:** about 50, counted separately and added to the total only to compare against the budget above; never mixed into per-file figures.
+- **Report:** the total, the per-file figures, the harness share, the margin to the budget, and an explicit uncertainty of about +/-10% (the count is a heuristic, not a parse). Name the sections that would be cut first.

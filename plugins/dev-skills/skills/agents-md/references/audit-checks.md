@@ -111,12 +111,14 @@ grep -vc '^\s*#\|^\s*$' <the-allowlist-file>
 
 ### P2.1 Instruction budget
 
+Count with the method defined once in `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget, "Counting method"): normative statements, a bullet with a modal counted once, always-loaded files plus followed `@imports`, harness share separate, with its margin. These greps give the raw inputs, to be deduplicated per that method:
+
 ```bash
 grep -c '^- ' AGENTS.md
 grep -oiE '\b(must|never|always|required|forbidden|shall|do not)\b' AGENTS.md | wc -l
 ```
 
-Sum across every always-loaded file (root, domain files, CLAUDE.md). Threshold: the canonical figure in `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget). Report the count, the margin, and name the sections that would be cut first.
+Report the count (with its +/- margin), the margin to the budget, and name the sections that would be cut first.
 
 ### P2.2 Balance
 

@@ -11,7 +11,7 @@ Plugin options appear in this file as their configured value. In reference files
 
 Auto-detects surfaces, test frameworks, launchability and persists its state in `.claude/test-coverage.yml` and `.claude/test-coverage/inventory.yml` (stable IDs, timestamped by git SHA). It **never fixes application code and never touches production**: a test that reveals a bug stays as an annotated skip plus a P0/P1 finding. In `speed` it may edit test **infrastructure** only (runner configs, conftest/setup, harness runner), never a test body, an assertion or application code.
 
-Reports follow `${user_config.test_coverage_report_language}` (default `en`); every file, identifier and comment is English. The report templates in `references/` are written in English; when the report language differs, translate their headings and labels (the meaning and every rule stay identical).
+Reports follow `${user_config.test_coverage_report_language}` (auto = the user's conversation language, fallback en); every file, identifier and comment is English. The report templates in `references/` are written in English; when the report language differs, translate their headings and labels (the meaning and every rule stay identical).
 
 ## Usage
 

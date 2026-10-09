@@ -4,6 +4,9 @@
 Probe D12 of the /orchestration skill; feeds audit family O8 and the maxTurns
 calibration. Read-only, stdlib only, nothing leaves the machine.
 
+The last section lists, per type, every resolved `message.model` and Claude Code
+CLI `version` seen (alias resolution audit, check O8.10).
+
 Costs are estimates at API list prices (PRICES below, a mirror of
 references/models.md: update both in the same batch). On a subscription, read
 them as relative quota consumption. Assistant messages are de-duplicated by
@@ -51,7 +54,7 @@ def usage_cost(usage, price):
 
 
 def assistant_messages(path):
-    """Yield (model, usage) once per assistant message id."""
+    """Yield (model, usage, cli_version) once per assistant message id."""
     seen = set()
     with open(path, errors="ignore") as fh:
         for line in fh:
@@ -66,7 +69,7 @@ def assistant_messages(path):
             if not mid or mid in seen:
                 continue
             seen.add(mid)
-            yield msg.get("model", ""), msg.get("usage") or {}
+            yield msg.get("model", ""), msg.get("usage") or {}, entry.get("version", "")
 
 
 def main():
@@ -74,7 +77,8 @@ def main():
     cutoff = time.time() - ARGS.days * 86400
 
     by_type = collections.defaultdict(lambda: {"runs": 0, "calls": 0, "ctx": 0, "cost": 0.0,
-                                               "models": collections.Counter()})
+                                               "models": collections.Counter(),
+                                               "versions": collections.Counter()})
     for path in glob.glob(os.path.join(root, "*", "*", "subagents", "*.jsonl")):
         if ARGS.project and ARGS.project not in os.path.relpath(path, root).split(os.sep)[0]:
             continue
@@ -87,10 +91,11 @@ def main():
             agent_type = "?"
         row = by_type[agent_type]
         row["runs"] += 1
-        for model, usage in assistant_messages(path):
+        for model, usage, version in assistant_messages(path):
             price = price_for(model)
             if price is None:
                 continue
+            row["versions"][version or "?"] += 1
             row["calls"] += 1
             row["ctx"] += (usage.get("input_tokens", 0) + usage.get("cache_read_input_tokens", 0)
                            + usage.get("cache_creation_input_tokens", 0))
@@ -103,7 +108,7 @@ def main():
             continue
         if os.path.getmtime(path) < cutoff:
             continue
-        for model, usage in assistant_messages(path):
+        for model, usage, _version in assistant_messages(path):
             price = price_for(model)
             if price is not None:
                 main_by_model[model] += usage_cost(usage, price)
@@ -127,6 +132,13 @@ def main():
     print(f"\nMain sessions: ${main_total:.0f}   subagents: ${sub_total:.0f}")
     for model, cost in main_by_model.most_common():
         print(f"  {model:24} ${cost:8.0f}")
+
+    # Appended after the legacy output (existing consumers keep parsing the table above).
+    print("\nResolved models and CLI versions per type (probe O8.10)")
+    for agent_type, r in sorted(by_type.items()):
+        models = ", ".join(f"{m} x{n}" for m, n in r["models"].most_common()) or "-"
+        versions = ", ".join(f"{v} x{n}" for v, n in r["versions"].most_common()) or "-"
+        print(f"  {agent_type}: models [{models}] cli [{versions}]")
     return 0
 
 

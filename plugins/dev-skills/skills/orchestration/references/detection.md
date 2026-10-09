@@ -36,7 +36,7 @@ Read `language.written`, `budget.instructions`, `structure.root`, `guardrail_scr
 
 ## D4 - Instruction budget
 
-Same method as agents-md check P2.1: count normative statements (imperatives, "never", "always", "must", bullet rules) across every always-loaded file (base doc + pointer + anything they `@`-import). Then isolate the orchestration section's own share using D2's span. Report both numbers; the threshold and the harness share are owned by the agents-md skill (`references/structure.md`).
+Use the counting method defined once in `${CLAUDE_SKILL_DIR}/../agents-md/references/structure.md` (Instruction budget, "Counting method"; same as agents-md check P2.1). When an agents-md audit figure for the same commit is available in this session or in `.claude/agents-md.yml` (`budget.instructions`), reuse it instead of recounting. Then isolate the orchestration section's own share using D2's span. Report both numbers, with the method's +/- margin; the threshold and the harness share are owned by the agents-md skill (`references/structure.md`).
 
 ## D5 - Installed agent types
 

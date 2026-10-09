@@ -13,7 +13,7 @@ Makes a web project's legal corpus (CGU, CGV, mentions légales, privacy/cookie 
 
 **Not legal advice: not a substitute for a lawyer.** Every report opens with that disclaimer; the deliverable is a risk-ranked draft with named blind spots. Out of scope (employment contracts, association statutes/PV, fundraising, tax optimization, trademark filings, litigation, non-French/EU regimes): emit `ASK-A-PROFESSIONAL` findings naming the professional, never generated documents.
 
-Findings and reports follow `${user_config.legal_report_language}` (default English); published legal texts follow the project audience's language (French for French law, the binding version).
+Findings and reports follow `${user_config.legal_report_language}` (auto = the user's conversation language, fallback en); published legal texts follow the project audience's language (French for French law, the binding version).
 
 ## Usage
 
@@ -66,7 +66,7 @@ Resolution order for every policy answer: command argument > `.claude/legal.yml`
 | `${user_config.legal_dpo_stance}` | DPO section default |
 | `${user_config.legal_mediator_default}` | consumer mediator (médiateur) default when no convention is known |
 | `${user_config.legal_min_age}` | minimum age default |
-| `${user_config.legal_report_language}` | language of findings and reports (default `en`) |
+| `${user_config.legal_report_language}` | language of findings and reports (`auto` = conversation language, fallback `en`) |
 
 An option never fills a fact that would be published unverified: an identity value from options is shown in the hard-gate diff, and an empty one becomes a placeholder + gap.
 
@@ -107,7 +107,7 @@ Follow phases in order. TaskCreate the phases at start. Only `build` keeps a jou
 
 ## Mode: audit
 
-A report printed in the chat starts with the disclaimer as the very first line of the final answer (before any summary, setup recap or fixture note), then follows the same template and language as the file version (`${user_config.legal_report_language}`, default English, whatever language the user writes in): disclaimer first, findings P0→P3 each with What/Where (`file:line`)/Why, blind spots, verdict "compliant on the verified scope" or the list of failures. Never invent identity facts (SIRET, address, host) to fill a finding: name them as missing.
+A report printed in the chat starts with the disclaimer as the very first line of the final answer (before any summary, setup recap or fixture note), then follows the same template and language as the file version (`${user_config.legal_report_language}`; auto = the user's conversation language, fallback en): disclaimer first, findings P0→P3 each with What/Where (`file:line`)/Why, blind spots, verdict "compliant on the verified scope" or the list of failures. Never invent identity facts (SIRET, address, host) to fill a finding: name them as missing.
 
 1. **Required-minimum derivation.** Cross detected features × knowledge-base triggers ⇒ the corpus this project legally needs. Diff against the inventory: each missing document is a finding-in-waiting. One salvo only for feature facts detection couldn't settle that change conclusions (e.g. "do the giveaway prizes have real value?").
 2. **Analysis fan-out** — orchestration table (the cost model; `--scope=` prunes rows 3–6; trivial scope ⇒ a one-package table executed by the main loop):

@@ -78,6 +78,11 @@ policy:                          # recorded interview answers. A recorded decisi
   language_resolution: null                # populated only on conflict, with date
 
 quirks: []                       # HUMAN-AUTHORED. Never rewritten by detection.
+# Structured entry (alias drift, effort raises, ...), for example:
+#   - {type: haiku-standard, alias: haiku, resolves_to: claude-haiku-4-5, min_cli: "2.1.0", pin: claude-haiku-5-5}
+# type = agent type; alias = what the type file says; resolves_to = what transcripts showed
+# (O8.10); min_cli = first CLI version where the alias resolves as intended; pin = full model id
+# written in the type file instead of the alias (null when not pinned). Free-text entries stay valid.
 
 local:                           # machine-specific, gitignore candidate
   models_available: [fable, opus, sonnet, haiku]
@@ -108,6 +113,6 @@ local:                           # machine-specific, gitignore candidate
 
 **`policy.language_resolution`**: populated whenever the base doc's language, a project language rule, and `--lang` disagree. Never resolve silently; record the human's decision and the date.
 
-**`quirks`**: the only human-authored block. On drift, keep it and report the diff. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
+**`quirks`**: the only human-authored block; alias-drift entries use the `{type, alias, resolves_to, min_cli, pin}` shape (check O8.10), other entries stay free text. On drift, keep it and report the diff. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
 
 **`local`**: everything in it describes THIS machine, not the project. A repo cloned elsewhere gets a fresh `local:` from detection, which is precisely why the doctrine must carry its fallbacks (`fallback_documented: true`).
