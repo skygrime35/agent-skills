@@ -25,11 +25,19 @@ Skills are then available as `/dev-skills:<skill>` (and by their short name when
 
 ## Develop
 
-Edit in place, then:
+Always edit this clone, never the installed copy in `~/.claude/plugins/cache/` (it is replaced on every update).
 
-```bash
-claude plugin validate ./plugins/dev-skills && claude plugin validate .
-claude plugin eval ./plugins/dev-skills   # runs evals/ (costs model calls)
-```
-
-Bump `version` in `plugins/dev-skills/.claude-plugin/plugin.json` so installed copies update.
+1. Edit the skill in `plugins/dev-skills/skills/<skill>/` (keep everything in English).
+2. New or changed default: add or edit the option under `userConfig` in `plugins/dev-skills/.claude-plugin/plugin.json`, then reference it in SKILL.md as `${user_config.<key>}`. Substitution only happens in SKILL.md, never in `references/` or scripts; `${CLAUDE_SKILL_DIR}` behaves the same way.
+3. Add or update an eval case in `plugins/dev-skills/evals/<skill>-<case>/` (`prompt.md`, `case.yaml` with `context.scaffold_script: fixture.sh`, `graders/`). Prefer deterministic graders (`tool_used`, `file_exists`, `regex`) over `llm`.
+4. Check:
+   ```bash
+   claude plugin validate ./plugins/dev-skills && claude plugin validate .
+   claude plugin eval ./plugins/dev-skills --scaffold --judge-model sonnet   # costs model calls
+   ```
+   Run a single case by pointing at its directory. The eval sandbox needs `bubblewrap` and, on Ubuntu 24.04, the AppArmor profile `/etc/apparmor.d/bwrap` granting `userns`.
+5. Bump `version` in `plugins/dev-skills/.claude-plugin/plugin.json`, commit, push.
+6. Update the installed copy, then restart Claude Code sessions:
+   ```bash
+   claude plugin marketplace update skygrime && claude plugin update dev-skills@skygrime
+   ```
