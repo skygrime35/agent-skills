@@ -91,7 +91,7 @@ Register phases with `TaskCreate`. Keep a journal at `<project>/.claude/new-proj
 **Mode routing (first):**
 - `-h`/`--help`: print Usage, stop.
 - `--teardown=<name>`: run the teardown from `${CLAUDE_SKILL_DIR}/references/hosting.md` (**confirm before removing anything**), stop.
-- `--dry-run`: Phases 0-2 read-only; print spec, plan, DoD instance and blind spots, stop. No directory, scaffold, repo or hosting.
+- `--dry-run`: Phases 0-2 read-only; print spec, plan, DoD instance and blind spots, stop. No directory, scaffold, repo or hosting. **In dry-run run no hosting command of any kind: no `sudo` (not even `sudo -n true`), `docker`, `nginx`, `certbot`, `ss`, no reading of `/etc/nginx`, no `gh` or `ssh` calls, no `git init`, no `mkdir`, no host-safety snapshot.** The only allowed probes are `which <tool>` and `df`. Every skipped check (hosting, ports, name clashes, GitHub login) goes into the blind spots as "not probed in dry-run". The final answer must state in one plain sentence that nothing was written or created. 
 - default: **enter plan mode** unless already in it (Phases 0-2 are read-only by design). Checkpoint 1 is delivered as the plan: the user's plan approval is the GO. `--auto` skips Checkpoint 1 and does not enter plan mode.
 - bare invocation with no idea or spec: ask for the idea in one plain question (no safe default exists).
 

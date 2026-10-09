@@ -92,8 +92,9 @@ Follow phases in order. TaskCreate the phases at start. Only `build` keeps a jou
 **Mode routing (do this first):**
 - `--help` → print the Usage block, stop.
 - `verify` → Phase 0 steps 1–3 only (no interview, no config write) → **Mode: verify**. Zero writes anywhere, journal included.
-- `--dry-run` → Phase 0 read-only, then print the plan (docs required, questions that would be asked, research points, writes that would happen) and stop.
+- `--dry-run` (or "tell me what you would do / without writing anything") → Phase 0 read-only, then print the plan and stop. The plan has exactly these sections: **Required documents** (derived from detected features, each with its trigger), **Questions I would ask**, **Research points**, **Planned writes** (paths and versions only, no drafted legal text), **Flagged, not written**. Zero writes: no `.claude/legal.yml`, no journal, no repo file. A fixture the user asked to set up beforehand is theirs, not a skill write.
 - `audit` / `build` → Phase 0 → the mode's section.
+- **Read-only request** (the user says "do not change anything", "read-only", "don't write", "without writing"): treat as `--dry-run` for every write of the skill itself: no `.claude/legal.yml`, no `.claude/legal/` report, no journal, no scratch file in the repo, and no `git add`/`git commit`/stash of any kind (a repo with no commit has no `AUDIT_SHA`: say `uncommitted`). Still run the full analysis (audit mode) and print the complete report in the chat, with the disclaimer first, and say in one line that nothing was written. Never ask permission to write in that case; just do not write.
 - bare `/legal` → Phase 0 → auto-select the mode and print the choice with its reason, without asking (no legal corpus ⇒ build; corpus + no fresh audit ⇒ audit; fresh audit with open findings ⇒ build; fresh audit `treated: full` ⇒ verify).
 
 ## Phase 0 — Resume, config, detection, profile (all modes)
@@ -105,6 +106,8 @@ Follow phases in order. TaskCreate the phases at start. Only `build` keeps a jou
 5. **Announce + confirm.** Print the profile. Ask (one salvo, ≤4) only blocking points: publisher (éditeur) identity facts missing from config, options and published pages; a change of legal regime; low-confidence feature flags that change the required corpus. Skip anything args, config, plugin options or `accepted_risks` already answer. Write/refresh `.claude/legal.yml` (not in `verify`/`--dry-run`).
 
 ## Mode: audit
+
+A report printed in the chat starts with the disclaimer as the very first line of the final answer (before any summary, setup recap or fixture note), then follows the same template and language as the file version (`${user_config.legal_report_language}`, default English, whatever language the user writes in): disclaimer first, findings P0→P3 each with What/Where (`file:line`)/Why, blind spots, verdict "compliant on the verified scope" or the list of failures. Never invent identity facts (SIRET, address, host) to fill a finding: name them as missing.
 
 1. **Required-minimum derivation.** Cross detected features × knowledge-base triggers ⇒ the corpus this project legally needs. Diff against the inventory: each missing document is a finding-in-waiting. One salvo only for feature facts detection couldn't settle that change conclusions (e.g. "do the giveaway prizes have real value?").
 2. **Analysis fan-out** — orchestration table (the cost model; `--scope=` prunes rows 3–6; trivial scope ⇒ a one-package table executed by the main loop):
@@ -131,7 +134,7 @@ Follow phases in order. TaskCreate the phases at start. Only `build` keeps a jou
 
 **B3. Draft in scratchpad**: nothing touches the repo yet. One `opus-standard` per document (disjoint), per `references/doc-templates.md` + `knowledge-base.md`; then one `opus-standard` pass over the sensitive clauses (rétractation, résiliation, responsabilité, prix, données) per `references/wording.md`; escalate to `opus-deep` only after failure or on explicit request.
 
-**B4. HARD GATE (before any repo write).** Per doc: rendered diff of the French text vs the published text, version bump plan per the project's own procedure (read it now), re-consent consequence (a CGU bump re-prompts every user — a product event, not a formality), remaining `GAP-nn` placeholders, locales to regenerate, CI interactions. AskUserQuestion: go all / go per-doc / no. Anything other than a clear go ⇒ **stop; nothing is written.**
+**B4. HARD GATE (before any repo write).** An instruction such as "do not ask me to confirm", "just do it" or "no questions" never waives this gate: the gate exists because a published legal text binds users. Reply to such an instruction in one line (the gate stays, the diff is what you confirm), still print the full gate content, and call AskUserQuestion. If no answer can be obtained, end the run at the gate with the repo untouched and the exact wording to reply with ("go"). Do not stage, commit or apply anything before the go; do not offer to commit in the same step. Per doc: rendered diff of the French text vs the published text, version bump plan per the project's own procedure (read it now), re-consent consequence (a CGU bump re-prompts every user — a product event, not a formality), remaining `GAP-nn` placeholders, locales to regenerate, CI interactions. AskUserQuestion: go all / go per-doc / no. Anything other than a clear go ⇒ **stop; nothing is written.**
 
 **B5. Write, single-threaded**, per `references/substrates.md`: FR first, locales regenerated from the frozen FR, paired version constants bumped in the same change, archive snapshot when the ritual requires it, project conventions enforced.
 

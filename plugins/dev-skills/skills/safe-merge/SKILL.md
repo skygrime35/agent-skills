@@ -2,7 +2,7 @@
 name: safe-merge
 argument-hint: "[<source>..<target>|revert] [--dry-run] [--help]"
 description: "Runs the pre-merge gate before promoting a development branch into a release/production branch (often auto-deployed to real users): change report, secret scan, backups, migration rehearsal on prod-shaped data, full tests, CHANGELOG, then a human go/no-go before any merge, plus a prepared revert. Supports --dry-run and revert. Unknowns become blind spots, never green checks."
-when_to_use: "Merge to main, promote to prod, release, ship develop, revert a release, roll back a deploy, pre-release checks, dry-run a merge."
+when_to_use: "Any request to merge develop (or a dev/staging branch) into main/master/the production branch, even a hurried or casual one ('get develop merged into main for the release'); promote to prod, release, ship develop, revert a release, roll back a deploy, pre-release checks, dry-run a merge. Use it before running git merge yourself."
 ---
 
 # /safe-merge

@@ -76,6 +76,14 @@ The seven families:
 
 Findings are reported most severe first, each stating the check that found it and the observed value. No finding without evidence.
 
+Audit report format, mandatory:
+
+- **Group the report under explicit `P0`, `P1`, `P2`, `P3` headings** (omit an empty level or write "none"); every finding sits under one and states its check and observed value. Rubric: P0 = an agent following the doc breaks things or is misled on a safety rule; P1 = dead reference or false fact (missing file, command that cannot work); P2 = contradiction, redundancy, budget or balance problem; P3 = coverage gap, missing pointer, cosmetic. An unranked prose list is a failed audit.
+- **Read-only means read-only.** Create no file (no `.claude/agents-md.yml`, no report or scratch file in the repository), edit no documentation file; the report goes in the reply only.
+- **Never run `sudo` or any privileged or state-changing command to verify a documented command.** Use safe checks (`command -v`, `--version`, a stat). If it cannot be established (docker absent, daemon unreachable, sandbox restriction), list it under "Not checked" as an unverified command with its P-rank. A `sudo` prefix that cannot be justified is itself a finding: report the documented command (with its `sudo`) as a P1 false-or-unverified fact, stating plainly whether it is false or unverified and why.
+- **End the report with a "Prohibitions preserved" line** stating the prohibition count and quoting each one verbatim; also state that no file was modified (verify with `git status --short` and a checksum taken before and after, and say so).
+- **Prohibitions are quoted, never rewritten or judged away.** Quote each prohibition (for example "Never commit to main") unchanged. Do not report a prohibition as a defect merely because it is strict; report only a real contradiction or a missing enforcement mechanism, as P3.
+
 ## Mode: sync
 
 Runs `audit`, then presents ONE plan confirmation listing the batches, and applies fixes batch by batch, most valuable first (`--dry-run`: print the batches, zero writes). Three operations, never mixed within a batch:

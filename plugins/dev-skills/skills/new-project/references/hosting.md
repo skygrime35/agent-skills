@@ -12,7 +12,7 @@ Detected shape (verify each element in Phase 0):
 - **TLS via certbot** (`--nginx` installer), one cert per FQDN.
 - **Base domain** from the plugin option `${user_config.new_project_host_domain_pattern}` (default `<dashed-ip>.nip.io`, a DNS-free pattern where any `<label>.<dashed-ip>.nip.io` resolves to the VPS). A real wildcard domain, when configured, takes precedence.
 
-Phase 0 detection (skipped when hosting is disabled): `which nginx docker`, `sudo -n true`, list `sites-available/` and their `proxy_pass` ports, `ss -tlnp` for listeners, `docker ps` port bindings, public IP (for the nip.io base), read the deployment registry.
+Phase 0 detection (skipped when hosting is disabled; in `--dry-run` skip every probe here (sudo, docker, nginx, ss) and report them as blind spots): `which nginx docker`, `sudo -n true`, list `sites-available/` and their `proxy_pass` ports, `ss -tlnp` for listeners, `docker ps` port bindings, public IP (for the nip.io base), read the deployment registry.
 
 ## Deployment recipe (Phase 5)
 

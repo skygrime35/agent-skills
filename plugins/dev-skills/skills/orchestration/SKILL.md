@@ -87,6 +87,12 @@ These override any convenience, in all modes.
 
 **Phase 1 - resolve policy.** Autopilot by default per the resolution order above and `${CLAUDE_SKILL_DIR}/references/interview.md`. Ask only the three blocking cases listed there. `--interactive` runs the full interview in salvos of at most 4 questions (plain-text questions if AskUserQuestion is absent; report the degradation).
 
+## Dry run (`--dry-run`, or a request to "show what it would do" / "write nothing")
+
+Applies to every mode. **Zero writes of any kind**: no project file, no `.claude/` directory, no journal, no config, no copied script, no `models.md` refresh (report stale model facts as a blind spot instead), no `settings.json`. Only the probes of Phase 0 run, and they do run for real (read-only, one tool call each, fanned out): never report a probe result (agent types, isolation, usage, model facts) that was not obtained from a command in this run, and report any probe the sandbox blocked as a blind spot. Never ask policy questions: apply the resolution order and label each decision's source.
+
+Phases 0, 1 and 2 run, then stop. Print, in this order: (1) `Mode: <init|audit|sync> (dry run)` and the detected profile; (2) **one plan**: a table with one row per file a real run would write (doctrine section in the base doc, each agent type file, the `Explore` override, the `settings.json` block, the check script, `.claude/orchestration.yml`), columns file, action, source of the decision (argument, project, plugin option, recommended); (3) the doctrine rules the plan would add, with the parallelism rule shown together with its isolation mechanism and the prohibitions it would keep; (4) budget before and after; (5) blind spots; (6) a last line stating `Nothing was written` and that the base doc is unchanged. Then stop: no Phase 3, no confirmation prompt, and no claim that an environment limit blocked the real run unless a probe showed it.
+
 ## Mode: init
 
 Builds the layer from scratch. **Refuses per scope where the artifact already exists** (doctrine section, agent types, check script) and switches that scope to `audit`; remaining scopes proceed. Say so plainly, never overwrite.
@@ -101,7 +107,7 @@ Builds the layer from scratch. **Refuses per scope where the artifact already ex
 
 ## Mode: audit
 
-Zero writes. Runs the grid of `${CLAUDE_SKILL_DIR}/references/audit-checks.md` for the selected scopes; cross-scope checks (dead references, contradictions) run whenever one involved scope is selected. Findings ranked P0 to P3 with evidence (file:line or probe output).
+Zero writes. Runs the grid of `${CLAUDE_SKILL_DIR}/references/audit-checks.md` for the selected scopes; cross-scope checks (dead references, contradictions) run whenever one involved scope is selected. Findings ranked P0 to P3 with evidence (file:line or probe output). **Label every finding with its literal rank** (`P0`, `P1`, `P2` or `P3`) in the report, never only prose severity words, and end with the line `Nothing was written`.
 
 Eight families: **dead references**, **contradictions** (never auto-resolved), **doctrine gaps** (parallelism without isolation in the same section is P0; a mandatory rule without fallback is P0), **budget** (the section's share, with named cut candidates), **language**, **agent file hygiene**, **check wiring** (`wired: true` without CI evidence is a false fact), **model economy** (routine xhigh tiers, escalation gated on self-confidence, built-ins inheriting the top model, measured spend contradicting the doctrine).
 
@@ -117,7 +123,11 @@ Runs `audit`, then applies fixes in **batches**, most valuable first. Autopilot 
 
 Sync fixes only inside the selected scopes; a cross-scope finding whose fix lies outside is reported as "out of selected scope, re-run with --scope=...".
 
-**After every batch that touched the doctrine**, run the non-regression check: prohibition count before and after must match unless a merge was explicitly approved, and every marker in `doctrine.prohibition_markers` (default: `git stash`, `git add -A`, `git checkout`, `git reset`) must still be greppable. Report both numbers. A sync that cannot show this check has not finished. **After every batch that wrote agent files**, run the Phase 4 agent checks (parse, check script, one resolution dispatch per new or re-modeled type).
+**Always print the plan first**, in the reply, before the first edit, even when the user already said they confirm it: `Mode: sync`, then the batches (Correct, Align, Compress) with each finding, its evidence and the fix. The final message of the run must contain, in this order, whatever the size of the document: `Mode: sync`; `Plan` (the batches as applied, each finding ranked P0 to P3); `Result` (the new section verbatim); `Non-regression` (below). A reply that only shows the new text is an unfinished sync. A dead agent type (cited but stat'd nowhere) is a Correct finding: replace it by an installed type or by a neutral "a subagent" wording, and report the dead name. A parallelism rule without isolation gets its mechanism added in the same section (Align).
+
+**Prohibition count.** Count each distinct banned command or imperative "never/do not" clause separately (a line banning four commands is four prohibitions). Rewording must keep every one.
+
+**After every batch that touched the doctrine**, run the non-regression check: prohibition count before and after must match unless a merge was explicitly approved, and every marker in `doctrine.prohibition_markers` (default: `git stash`, `git add -A`, `git checkout`, `git reset`) must still be greppable. Report both numbers and the marker grep result in a closing block, e.g. `Non-regression: prohibitions 4 -> 4; markers git stash OK, git add -A OK, git checkout OK, git reset OK`. A sync that cannot show this check has not finished; this holds even for a tiny base doc, and even when the only batch is a rewrite meant to shorten the section. **After every batch that wrote agent files**, run the Phase 4 agent checks (parse, check script, one resolution dispatch per new or re-modeled type).
 
 ## Reference files
 

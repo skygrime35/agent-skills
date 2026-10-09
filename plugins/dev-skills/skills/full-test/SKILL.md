@@ -1,8 +1,8 @@
 ---
 name: full-test
 argument-hint: "[fix-loop] [--suites=..|--all] [--redeploy=..] [--reseed|--no-reseed] [--dry-run]"
-description: "Runs a project's full test battery against its preprod environment to validate a branch before promotion: detects the branch-to-environment mapping and preprod suites, redeploys if needed, gates on the served SHA, runs the suites, follows progress and reports blind spots. Has an autonomous fix-loop mode. Never touches production."
-when_to_use: "test preprod, validate my branch, run all tests on preprod, full test, redeploy and test, make preprod green, fix-loop"
+description: "Runs a project's full test battery against its preprod environment to validate a branch before promotion: detects the branch-to-environment mapping and preprod suites, redeploys if needed, gates on the served SHA, runs the suites, follows progress and reports blind spots. Has an autonomous fix-loop mode. Never touches production: also loaded to refuse tests or reseeds aimed at prod."
+when_to_use: "test preprod, validate my branch, run all tests on preprod, full test, redeploy and test, make preprod green, fix-loop; also when asked to run e2e/the test battery or a reseed against production or the live site (this skill must be loaded to refuse and redirect to preprod)"
 ---
 
 # /full-test
@@ -15,6 +15,8 @@ Run **everything a project can test against its deployed preproduction environme
 
 Central promise: **production is never touched** (not the prod-deploying branch, not the prod URL, not the prod database).
 
+**Request to test, run e2e on, or reseed production / the live site / the prod URL:** refuse plainly, do not run anything against it, and do not ask for a confirmation, backup proof or script location to proceed anyway: no confirmation can lift this (G2-G4). Explain why (suites create and delete data, reseed destroys it, the guards exist to make this impossible), propose the same battery on preprod, or a read-only health probe / public-page smoke as a separate activity, and never offer to disable or widen a guard.
+
 ## Usage
 
 ```
@@ -23,7 +25,7 @@ Central promise: **production is never touched** (not the prod-deploying branch,
 
 - `--suites=a,b` explicit selection; `--all` every detected suite except costly ones (own confirmation); `--deep` turns on the project's deep gating (`E2E_DEEP=1` or equivalent).
 - `--redeploy=dispatch|empty|wip|no` forces the redeploy strategy (defined in Phase 3). `--reseed` / `--no-reseed` forces the reseed decision.
-- `--dry-run` runs Phases 0-3 read-only and prints the plan. Zero writes: no commit, push, dispatch, reseed, test, and `.claude/full-test.yml` is not written.
+- `--dry-run` runs Phases 0-3 read-only and prints the plan. Zero writes: no commit, push, dispatch, reseed, test, and neither `.claude/full-test.yml` nor anything under `.claude/full-test/` (journal, run report) is written. Start from Phase 0 step 2 without the resume check writing anything; the plan must state the git state (uncommitted files, no upstream) and that pending work stays local and will not be tested; it states the redeploy and reseed decisions it would take, that pending work would be committed only if the user chose `--redeploy=wip`, and ends with an explicit line confirming nothing was committed, pushed, dispatched, deployed, reseeded, tested or written (no `.claude/` file). Production is never listed as a candidate target.
 - `fix-loop` = autonomous loop (redeploy -> backup+reseed -> test -> fix -> repeat until 0 failures, then skips endgame). Limits: `--max-iterations=20|none`, `--no-progress-limit=5|none`. It composes with every flag above; with `--dry-run` it prints the loop plan (cycle, limits, backup command, agent matrix).
 - `--help` / `-h` alone: print this Usage block and stop.
 
