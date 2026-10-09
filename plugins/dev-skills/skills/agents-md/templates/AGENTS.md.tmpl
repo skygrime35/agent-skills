@@ -1,0 +1,129 @@
+# {{PROJECT_NAME}} — AGENTS.md
+
+{{ONE_LINE_WHAT_THIS_PROJECT_IS}}
+
+{{#TIER3}}Domain conventions: {{DOMAIN_FILES}}. Detailed knowledge and its index: `AGENTS/INDEX.md`.{{/TIER3}}
+
+---
+
+## Agent behaviour
+
+<!-- Never externalise this section. It applies on every turn, whatever file is
+     being touched. Rules below are ordered by how often they bite. -->
+
+### 1. Think before coding
+
+Do not assume. State assumptions before acting. On an ambiguous request, present the competing readings and ask rather than guess. Do not read "do X" as licence to do X plus Y plus Z.
+
+### 2. Simplicity first
+
+The minimum code that solves the stated problem. No unrequested features, no abstraction for single-use code, no anticipated flexibility, no error handling for impossible states.
+
+### 3. Surgical changes
+
+Touch only what the request requires. Do not improve adjacent working code. Follow the existing style. Remove only the orphans your own change created. Test: every modified line traces to the request.
+
+### 4. Goal-directed execution
+
+Turn tasks into checkable success criteria ("add validation" becomes "write the invalid-input tests, then make them pass"). Brief plan for multi-step work, one verification per step.
+
+### 5. Branch discipline
+
+Before the first modification of a task: `git branch --show-current`, then `git status --short`. Never infer the branch from the conversation or from an earlier observation.
+
+**Never modify `{{PROD_BRANCH}}` directly** without an explicit request for that specific change. If you are on it: stop, say so, propose a working branch, wait.
+
+**Never switch branches without approval.** `checkout`, `switch`, `reset`, `pull --rebase`, `stash` change what every session sharing this directory sees.
+
+### 6. Concurrency isolation
+
+<!-- Generate this whenever more than one agent can run. The failure mode is
+     silent: two agents in one tree destroy each other's work with no error. -->
+
+Parallel agents are welcome on independent work, **under isolation**. Before launching concurrent agents, impose one of:
+
+- **disjoint file sets**, enumerated in each agent's prompt, with no straying outside them (sufficient when no agent commits);
+- **isolated git worktrees**, one per agent (required as soon as scopes may overlap, an agent commits or stashes, or a schema migration is involved).
+
+Absolute prohibitions on a shared tree: `git stash`, `git add -A`, `git checkout`, `git reset`.
+
+**Stage only files you modified yourself.** Telling agents about each other is coordination, not protection: it does not replace isolation.
+
+{{#OUTPUT_DENSITY}}
+### 7. Output mode
+
+Engineering-report prose: result first, no pleasantries, no restatement of the request, no closing summary. Every proposed code change carries a **one-sentence** technical rationale naming the criterion (SOLID, DRY, performance, type safety, layer boundary), except mechanical edits. Critical peer review: state flaws plainly, including in existing code and in the request itself.
+
+Bounds: density applies to **prose**, never to the **work**. It never licenses skipping clarifying questions, hiding a risk, or calling something done that is not.
+{{/OUTPUT_DENSITY}}
+
+---
+
+## Project
+
+**Stack**: {{STACK_WITH_VERSIONS}}
+
+**Architecture**: {{CURRENT_STATE_NOT_HISTORY}}
+
+<!-- Current state only. Completed migrations, why decisions were taken and what
+     was split belong in ARCHITECTURE.md, not in a file loaded every session. -->
+
+---
+
+## Absolute guardrails
+
+<!-- One line each: the prohibition and its numeric threshold. The rationale,
+     the incident behind it and the procedure live in the domain file. -->
+
+{{#EACH_GUARDRAIL}}
+- **{{NAME}}**: {{PROHIBITION_AND_THRESHOLD}}. {{#DETAIL_FILE}}Detail: `{{DETAIL_FILE}}`.{{/DETAIL_FILE}}
+{{/EACH_GUARDRAIL}}
+
+---
+
+{{#HAS_CONVENTIONS}}
+## Naming conventions
+
+<!-- Only what a model would not guess from the code. -->
+
+{{CONVENTIONS}}
+
+---
+{{/HAS_CONVENTIONS}}
+
+{{#HAS_LAYERS}}
+## Layers
+
+{{LAYER_RULES}}
+
+---
+{{/HAS_LAYERS}}
+
+{{#HAS_COMMIT_CONVENTION}}
+## Commits
+
+{{COMMIT_FORMAT}}. Scopes: {{SCOPES}}.
+
+---
+{{/HAS_COMMIT_CONVENTION}}
+
+## Vital commands
+
+<!-- Every command below was executed in this repository. Never add one you
+     have not run. -->
+
+```bash
+{{VERIFIED_COMMANDS}}
+```
+
+{{#HAS_COMMANDS_FILE}}Full reference: `AGENTS/COMMANDS.md`.{{/HAS_COMMANDS_FILE}}
+
+---
+
+## Documentation synchronisation
+
+Documentation is updated in the same commit as the code that invalidates it. A changed rule updates this file{{#HAS_ADR}}, plus an ADR when the decision is structural{{/HAS_ADR}}.
+
+{{#HAS_GENERATED_ARTEFACTS}}
+**Exception — generated artefacts**: {{GENERATED_PATHS}} are dated snapshots, exempt from same-commit updating. They derive from the repository and never govern it: on divergence, the code and the hand-written documentation win.
+{{/HAS_GENERATED_ARTEFACTS}}

@@ -1,0 +1,12 @@
+{
+  "name": "skygrime",
+  "description": "Personal Claude Code skills: agentic docs, orchestration, testing, merging, legal, project bootstrap",
+  "owner": { "name": "Romain Gadani" },
+  "plugins": [
+    {
+      "name": "dev-skills",
+      "source": "./plugins/dev-skills",
+      "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects"
+    }
+  ]
+}

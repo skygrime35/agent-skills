@@ -1,0 +1,35 @@
+# 0001. Agentic documentation system
+
+- Status: accepted
+- Date: {{DATE}}
+
+## Context
+
+AI agents work in this repository. Without written rules they re-derive conventions from the code on every session, guess at prohibitions that no code expresses, and repeat mistakes already paid for.
+
+Two failure modes had to be avoided. A file too generic wastes the instruction budget stating what the model already knows, and measurably degrades task success. A file too large stops being followed at all: adherence degrades past roughly 150-200 instructions, and the harness already spends about 50.
+
+## Decision
+
+A tier-{{TIER}} system: {{STRUCTURE_SUMMARY}}.
+
+Content rules:
+
+- Behaviour lives in the always-loaded root file and is never externalised.
+- Guardrails keep their prohibition in the root file; rationale and procedure go to the domain file, making their cost conditional.
+- Nothing is written that was not verified: every documented command was executed, every cited path exists.
+- Rules that a script can check have one. {{GUARDRAIL_SCRIPTS}}
+
+## Consequences
+
+Documentation must be updated in the same commit as the code that invalidates it, or it decays into confidently wrong instructions, which are worse than none.
+
+The instruction budget is finite: past the threshold, a rule added displaces one already there. Adding a rule means asking what it replaces.
+
+## Alternatives considered
+
+**One large file.** Simpler to navigate, but every session pays for every domain. Rejected past tier 1.
+
+**Per-domain files only, no root file.** Loses the cross-cutting rules that must apply on every turn regardless of the file being touched.
+
+**Generated from the code on demand.** Cannot express prohibitions, which is precisely the non-inferable part.

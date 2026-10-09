@@ -1,0 +1,69 @@
+# .claude/orchestration.yml - owned by the /orchestration skill.
+# Secrets policy: never store secret values here. Env-var NAMES only.
+# Machine-specific facts live under `local:` (gitignore candidate).
+# `quirks:` is human-authored: detection never rewrites it.
+
+version: 1
+detected_at:
+  sha: {{HEAD_SHA}}
+  date: {{ISO_DATE}}
+
+base_doc:
+  file: {{BASE_DOC}}
+  pointer: {{POINTER}}              # null if no pointer pattern
+  section_heading: "{{SECTION_HEADING}}"
+  section_span: {start: {{SPAN_START}}, end: {{SPAN_END}}}
+  language: {{LANG}}
+  evidence: "{{BASE_DOC_EVIDENCE}}"
+
+agents_md:
+  config: {{AGENTS_MD_CONFIG}}      # null if absent (blind spot)
+  budget:
+    total: {{BUDGET_TOTAL}}
+    orchestration_share: {{BUDGET_SHARE}}
+    threshold: "150-200 minus ~50 harness"
+
+agents:
+  location: {{LOCATION}}            # global | project (Q0.1)
+  path: {{AGENTS_PATH}}
+  fallback_documented: {{FALLBACK_DOCUMENTED}}
+  types:
+{{TYPES_LIST}}
+  overrides:
+{{OVERRIDES_LIST}}
+
+doctrine:
+  blocks: [{{BLOCKS}}]
+  prohibition_markers: [{{PROHIBITION_MARKERS}}]
+  prohibitions: {{PROHIBITION_COUNT}}
+
+checks:
+  - {name: check_agent_refs, path: {{CHECK_PATH}}, wired: false}
+
+policy:
+  cost_posture: {{COST_POSTURE}}
+  deep_gate: {{DEEP_GATE}}
+  builtin_overrides: [{{BUILTIN_OVERRIDES}}]
+  matrix: {{MATRIX}}
+  delegation_threshold: {{DELEGATION_THRESHOLD}}
+  delegation_rationale: {{DELEGATION_RATIONALE}}
+  delegation_fallback: {{DELEGATION_FALLBACK}}
+  report_style: {{REPORT_STYLE}}
+  shared_tree_bans: [{{SHARED_TREE_BANS}}]
+  cite_incident: {{CITE_INCIDENT}}
+  check_script_path: {{CHECK_SCRIPT_PATH}}
+  parallelism: {{PARALLELISM}}
+  isolation: {{ISOLATION}}
+  ask_before_dispatch: {{ASK_BEFORE_DISPATCH}}
+  session_naming: {{SESSION_NAMING}}
+  language_resolution: {{LANGUAGE_RESOLUTION}}
+
+quirks: []                          # HUMAN-AUTHORED. Never rewritten by detection.
+
+local:                              # machine-specific, gitignore candidate
+  models_available: [{{MODELS_AVAILABLE}}]
+  models_verified_at: {{MODELS_VERIFIED_AT}}
+  subagent_model_env: {{SUBAGENT_MODEL_ENV}}
+  statusline: {{STATUSLINE}}
+  global_types_present: [{{GLOBAL_TYPES}}]
+  delegation_capable: {{DELEGATION_CAPABLE}}

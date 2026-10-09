@@ -1,0 +1,13 @@
+# {{PROJECT_NAME}}
+
+@AGENTS.md
+
+<!-- This file is a pointer, never a copy. Everything an agent needs lives in
+     AGENTS.md and the files it references. Two competing sources of truth are
+     worth less than one: they drift, and the reader cannot tell which won.
+
+     Add below only what explains the hierarchy, never a rule. -->
+
+{{#TIER3}}
+Hierarchy: `AGENTS.md` is the cross-cutting source of truth (behaviour, guardrails, layers, vital commands). {{DOMAIN_FILES}} carry per-domain conventions. `AGENTS/` holds the detailed knowledge, loaded on demand, indexed in `AGENTS/INDEX.md`.
+{{/TIER3}}

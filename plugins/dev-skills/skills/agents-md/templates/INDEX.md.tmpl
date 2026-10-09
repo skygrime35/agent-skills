@@ -1,0 +1,24 @@
+# Knowledge index
+
+<!-- An index earns its place only by saying WHEN to load each file. A list of
+     filenames is what `ls` already gives. Update in the same commit as any
+     file listed: an index that lies sends agents to files that do not hold
+     what was promised. -->
+
+| File | Load when | Holds |
+|---|---|---|
+{{#EACH_KNOWLEDGE_FILE}}
+| `{{PATH}}` | {{WHEN_TO_LOAD}} | {{WHAT_IT_HOLDS}} |
+{{/EACH_KNOWLEDGE_FILE}}
+
+{{#HAS_ADR}}
+## Decisions
+
+`adr/` records structural decisions in MADR format, newest last. Read the ADR before reopening a settled question.
+{{/HAS_ADR}}
+
+{{#HAS_POSTMORTEMS}}
+## Incidents
+
+`postmortems/` holds one file per production incident: what broke, why it was invisible, what now prevents it. The guardrails in `AGENTS.md` point back here.
+{{/HAS_POSTMORTEMS}}

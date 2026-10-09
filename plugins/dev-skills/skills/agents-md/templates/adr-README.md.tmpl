@@ -1,0 +1,26 @@
+# Architecture decision records
+
+MADR format. One file per decision: `NNNN-short-kebab-title.md`, numbered in order, never renumbered.
+
+Write an ADR when a decision is **structural**: it constrains future work, it was contested, or reversing it would be expensive. Not for routine choices.
+
+```markdown
+# NNNN. Title
+
+- Status: accepted | superseded by ADR-NNNN | deprecated
+- Date: YYYY-MM-DD
+
+## Context
+What forced a decision. The constraints in play.
+
+## Decision
+What was decided, in the active voice.
+
+## Consequences
+What this makes easy, what it makes hard, what it forecloses.
+
+## Alternatives considered
+What else was on the table and why it lost.
+```
+
+Parallel branches produce **colliding ADR numbers** and git reports no conflict. Check the highest number on the integration branch, not on yours, before claiming one.

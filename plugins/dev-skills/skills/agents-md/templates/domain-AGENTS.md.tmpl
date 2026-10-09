@@ -1,0 +1,37 @@
+# {{DOMAIN_NAME}} — conventions
+
+<!-- Domain-scoped only. Anything cross-cutting belongs in the root AGENTS.md.
+     This file is loaded when this domain is touched, which is why the detail
+     behind a root guardrail belongs here rather than there. -->
+
+Cross-cutting rules: root `AGENTS.md`.
+
+## Structure
+
+{{DOMAIN_STRUCTURE}}
+
+## Commands
+
+<!-- Executed in this repository. Never document an unrun command. -->
+
+```bash
+{{DOMAIN_VERIFIED_COMMANDS}}
+```
+
+{{#HAS_IMPORT_RULES}}
+## Import rules
+
+{{IMPORT_RULES}}
+{{/HAS_IMPORT_RULES}}
+
+{{#HAS_TESTING}}
+## Testing
+
+{{TESTING_CONVENTIONS}}
+{{/HAS_TESTING}}
+
+{{#EACH_DOMAIN_GUARDRAIL}}
+## {{GUARDRAIL_NAME}}
+
+{{FULL_DETAIL_RATIONALE_AND_PROCEDURE}}
+{{/EACH_DOMAIN_GUARDRAIL}}
