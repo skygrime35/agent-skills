@@ -10,13 +10,13 @@ Instantiated in `SPECS.md` at Phase 2 (so the user validates *what "done" will m
 - [ ] Build succeeds from a clean checkout (what is committed builds — not just the working tree with its uncommitted leftovers).
 - [ ] The artifact was **actually run at least once**, and the proof captured.
 - [ ] `README.md` with: one-line pitch, **copy-pasteable quickstart that was actually executed**, launch/install command, config/env vars.
-- [ ] `LICENSE` present (preference file default).
+- [ ] `LICENSE` present (`identity.default_license` of the learned-tastes file `~/.claude/new-project.yml`, unless the user chose another).
 - [ ] `.gitignore` correct; **no secret, no `.env`, no build junk in git** (scan before the live checkpoint, not after the push).
 - [ ] `.env.example` if any env var exists.
 - [ ] History = **atomic commits** with meaningful messages (not one mega-commit).
 - [ ] Errors handled at the boundaries: bad input, missing file/config, unreachable upstream → clear message, not a raw traceback.
 
-## Deployment (web-reachable types, unless --no-host)
+## Deployment (web-reachable types, unless --no-host or hosting disabled by `${user_config.new_project_hosting_enabled}`)
 
 - [ ] Application reachable **from outside the VPS** at its URL — `<project>.<base-domain>`, **no "demo" label anywhere, DNS included** (curl through the public route, not localhost).
 - [ ] **The whole stack is hosted** — backend, database, workers, every service the app needs — and **every must-have works end-to-end through the public URL** (never a front on a mocked or absent backend).

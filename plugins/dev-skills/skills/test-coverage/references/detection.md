@@ -45,9 +45,9 @@ Built by the **main loop** from P1+P4 output, before any wave-2 fan-out:
 
 ## 3. Referral protocol
 
-Each wave-2/4 explorer receives its globs plus this rule, verbatim in its prompt: *"If you discover functionality whose source lives outside your globs, do NOT inventory it. Emit one referral line: `REFERRAL: <path> — <one-line suspicion>`. The orchestrator routes it."* The main loop collects referrals, deduplicates them, and either routes each to the owning domain's agent (if still running / in a follow-up ask) or queues it for wave 6. A referral that ends up unowned is a **finding** (partition hole), not a silent drop.
+Each wave 2/4 explorer receives its globs plus this rule, verbatim in its prompt: *"If you discover functionality whose source lives outside your globs, do NOT inventory it. Emit one referral line: `REFERRAL: <path> — <one-line suspicion>`. The orchestrator routes it."* The main loop collects referrals, deduplicates them, and either routes each to the owning domain's agent (if still running / in a follow-up ask) or queues it for wave 6. A referral that ends up unowned is a **finding** (partition hole), not a silent drop.
 
-## 4. Dynamic pass rules (wave 5)
+## 4. Dynamic pass rules (wave 2)
 
 - Navigate by the P4 menu tree: every menu, submenu, modal, context menu, keyboard shortcut discovered is walked once. Record each interactive element (buttons, links, toggles, forms) with its URL/route and a navigation trace.
 - **Attachment rule**: a dynamically-seen feature must be attached to a static entry point (route, component file, command) before it may mint a FEAT. Unattachable ⇒ candidate handed to arbitration with its trace — it may be dead code's ghost, a CDN widget, or a real partition hole.

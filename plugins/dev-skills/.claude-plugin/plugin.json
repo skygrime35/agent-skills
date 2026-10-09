@@ -179,20 +179,20 @@
     "legal_report_language": {
       "type": "string",
       "title": "Report language",
-      "description": "Language of findings and reports; published legal texts stay French",
-      "default": "fr"
+      "description": "Language of findings and reports. Published legal texts follow the project audience language (French for French law).",
+      "default": "en"
     },
     "new_project_ui_language": {
       "type": "string",
       "title": "UI language",
       "description": "Language of questions and reports shown to the user (code and commits stay English).",
-      "default": "French"
+      "default": "English"
     },
     "new_project_docs_language": {
       "type": "string",
       "title": "Docs language",
       "description": "Language of README and human-facing project docs.",
-      "default": "French"
+      "default": "English"
     },
     "new_project_look_and_feel": {
       "type": "string",
@@ -239,6 +239,12 @@
       "title": "Deploy host",
       "description": "Where the app is hosted; only the local VPS is implemented.",
       "default": "localhost VPS"
+    },
+    "new_project_hosting_enabled": {
+      "type": "boolean",
+      "title": "Hosting enabled",
+      "description": "false makes every run behave as --no-host by default.",
+      "default": true
     },
     "new_project_min_disk_gb": {
       "type": "number",
@@ -406,7 +412,7 @@
       "type": "string",
       "title": "Report language",
       "description": "Language of reports to the user: auto (conversation language) or a code such as en or fr. Written documents follow the base doc language.",
-      "default": "auto"
+      "default": "en"
     },
     "safe_merge_backups_auto_run": {
       "type": "boolean",
@@ -474,7 +480,7 @@
       "type": "string",
       "title": "Report language",
       "description": "Language of generated reports and findings (all files and identifiers stay English).",
-      "default": "fr"
+      "default": "en"
     }
   }
 }

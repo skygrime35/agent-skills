@@ -59,7 +59,7 @@ Ranked by payoff / risk within each runner. Each entry: **what** · **invariant*
 2. **Per-step timeout from history** — `timeout(step) = max(floor, p95(step) × 3)` instead of one global ceiling; exceeding it is an infrastructure timeout, recorded, not retried beyond budget. *Invariant*: no baseline-passing step times out in N runs (else the floor is raised for that step, never the step removed).
 3. **Fail-fast on infrastructure** — health probe every M steps; target down or redeployed (SHA changed — the harness's own notion, never `/full-test`'s config) ⇒ the run ends as `invalid` with what ran, instead of spending the remaining hundreds of steps on a dead target. *Invariant*: an `invalid` run is never reported as green.
 4. **Step dependency graph ⇒ phase-level parallelism** — analysis agents annotate each step call with `produces:` / `consumes:` (accounts, uploaded objects, comments, settings…) from the step code and the seed; phases with disjoint state **and** their own accounts/pages (the harness's page pool) become `run_parallel` groups in the orchestrator's call structure. Only phases proven disjoint are parallelized; a group that fails the N-run campaign returns to serial. *Invariant*: same step count, same ok/fail set, unchanged order inside a phase.
-5. **Quarantine (explicit, human-confirmed, still executed)** — steps red for ≥ K consecutive history runs are proposed **one by one** at the gate; a confirmed entry moves to `speed.quarantine` and the runner executes it **at the end of the run, once, retries 0**, reporting it under its own heading. Never skipped, never deleted; each entry carries `confirmed_by`, `confirmed_at`, `since_sha`, `reason`, `review_after`. A quarantined step that turns green is reported as « prêt à sortir de quarantaine » — the human removes the entry.
+5. **Quarantine (explicit, human-confirmed, still executed)** — steps red for ≥ K consecutive history runs are proposed **one by one** at the gate; a confirmed entry moves to `speed.quarantine` and the runner executes it **at the end of the run, once, retries 0**, reporting it under its own heading. Never skipped, never deleted; each entry carries `confirmed_by`, `confirmed_at`, `since_sha`, `reason`, `review_after`. A quarantined step that turns green is reported as "ready to leave quarantine" — the human removes the entry.
 6. **Ordering** — longest phases first within a parallel group so the tail is short; known-skipped steps cost nothing and are left alone.
 
 ## 3. Hard invariants (after every lever, again at close-out)
@@ -78,7 +78,7 @@ Verify's V9 / V10 re-check (a), the markers and (c) later, mechanically.
 
 - **Campaign**: N runs of the runner's full suite (N = 3 default; 2 for e2e/harness because of cost — the report says which), with random ordering where supported (`pytest-randomly`, `--sequence.shuffle`).
 - **Isolation, not deletion**: green at baseline and red in ≥ 1 campaign run ⇒ put the test/step into the runner's serial mechanism (`xdist_group`, own worker, serial project, serial phase), re-run N. Still red ⇒ a real order-dependency bug in the *test* ⇒ `TC-FLAKY-nn` finding (P2) with the two orders that disagree; it stays isolated, never skipped.
-- **Retries are counted**: « 4 tests/steps ont eu besoin d'une seconde tentative » is a report line, because a retry hides a signal. Retry-passes never count as clean passes in the invariant check.
+- **Retries are counted**: "4 tests/steps needed a second attempt" is a report line, because a retry hides a signal. Retry-passes never count as clean passes in the invariant check.
 
 ## 5. Allowed write surface (verbatim in every agent prompt)
 
@@ -92,37 +92,37 @@ May write — and only these, each enumerated at the gate:
 
 Never: application code (anything outside `runners[].paths` and the files above), migrations, CI workflows that deploy or target production, `prod_hosts`, any assertion, any `skip`/`xfail`/`fixme`/`todo`/`only`, any test deletion or rename, a `retries` reduction without its replacing guard in the same lever. A needed change outside this surface is a **returned request** (finding for the human), not an improvisation.
 
-## 6. Report (in the report language; headings shown in French) — `.claude/test-coverage/speed-<YYYY-MM-DD>-<SHORTSHA>.md`
+## 6. Report (in the report language; templates below are in English and are translated when the report language differs) — `.claude/test-coverage/speed-<YYYY-MM-DD>-<SHORTSHA>.md`
 
 ```
-# Accélération de la suite — <PROJET> — <date> (<SHA>)
-Baseline : <path> (<SHA>, mesuré le <date>) · Gate : go all | go partiel (<leviers>) | périmètre réduit par --levers/--runners : <liste>
+# Test suite speed-up — <PROJECT> — <date> (<SHA>)
+Baseline: <path> (<SHA>, measured <date>) · Gate: go all | partial go (<levers>) | scope narrowed by --levers/--runners: <list>
 
-## Synthèse
-| Runner | Avant (wall) | Après (wall) | Gain | Collectés avant → après | ok/fail/skip avant → après |
-Total : <avant> → <après> (−<x> %)
+## Summary
+| Runner | Before (wall) | After (wall) | Gain | Collected before → after | ok/fail/skip before → after |
+Total: <before> → <after> (−<x> %)
 
-## Leviers
-| Levier | Runner | Gain mesuré | Invariant vérifié | Fichiers touchés | Statut |
-(Statut : appliqué · refusé — <raison + preuve> · non proposé — <raison> · non vérifiable · hors périmètre (--levers))
+## Levers
+| Lever | Runner | Measured gain | Invariant verified | Files touched | Status |
+(Status: applied · refused — <reason + proof> · not proposed — <reason> · not verifiable · out of scope (--levers))
 
-## Groupes sériels
-<test/step> — <mécanisme> — <ressource partagée / preuve de l'isolement>
+## Serial groups
+<test/step> — <mechanism> — <shared resource / proof of isolation>
 
-## Quarantaine
-<entrée> — confirmée par <qui> le <date> — exécutée en fin de run : <résultat> — revue après <date>
+## Quarantine
+<entry> — confirmed by <who> on <date> — executed at end of run: <result> — review after <date>
 
 ## Flakiness
-Campagne : N = <n> runs (<ordre aléatoire ? >). <k> tests isolés, <m> TC-FLAKY-nn, <r> retries observés.
+Campaign: N = <n> runs (<random order? >). <k> tests isolated, <m> TC-FLAKY-nn, <r> retries observed.
 
-## Non-régression
-Diff des ensembles ok/fail/skip vs baseline : vide | <explication par écart>
+## Non-regression
+Diff of ok/fail/skip sets vs baseline: empty | <explanation per difference>
 
 ## Blind spots
-<runner non mesuré / levier non vérifiable / e2e non rejoué N fois / timing par item absent>
+<runner not measured / lever not verifiable / e2e not replayed N times / per-item timing absent>
 
 ## Verdict
-« Plus rapide à précision identique sur ce qui a tourné » — <la phrase honnête : ce qui n'a pas tourné, ce qui reste lent et pourquoi>
+"Faster at identical precision on what ran" — <the honest sentence: what did not run, what remains slow and why>
 ```
 
 Trailer (machine-readable, same shape as the audit trailer):
@@ -132,7 +132,7 @@ speed:
   baseline_sha: ab12cd3
   levers:
     - { id: pytest-xdist, runner: pytest, status: applied, gain_s: 2900, files: [backend/pytest.ini, backend/conftest.py] }
-    - { id: vitest-isolate-off, runner: vitest, status: refused, reason: "2 fichiers changent de résultat sous shuffle" }
+    - { id: vitest-isolate-off, runner: vitest, status: refused, reason: "2 files change result under shuffle" }
 ```
 
 Statuses are never collapsed (`reporting.md`); numbers always carry their denominator and delta.
@@ -152,11 +152,11 @@ speed:
   applied:                                # written by close-out only
     - { id: pytest-xdist, runner: pytest, at_sha: cd34ef5, gain_s: 2900, files: [backend/pytest.ini, backend/conftest.py] }
   refused:
-    - { id: vitest-isolate-off, runner: vitest, reason: "2 fichiers changent de résultat sous shuffle", at_sha: cd34ef5 }
+    - { id: vitest-isolate-off, runner: vitest, reason: "2 files change result under shuffle", at_sha: cd34ef5 }
   serial_groups:                          # human-authored after the first write: drift shows the diff and asks
     - { runner: pytest, mechanism: "xdist_group('redis')", tests: ["apps/billing/tests/test_plan_cache.py"] }
   quarantine:                             # human-confirmed one by one; still executed; never skipped
-    - { runner: e2e-harness, step: "Checkout SCA (carte 3DS)", since_sha: ab12cd3, reason: "…", confirmed_by: "owner", confirmed_at: 2026-08-28, review_after: 2026-10-01 }
+    - { runner: e2e-harness, step: "Checkout SCA (3DS card)", since_sha: ab12cd3, reason: "…", confirmed_by: "owner", confirmed_at: 2026-08-28, review_after: 2026-10-01 }
   touched_files: [backend/pytest.ini, backend/conftest.py, backend/pytest-cov.ini]   # V10 scope
   cov_profile: "cd backend && pytest -c pytest-cov.ini"                              # the coverage command that still exists, proven once
 ```

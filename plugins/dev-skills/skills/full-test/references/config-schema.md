@@ -84,7 +84,7 @@ fix_loop:
     trivial: haiku-standard        # haiku-quick for purely mechanical edits
     standard: sonnet-standard
     complex: opus-standard
-    critical: opus-deep            # only on explicit user request or after opus-standard failed
+    critical: opus-standard        # opus-deep only on explicit user request or after opus-standard failed on the same failure (see references/fix-loop.md)
 
 reseed:
   command: "<the project's native seed command, verbatim>"

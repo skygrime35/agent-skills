@@ -7,6 +7,8 @@ when_to_use: "test preprod, validate my branch, run all tests on preprod, full t
 
 # /full-test
 
+Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files write bundled paths as `${CLAUDE_SKILL_DIR}/...`: that variable is not set in the shell, so substitute this directory before running or copying anything.
+
 Run **everything a project can test against its deployed preproduction environment** as one governed procedure: detect -> decide (redeploy / reseed / suites) -> wait for the right SHA -> run it all -> follow -> report. Portable: the branch->environment mapping, preprod URL, SHA endpoint, suites and reseed command are auto-detected on every run; non-guessable specifics live in `.claude/full-test.yml`.
 
 Central promise: **production is never touched** (not the prod-deploying branch, not the prod URL, not the prod database).
@@ -126,7 +128,7 @@ Policy: `--redeploy` > config > `${user_config.full_test_redeploy}`.
 - **Strategies:**
   - `dispatch`: `gh workflow run <deploy-workflow> --ref <branch>` (requires a dispatchable workflow; deploys only what is already pushed).
   - `empty`: `git commit --allow-empty` + push (fallback when no dispatch route exists; say why).
-  - `wip`: commit the pending work **file by file** (never `git add -A`) in the project's commit convention, then push (`-u origin <branch>` without upstream). Pushing a brand-new branch can itself deploy and take a shared slot.
+  - `wip`: commit the pending work **file by file** (never `git add -A`) in the project's commit convention, then push (`-u origin <branch>` without upstream). Pushing a brand-new branch can itself deploy and take a shared slot. **If `wip` comes from the plugin default or the config rather than an explicit `--redeploy=wip` argument**, the commit (exact file list and commit message) is shown in the Phase 0 announce before the push; an explicit argument proceeds without that display.
   - `no`: no redeploy; test what is served (the SHA gate still applies).
 - **Pending work:** unless `wip` is chosen or `${user_config.full_test_commit_pending}` is true, pending work stays local. **Always warn in those words: the pending work stays local and will not be tested.**
 - Re-assert G1 immediately before any push or dispatch.

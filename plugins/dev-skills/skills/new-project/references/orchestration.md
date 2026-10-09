@@ -19,11 +19,12 @@ The implementation is planned as an orchestration table in `SPECS.md`, shown ins
 
 Rules:
 
-1. **Decompose along module boundaries** so file sets are disjoint; two agents must never write the same files (worktree isolation when overlap is unavoidable). Trivial scope: a one-package table run by the main loop.
+1. **Decompose along module boundaries** so file sets are disjoint. **Isolation is the condition of parallelism, not an optional precaution**: agents run concurrently only on disjoint enumerated file sets or in isolated git worktrees (worktrees when overlap is unavoidable); without one of them, the packages run one at a time. Two agents must never write the same files. Trivial scope: a one-package table run by the main loop.
 2. **Wave 0 = scaffold + shared contracts**, single agent, never parallel.
 3. **Waves are dependency layers**: a wave's packages run in parallel; the next wave starts once the previous one is integrated (compiles, lints, committed atomically).
 4. Lint fixes fan out per package to cheap agents; test failures go back to the owning package at its assigned type.
 5. A dependency the table missed: update the table in `SPECS.md` with a journal line.
-6. Labels: a few words describing the task (`"Auth pages"`), no model prefix.
+6. Session labels: a few words describing the task (`"Auth pages"`), no model prefix while the statusline badge configuration is present (`~/.claude/subagent-statusline.sh`). When it is absent (repo cloned elsewhere), the label falls back to `<model>(<effort>): <task>` (for example `haiku(medium): Auth pages`) so the model and effort stay visible.
+7. **Never assign below the tier a task genuinely needs.** Misassigning down wastes a whole loop: the under-powered agent fails or returns unusable work, then the package is re-briefed and re-run at the right tier. Pick the cheapest tier that is adequate, not the cheapest tier that might be.
 
 The table is part of the Checkpoint 1 screen and is vetoable like any other spec item.

@@ -13,24 +13,24 @@ Coverage has six outcomes and reports keep all six apart — each confusion has 
 | gated | runnable only via `/full-test` (preprod) | "tested" claimed for something never run here |
 | bug-found | a written test proved the outcome wrong | a known bug reads as covered behavior |
 
-Speed levers likewise have five outcomes kept apart — **appliqué / refusé (raison + preuve) / non proposé / non vérifiable / hors périmètre** — a refused lever is never folded into « non proposé » (it is a measured fact, not a choice). Check results likewise: **PASS / FAIL / WAIVED / BLIND SPOT** — a check that could not run is a BLIND SPOT, never a PASS. Waived items are counted in one quiet footer line (« N risques assumés — détail au prochain audit »), never itemized outside audit.
+Speed levers likewise have five outcomes kept apart — **applied / refused (reason + proof) / not proposed / not verifiable / out of scope** — a refused lever is never folded into "not proposed" (it is a measured fact, not a choice). Check results likewise: **PASS / FAIL / WAIVED / BLIND SPOT** — a check that could not run is a BLIND SPOT, never a PASS. Waived items are counted in one quiet footer line ("N accepted risks, details at the next audit"), never itemized outside audit.
 
 ## 2. Verdict wording
 
-Always **green on what ran**. Coverage numbers always carry their denominator *and* its delta: « 148/214 scénarios couverts (inventaire : +9 scénarios depuis le dernier audit) » — a percentage alone hides both the inventory's size and the fact that a growing inventory can make coverage *drop* while the suite improved. The Blind spots section states **what each absence means**, not merely that it exists (« passe dynamique non exécutée : les features visibles uniquement à l'exécution sont absentes de l'inventaire — l'exhaustivité revendiquée ne porte que sur le code »).
+Always **green on what ran**. Coverage numbers always carry their denominator *and* its delta: "148/214 scenarios covered (inventory: +9 scenarios since the last audit)" — a percentage alone hides both the inventory's size and the fact that a growing inventory can make coverage *drop* while the suite improved. The Blind spots section states **what each absence means**, not merely that it exists ("dynamic pass not run: features visible only at runtime are missing from the inventory; the claimed completeness covers the code only").
 
 ## 3. Build report skeleton
 
 ```markdown
-# Build de couverture — <PROJET> — <YYYY-MM-DD> (SHA <SHORTSHA>)
-Audit consommé : <path> (SHA <AUDIT_SHA>) · Gate : <go all | go partiel (groupes listés) | narrowed by --gaps=…>
-## Synthèse            <tests écrits / scénarios couverts (dénominateur) / bugs découverts / baseline vs final>
-## Tests écrits        <par fichier : scénarios, framework, vert local o/n>
-## Bugs découverts     <chaque TC-BUG : repro exacte, observé vs attendu, où est le skip annoté>
-## Non-régression      <diff vs baseline B2 ; casses réparées (fixtures) ; échecs pré-existants inchangés>
-## Gaps restants       <scénarios encore missing/partial + pourquoi (refusés au gate, costly non confirmés)>
-## Gated → /full-test  <scénarios écrits non exécutés ici, avec la variable d'env cible>
-## Verdict             « Vert sur ce qui a tourné » + la phrase honnête sur le reste
+# Coverage build - <PROJECT> - <YYYY-MM-DD> (SHA <SHORTSHA>)
+Audit consumed: <path> (SHA <AUDIT_SHA>) · Gate: <go all | partial go (groups listed) | narrowed by --gaps=…>
+## Summary            <tests written / scenarios covered (denominator) / bugs found / baseline vs final>
+## Tests written      <per file: scenarios, framework, green locally y/n>
+## Bugs found         <each TC-BUG: exact repro, observed vs expected, where the annotated skip is>
+## Non-regression     <diff vs baseline B2; breakages repaired (fixtures); pre-existing failures unchanged>
+## Remaining gaps     <scenarios still missing/partial + why (refused at the gate, costly not confirmed)>
+## Gated → /full-test  <scenarios written but not run here, with the target env variable>
+## Verdict            "Green on what ran" + the honest sentence about the rest
 ```
 
 The audit report skeleton lives in `audit-grid.md` §2; the trailer contract in `inventory-schema.md` §4; the speed report skeleton and its `levers:` trailer in `speed.md` §6.

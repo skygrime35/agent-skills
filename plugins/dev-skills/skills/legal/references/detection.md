@@ -54,7 +54,7 @@ Feature facts the code cannot settle (are giveaway prizes real? is a user popula
 rg -n 'RECAPTCHA|GTM_ID|GA_MEASUREMENT|SENTRY_DSN|PIXEL_ID' PROJECT_ROOT --glob '!node_modules' -g '!*.lock'
 ```
 
-For each hit where the key/flag is empty or the loader is behind an env guard: record under `features.dormant` with its **activation consequence** in one sentence (e.g. « activation ⇒ cookie tiers `_GRECAPTCHA` ⇒ bandeau de consentement obligatoire, rupture du régime art. 82 LIL »). Dormants are flagged, proposed as `checks:` candidates, **never activated**.
+For each hit where the key/flag is empty or the loader is behind an env guard: record under `features.dormant` with its **activation consequence** in one sentence (e.g. "activation ⇒ third-party `_GRECAPTCHA` cookie ⇒ consent banner mandatory, breaks the art. 82 LIL no-banner regime"). Dormants are flagged, proposed as `checks:` candidates, **never activated**.
 
 ## 5. Corpus inventory + rot scan
 
@@ -63,7 +63,7 @@ For each hit where the key/flag is empty or the loader is behind an env guard: r
 # placeholders in published text
 rg -n 'À COMPLÉTER|A COMPLETER|TO COMPLETE|POR COMPLETAR|AUSZUF|TODO|XXX|lorem|en cours de désignation' <substrate files>
 # prior audits + their finding-ID sequences (harvest, never re-mint)
-rg -l 'Criticité|P0|finding' PROJECT_ROOT --glob '*audit*' --glob '*legal*' --glob '*.md' -g '!node_modules' 2>/dev/null
+rg -l 'Criticité|Severity|P0|finding' PROJECT_ROOT --glob '*audit*' --glob '*legal*' --glob '*.md' -g '!node_modules' 2>/dev/null
 rg -o '\[[A-Z]+-[A-Z0-9]+-[0-9]+\]' <those files> | sort -u
 # binding project conventions (language, emoji ban, anti-TODO CI, LOC caps)
 head -80 PROJECT_ROOT/AGENTS.md PROJECT_ROOT/CLAUDE.md 2>/dev/null

@@ -10,6 +10,8 @@ Phase 6.5 writes a durable `.claude/safe-merge/rollback-<TIMESTAMP>.md` **before
 
 Pick the **lowest tier that fully restores service.** Never jump to tier 3 if tier 1 suffices.
 
+**Phase R gate.** Every tier is a prod write: Phase R executes nothing until the human explicitly confirms the revert plan (tier, exact commands, impact). That confirmation is Phase R's own gate, equivalent to the Phase 6 go. Tier 3 additionally needs a second, separate confirmation.
+
 ## Template for `rollback-<TIMESTAMP>.md`
 
 ```markdown

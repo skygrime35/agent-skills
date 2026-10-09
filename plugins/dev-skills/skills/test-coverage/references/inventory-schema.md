@@ -25,7 +25,7 @@ domains:                                            # the disjoint partition (de
 features:
   - id: FEAT-012                                    # zero-padded, stable sort
     domain: DOM-01
-    name: "Connexion email / mot de passe"
+    name: "Email / password login"
     kind: ui-action        # ui-action | route | endpoint | cli-command | job | webhook | config-flag
     entry_points: ["src/pages/login.tsx:42", "POST /api/auth/login"]
     discovered_by: [static, dynamic]
@@ -40,8 +40,8 @@ scenarios:
     feature: FEAT-012
     class: expected-error  # nominal | expected-error | edge | chain
     chain_of: []           # class: chain only — 2-3 SCEN ids sharing state
-    description: "email inconnu → « identifiants invalides » sans révéler l'existence du compte"
-    expected_outcome: "HTTP 401 + message générique identique au cas mauvais-mot-de-passe"
+    description: "unknown email → 'invalid credentials' without revealing whether the account exists"
+    expected_outcome: "HTTP 401 + generic message identical to the wrong-password case"
     cost: cheap            # cheap | moderate | costly | gated-preprod
     severity_if_missing: P1                         # set by arbitration, not by explorers
     coverage:

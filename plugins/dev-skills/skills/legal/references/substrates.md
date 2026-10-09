@@ -41,7 +41,7 @@ Portable core, parameterized by `substrate:`, `version_refs:`, `editor:`, `gaps:
 
 ### Project-specific checks (`checks:`)
 
-Run after V1–V8, one row each, same four states. `origin: human` entries are never edited by the machine; the audit may **propose** `origin: detected` candidates (typically from `features.dormant` — e.g. « reCAPTCHA toujours inactif ») which the human confirms before they join the file.
+Run after V1–V8, one row each, same four states. `origin: human` entries are never edited by the machine; the audit may **propose** `origin: detected` candidates (typically from `features.dormant` — e.g. "reCAPTCHA still inactive") which the human confirms before they join the file.
 
 ### Output format
 
@@ -49,7 +49,7 @@ One table (check · state · one-line evidence for FAIL/BLIND SPOT), then:
 
 ```
 Verdict : green on what ran — N PASS, N FAIL, N BLIND SPOT.
-N risques assumés (WAIVED) — détail au prochain audit.
+N accepted risks (WAIVED) — details at the next audit.
 ```
 
-FAIL lines cite the exact values compared (e.g. « CGV : backend `CGV_CURRENT_VERSION` = 1.1 ≠ frontend `legal.cgv.version` = 1.0 »). Never collapse a BLIND SPOT into a pass; name what the blind spot *means* (« V5 non exécutable : pytest absent — les guards n'ont pas été prouvés vivants »).
+FAIL lines cite the exact values compared (e.g. "CGV: backend `CGV_CURRENT_VERSION` = 1.1 ≠ frontend `legal.cgv.version` = 1.0"). Never collapse a BLIND SPOT into a pass; name what the blind spot *means* ("V5 cannot run: pytest absent — the guards were not proven alive").

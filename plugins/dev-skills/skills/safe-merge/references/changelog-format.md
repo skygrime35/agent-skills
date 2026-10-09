@@ -52,4 +52,4 @@ Rank within each group by user impact (biggest first). Merge many small commits 
 - **No vulnerability details.** Never describe a security fix in a way that maps the exploit ("fixed an auth bypass that let anyone read others' private videos"). Write "Fixed a security issue" or "Strengthened access controls" — details belong in a private advisory, not a public changelog.
 - **No secrets, internal hostnames, or infra specifics.**
 - **User reviews/edits before commit.** Present the draft; let the human correct tone and inclusion.
-- **Commit only after the Phase 6 "go"** (as part of the Phase 7 merge), so a no-go never leaves an orphan release entry.
+- **Commit only after the Phase 6 "go"** (as part of the Phase 7 merge), so a no-go never leaves an orphan release entry. Never push it to SOURCE before the go, and never use it as a preprod-trigger commit.

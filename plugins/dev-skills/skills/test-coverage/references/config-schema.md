@@ -54,8 +54,8 @@ last_audit:
 
 accepted_risks:                       # conscious human decisions — never auto-edited, never re-litigated outside audit
   - id: TC-GAP-ADMIN-01
-    decision: "ne pas tester le panneau d'admin legacy (suppression prévue T4 2026)"
-    rationale: "code en fin de vie; l'effort de test serait jeté avec lui"
+    decision: "do not test the legacy admin panel (removal planned T4 2026)"
+    rationale: "end-of-life code; the test effort would be thrown away with it"
     severity: P2                      # original severity, never downgraded
     accepted_at: 2026-08-11
     accepted_by: "owner"
@@ -68,8 +68,8 @@ local:
 
 # --- human-authored: never auto-overwritten (drift => show diff and ask) ---
 quirks:
-  - "la suite e2e exige le seed AVANT le premier test — l'ordre des waves de build doit le respecter"
-  - "vitest en mode --no-threads sur cette machine (sqlite lock)"
+  - "the e2e suite requires the seed BEFORE the first test — the build wave order must respect it"
+  - "vitest in --no-threads mode on this machine (sqlite lock)"
 
 # --- speed (mode speed) — full schema and field rules in speed.md §7 ---
 speed:

@@ -21,7 +21,7 @@ For every feature, derive in this order — the order is the checklist:
 | webhook | accepted + processed | bad signature rejected, replay rejected, unknown event ignored | out-of-order delivery, duplicate delivery |
 | config-flag | behavior on, behavior off | invalid value handling | flip at runtime (if hot-reloaded), unset/default |
 
-**The expected-error rule** (governing principle 2, operationalized): the scenario's `expected_outcome` names the exact observable — "HTTP 422 with `errors.email`", "exit code 2 + message on stderr", "toast « fichier trop volumineux »". A test that only asserts "it fails" proves nothing; a code path that *should* error but doesn't is precisely the bug this skill exists to surface.
+**The expected-error rule** (governing principle 2, operationalized): the scenario's `expected_outcome` names the exact observable — "HTTP 422 with `errors.email`", "exit code 2 + message on stderr", "toast 'file too large'". A test that only asserts "it fails" proves nothing; a code path that *should* error but doesn't is precisely the bug this skill exists to surface.
 
 ## 2. Bounding rules (what keeps the set finite)
 
@@ -42,8 +42,8 @@ For every feature, derive in this order — the order is the checklist:
 
 ## 4. Worked examples
 
-**FEAT « Connexion email/mot de passe » (ui-action + endpoint)** → nominal: bons identifiants ⇒ session + redirect. Expected errors: email inconnu ⇒ 401 message générique (identique au cas mot-de-passe faux — anti-énumération, l'outcome le dit) ; mot de passe faux ⇒ 401 même message ; compte verrouillé ⇒ 423 + bannière. Edges: soumission double rapide ⇒ une seule session ; unicode dans l'email ; champ vide ⇒ validation front ET back (deux scénarios — deux couches, deux observables). Chain (état partagé) : login→accès page protégée ; login→logout→page protégée ⇒ redirect.
+**FEAT "Email / password login" (ui-action + endpoint)** → nominal: correct credentials ⇒ session + redirect. Expected errors: unknown email ⇒ 401 generic message (identical to the wrong-password case — anti-enumeration, the outcome says so) ; wrong password ⇒ 401 same message ; locked account ⇒ 423 + banner. Edges: rapid double submit ⇒ a single session ; unicode in the email ; empty field ⇒ front-end AND back-end validation (two scenarios — two layers, two observables). Chain (shared state): login→access to protected page ; login→logout→protected page ⇒ redirect.
 
-**FEAT « export CSV » (cli-command)** → nominal: exit 0, fichier au schéma attendu. Expected errors: chemin de sortie non inscriptible ⇒ exit 2 + stderr ; base vide ⇒ exit 0 + fichier en-têtes seuls (le code le prévoit — à prouver). Edges: 100k lignes (cost: moderate) ; interruption mi-export ⇒ pas de fichier partiel corrompu. Pas de chaîne : rien ne partage d'état.
+**FEAT "CSV export" (cli-command)** → nominal: exit 0, file with the expected schema. Expected errors: unwritable output path ⇒ exit 2 + stderr ; empty database ⇒ exit 0 + header-only file (the code foresees it — to be proven). Edges: 100k rows (cost: moderate) ; interruption mid-export ⇒ no corrupted partial file. No chain: nothing shares state.
 
-**FEAT « webhook Stripe » (webhook)** → nominal: `checkout.session.completed` ⇒ abonnement activé en base. Expected errors: signature invalide ⇒ 400, rien en base (l'outcome inclut le "rien en base") ; event inconnu ⇒ 200 ignoré. Edges: replay du même event ⇒ idempotent. Le nominal contre le vrai Stripe ⇒ `gated-preprod` ; le nominal contre payload fixture local ⇒ `moderate`. **Les deux existent** — le fixture ne waive pas le réel.
+**FEAT "Stripe webhook" (webhook)** → nominal: `checkout.session.completed` ⇒ subscription activated in the database. Expected errors: invalid signature ⇒ 400, nothing in the database (the outcome includes "nothing in the database") ; unknown event ⇒ 200 ignored. Edges: replay of the same event ⇒ idempotent. The nominal against real Stripe ⇒ `gated-preprod` ; the nominal against a local fixture payload ⇒ `moderate`. **Both exist** — the fixture does not waive the real one.

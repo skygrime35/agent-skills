@@ -1,6 +1,6 @@
-# Wording — legally exact, non-scary French
+# Wording — legally exact, non-scary legal text
 
-Load before drafting or rewording any user-facing clause. The point: a clause can be simultaneously valid, honest, and non-frightening. « Abonnement avec obligation d'achat » is legally sound and commercially self-harming; the rewrite keeps the legal effect and drops the fear.
+Load before drafting or rewording any user-facing clause. The point: a clause can be simultaneously valid, honest, and non-frightening. The French phrase « Abonnement avec obligation d'achat » ("subscription with purchase obligation") is legally sound and commercially self-harming; the rewrite keeps the legal effect and drops the fear. The French quotes below are sample output text for French-language sites; everything else in this file is instructions. For other audience languages, translate the rewrites faithfully, keeping the mandated phrases of the red lines in the wording the applicable law requires.
 
 ## 1. Doctrine (three rules, in order)
 
@@ -10,7 +10,9 @@ Load before drafting or rewording any user-facing clause. The point: a clause ca
 
 ## 2. Rewrite table (scary → reassuring, each with its validity condition)
 
-| Scary / legalese | Reassuring rewrite (FR) | Valid ONLY if |
+The two quoted columns are French sample clauses (what a French site would show); the "Valid ONLY if" column is English instructions.
+
+| Scary / legalese (FR) | Reassuring rewrite (FR output template) | Valid ONLY if |
 |---|---|---|
 | « Abonnement avec obligation d'achat, reconduction tacite » | « Votre abonnement se renouvelle automatiquement chaque mois. Vous pouvez l'arrêter à tout moment, en trois clics depuis votre compte : vous gardez l'accès jusqu'à la fin de la période déjà payée. » | no commitment period AND the 3-click path really exists (META-1) |
 | « Vous renoncez à votre droit de rétractation » | « Vous disposez de 14 jours pour changer d'avis. Si vous choisissez de commencer tout de suite, vous pouvez toujours vous rétracter pendant ces 14 jours : nous vous remboursons alors au prorata des jours non utilisés (art. L221-25 du Code de la consommation). » | the prorata route is used and the refund path exists in code. The FULL waiver framing (L221-28) is only for one-shot digital content, and must then keep the express double acknowledgment |
@@ -34,9 +36,9 @@ Load before drafting or rewording any user-facing clause. The point: a clause ca
 
 ## 4. Plain-language rules (layered notice, CNIL-endorsed)
 
-Sentences ≤ 25 words. « Vous »/« nous », active voice. One idea per paragraph. Every CGU/CGV/privacy article opens with an « **En bref :** » box of ≤ 2 lines, followed by the full clause. Numbers in digits, dates in full. No Latin, no « nonobstant ». Define each acronym once. Reading target: a 15-year-old understands the CGU (ties to art. 45 LIL and DSA art. 14(3) when minors are served).
+Sentences ≤ 25 words. Direct address (French: « vous »/« nous »), active voice. One idea per paragraph. Every CGU/CGV/privacy article opens with an « **En bref :** » ("In brief") box of ≤ 2 lines, followed by the full clause. Numbers in digits, dates in full. No Latin, no legalese such as « nonobstant » ("notwithstanding"). Define each acronym once. Reading target: a 15-year-old understands the CGU (ties to art. 45 LIL and DSA art. 14(3) when minors are served).
 
-## 5. Trap list — phrasings that are themselves illegal (reject at generation time)
+## 5. Trap list — phrasings that are themselves illegal (reject at generation time; quoted French phrases are bad examples to detect)
 
 - Pre-ticked boxes implying consent or adding paid options (L121-17 C. conso; CJUE *Planet49* for cookie consent).
 - « En continuant votre navigation, vous acceptez les cookies » (invalid consent — CNIL délib. 2020-091).

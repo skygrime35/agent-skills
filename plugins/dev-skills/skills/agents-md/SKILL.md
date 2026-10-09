@@ -7,6 +7,8 @@ when_to_use: "AGENTS.md, CLAUDE.md, agent docs, instruction budget, audit my age
 
 # /agents-md
 
+Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files write bundled paths as `${CLAUDE_SKILL_DIR}/...`: that variable is not set in the shell, so substitute this directory before running or copying anything.
+
 Builds, grades or repairs the file set that tells an AI agent how a repository works, what it must never do, and where detailed knowledge lives. Portable: every run measures the repository; non-guessable specifics go in `.claude/agents-md.yml`. Central promise: **it never writes what it has not verified** (no unexecuted command, no unstat'd path, no inferred convention).
 
 ## Usage
@@ -48,7 +50,7 @@ Builds the system from scratch. **Refuses and switches to `audit` if a root AGEN
 
 **Phase 1 - size it.** Resolve the tier: `--tier` > `.claude/agents-md.yml` > `${user_config.agents_md_tier_policy}` > the tier measured from the repository (see `${CLAUDE_SKILL_DIR}/references/structure.md`). Report the per-session token cost. With `auto`, never pick tier 3 for a small repository: an instruction file that is not earned is a permanent tax. A forced `--tier=3` on a small repository prints a warning with that cost and proceeds.
 
-**Phase 2 - resolve policies, ask nothing by default.** Resolve each policy in the same order (argument > project config > plugin option > recommended default): doc language (`${user_config.agents_md_doc_language}`), guardrail scripts (`${user_config.agents_md_install_guardrail_scripts}`, opt-out), commit convention (`${user_config.agents_md_commit_convention_policy}`: detect, enforce or skip). Ask only a blocking question: the production ref when it is undetectable, or a documentation-language rule found in the repository that conflicts with the resolved language. The prohibitions no code can reveal are never invented: unknown ones stay an explicitly empty slot, listed in the report. Then present ONE plan confirmation (tier, file set, scripts, language, empty slots) before the first write.
+**Phase 2 - resolve policies, ask nothing by default.** Resolve each policy in the same order (argument > project config > plugin option > recommended default): doc language (`${user_config.agents_md_doc_language}`), guardrail scripts (`${user_config.agents_md_install_guardrail_scripts}`, opt-out), commit convention (`${user_config.agents_md_commit_convention_policy}`: detect, enforce or skip). Ask only a blocking question: the production ref when it is undetectable, or a documentation-language rule found in the repository that conflicts with the resolved language. The prohibitions no code can reveal are never invented: unknown ones stay an explicitly empty slot, listed in the report. Then present ONE plan confirmation (tier, file set, scripts, language) before the first write, and list every empty prohibition slot explicitly by name and location in that same confirmation, inviting the human to fill them in their reply to it. No extra question round: the reply either fills a slot (written verbatim, as an imperative) or leaves it empty, and an unfilled slot is reported as empty.
 
 **Phase 3 - write.** After the plan is confirmed, generate the tier's file set from `${CLAUDE_SKILL_DIR}/templates/`, filled with measured facts. Copy the guardrail scripts if enabled: `cp ${CLAUDE_SKILL_DIR}/scripts/check_*.py <target>/scripts/`. Write `.claude/agents-md.yml`. With `--dry-run`, print the plan and stop: zero writes.
 

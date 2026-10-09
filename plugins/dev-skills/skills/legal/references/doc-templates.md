@@ -1,14 +1,14 @@
-# Document templates — minimal-set rule + French skeletons
+# Document templates — minimal-set rule + document skeletons
 
 Contents: 0 Minimal-set rule · T1 Mentions légales · T2 CGU · T3 CGV · T4 Privacy · T5 Cookies · T6 Jeu-concours règlement · Notes for the drafting agent
 
-Templates are **substrate-agnostic content skeletons**: what a document says, section by section. Serialization into MDX / i18n JSON keys / markdown is `substrates.md`'s job. `{{SLOT}}` = interview-fillable; `{{#if COND}}` = feature-conditional (the condition is a detected feature or an interview answer, never a guess). Unfilled slot ⇒ placeholder protocol (`interview.md` §5).
+Templates are **substrate-agnostic content skeletons**: what a document says, section by section. Instructions are in English; the fenced and quoted blocks, and the French article titles in quotes, are sample output text for a French-language site (French law, the binding version) and stay French. For other audience languages, translate faithfully. Serialization into MDX / i18n JSON keys / markdown is `substrates.md`'s job. `{{SLOT}}` = interview-fillable; `{{#if COND}}` = feature-conditional (the condition is a detected feature or an interview answer, never a guess). Unfilled slot ⇒ placeholder protocol (`interview.md` §5).
 
 ## 0. Minimal-set rule
 
 | Feature profile | Required docs — nothing more |
 |---|---|
-| Landing page, no accounts, strictly-necessary cookies | T1 (cookies handled as a §inside T1 — no separate page) |
+| Landing page, no accounts, strictly-necessary cookies | T1 (cookies handled as a section inside T1 — no separate page) |
 | + accounts, free service, UGC | T1, T2, T4, T5-A |
 | + B2C subscription / paid offer | + T3 |
 | + real-prize giveaways | + T6 |
@@ -16,9 +16,9 @@ Templates are **substrate-agnostic content skeletons**: what a document says, se
 
 **Anti-bloat rule:** never generate a doc this matrix doesn't require; never add a clause whose KB trigger is absent (no international-transfer clause without a non-EU processor; no DPO section without a DPO; no moderation charter without UGC). Every extra document is a standing obligation the éditeur must then honor.
 
-Shared blocks, every doc: header `_Dernière mise à jour : {{DATE}} — version {{VERSION}}_`; translations open with « Seule la version française fait foi. » ; footer links to the sibling docs that exist.
+Shared blocks, every doc: header `_Dernière mise à jour : {{DATE}} — version {{VERSION}}_` ("Last updated"); translations open with « Seule la version française fait foi. » ("Only the French version is binding."); footer links to the sibling docs that exist.
 
-## T1 — Mentions légales (complete template)
+## T1 — Mentions légales (complete template, French output)
 
 ```markdown
 # Mentions légales
@@ -59,11 +59,23 @@ Do NOT include: the EU ODR platform (closed 2025-07-20 — remove it where found
 
 ## T2 — CGU (skeleton)
 
-1 Objet et acceptation (versionnée, preuve de consentement) · 2 Compte ({{AGE_MINIMUM}} ans minimum ; un compte par personne ; sécurité des identifiants) · 3 Le service (description honnête, disponibilité en « efforts raisonnables » — jamais « garanti 100 % ») · 4 Règles d'usage (liste courte de ce qui est interdit, lisible à 15 ans) · {{#if UGC}}5 Vos contenus — licence non exclusive, limitée aux besoins du service (hébergement, affichage, adaptation technique), durée de vie du compte ; vous garantissez détenir les droits (dont le droit à l'image des personnes filmées) · 6 Modération et signalement — politique claire (DSA art. 14), signalement art. 16, décision motivée et voies de recours (art. 17){{/if}} · 7 Suspension/résiliation (carve-out contenu illicite ; sinon préavis + motivation) · 8 Responsabilité (per wording.md — jamais d'exclusion totale) · 9 Évolution des CGU (notification + re-acceptation si substantiel) · 10 Droit applicable, contact, médiation (si B2C payant).
+Sections (French article titles in quotes; content rules in English):
+1. « Objet et acceptation » — versioned acceptance, proof of consent.
+2. « Compte » — {{AGE_MINIMUM}} years minimum; one account per person; credential security.
+3. « Le service » — honest description; availability on a "reasonable efforts" basis, never "guaranteed 100 %".
+4. « Règles d'usage » — short list of what is forbidden, readable at 15.
+5. {{#if UGC}}« Vos contenus » — non-exclusive license limited to the needs of the service (hosting, display, technical adaptation), for the life of the account; the user warrants holding the rights (including the image rights of filmed persons){{/if}}.
+6. {{#if UGC}}« Modération et signalement » — clear policy (DSA art. 14), reporting (art. 16), reasoned decision and redress (art. 17){{/if}}.
+7. « Suspension et résiliation » — carve-out for illegal content; otherwise notice + reasons.
+8. « Responsabilité » — per wording.md, never a total exclusion.
+9. « Évolution des CGU » — notification + re-acceptance if the change is substantial.
+10. « Droit applicable, contact, médiation » — mediation only if paid B2C.
 
 ## T3 — CGV (skeleton + drafted key articles)
 
-Outline: 1 Objet · 2 Prix (TTC ; « TVA non applicable, art. 293 B du CGI ») · 3 Commande et paiement (bouton L221-14) · {{#if ESSAI}}4 Période d'essai (date et montant de bascule annoncés AVANT saisie de la carte + email de rappel){{/if}} · 5 Durée et renouvellement · 6 Résiliation · 7 Droit de rétractation · 8 Garanties légales — **encadré obligatoire** de la garantie de conformité des services numériques (L224-25-1 s., décret n° 2022-946 : reprendre le modèle d'encadré de l'annexe réglementaire) · 9 Responsabilité · 10 Données personnelles (renvoi T4) · 11 Médiation de la consommation · 12 Droit applicable · Annexe : formulaire type de rétractation (annexe à R221-1, version 2022).
+Outline (French article titles in quotes): 1 « Objet » · 2 « Prix » (prices incl. VAT; « TVA non applicable, art. 293 B du CGI ») · 3 « Commande et paiement » (L221-14 order button) · {{#if TRIAL}}4 « Période d'essai » (conversion date and amount announced BEFORE card entry + reminder email){{/if}} · 5 « Durée et renouvellement » · 6 « Résiliation » · 7 « Droit de rétractation » · 8 « Garanties légales » — **mandatory boxed summary** (encadré) of the conformity guarantee for digital services (L224-25-1 s., décret n° 2022-946: reproduce the model box from the regulatory annex) · 9 « Responsabilité » · 10 « Données personnelles » (refer to T4) · 11 « Médiation de la consommation » · 12 « Droit applicable » · Annex: model withdrawal form (annexe à R221-1, 2022 version).
+
+Drafted key articles (French output text):
 
 ```markdown
 ### Article 7 — Droit de rétractation
@@ -99,17 +111,26 @@ consommation dont nous relevons : {{MEDIATEUR_NOM}}, {{MEDIATEUR_ADRESSE}},
 
 ## T4 — Politique de confidentialité (art. 13/14 map)
 
-1 Qui sommes-nous (responsable de traitement = `editor:`) · 2 Ce que nous collectons et pourquoi — **one table: finalité × base légale × données × durée**, generated from the art. 30 register (the register is the source of truth; 2-way sync is audit check RGPD-02 — never freehand) · 3 Destinataires (the REAL processor list from detection; DPA + transfer basis per non-EU processor) · {{#if AI}}4 Traitements avec IA — provider named, consent basis, what is sent, transfer safeguard{{/if}} · 5 Durées de conservation (only durations a purge job actually enforces — promising an unenforced duration is a META-1 finding) · 6 Vos droits (access, rectification, erasure, portability, opposition, + « vous pouvez saisir la CNIL : www.cnil.fr ») et comment les exercer ({{EMAIL_CONTACT}}, in-app paths if they exist) · 7 Sécurité (facts only — measures actually in place) · {{#if MINORS}}8 Moins de 18 ans — plain-language paragraph readable at 15{{/if}} · 9 Contact + date/version.
+Sections (French titles in quotes):
+1. « Qui sommes-nous » — controller (responsable de traitement) = `editor:`.
+2. « Ce que nous collectons et pourquoi » — **one table: purpose (finalité) × legal basis (base légale) × data × retention (durée)**, generated from the art. 30 register (the register is the source of truth; 2-way sync is audit check RGPD-02 — never freehand).
+3. « Destinataires » — the REAL processor list from detection; DPA + transfer basis per non-EU processor.
+4. {{#if AI}}« Traitements avec IA » — provider named, consent basis, what is sent, transfer safeguard{{/if}}.
+5. « Durées de conservation » — only durations a purge job actually enforces (promising an unenforced duration is a META-1 finding).
+6. « Vos droits » — access, rectification, erasure, portability, objection, plus « vous pouvez saisir la CNIL : www.cnil.fr », and how to exercise them ({{EMAIL_CONTACT}}, in-app paths if they exist).
+7. « Sécurité » — facts only: measures actually in place.
+8. {{#if MINORS}}« Moins de 18 ans » — plain-language paragraph readable at 15{{/if}}.
+9. Contact + date/version.
 
 ## T5 — Cookies
 
-**T5-A (no-banner regime):** opening: « Ce site n'utilise aucun cookie publicitaire ni de traçage. Aucune bannière de consentement n'est donc nécessaire (art. 82 de la loi Informatique et Libertés ; délibération CNIL n° 2020-091). » Then the exhaustive table — name · purpose · duration · type (essentiel / mesure d'audience exemptée) — of every cookie/storage actually set. The table must match reality (COOK-01); a new non-exempt cookie voids the whole page.
+**T5-A (no-banner regime):** French opening text: « Ce site n'utilise aucun cookie publicitaire ni de traçage. Aucune bannière de consentement n'est donc nécessaire (art. 82 de la loi Informatique et Libertés ; délibération CNIL n° 2020-091). » Then the exhaustive table — name · purpose · duration · type (« essentiel » / « mesure d'audience exemptée ») — of every cookie/storage actually set. The table must match reality (COOK-01); a new non-exempt cookie voids the whole page.
 
-**T5-B (consent regime):** categories (essentiels / mesure d'audience / marketing), per-category cookie table, how to change choices at any time (link reopening the CMP), consent duration (max 13 months for the choice, 25 for measurement), no consent-wall.
+**T5-B (consent regime):** categories (« essentiels » / « mesure d'audience » / « marketing »), per-category cookie table, how to change choices at any time (link reopening the CMP), consent duration (max 13 months for the choice, 25 for measurement), no consent-wall.
 
-## T6 — Règlement de jeu-concours (règlement-cadre + annexe par tirage)
+## T6 — Giveaway rules (règlement de jeu-concours: framework rules + one annex per draw)
 
-Cadre: 1 Organisateur ({{DENOMINATION}}, SIRET, siège) · 2 Accès au jeu — **gratuit et sans obligation d'achat** ; participation via {{MECANISME}} (free entry is what keeps the draw out of L320-1 CSI — this clause is load-bearing, never conditional) · 3 Participants ({{AGE}} ans minimum ; une participation par personne ; {{TERRITOIRE}} ; {{#if MINORS}}pour les mineurs, la remise du lot requiert l'accord d'un représentant légal{{/if}}) · 4 Désignation des gagnants ({{MODE_TIRAGE}} ; date ; notification ; délai de réclamation du lot puis déchéance : {{DELAI}}) · 5 Dotation (annexe : liste des lots + valeur unitaire TTC ; pas de contre-valeur en argent) · 6 Données personnelles (finalité limitée au tirage et à la remise, durée courte, renvoi T4) · 7 Modification/annulation pour cause · 8 Accessibilité du règlement ({{URL}}) · 9 Droit applicable. Annexe par tirage: dates, dotation exacte, mode précis. Note: dépôt du règlement chez un commissaire de justice **facultatif** depuis la loi n° 2014-1545 (mesure probatoire, non requise).
+Framework (cadre), French titles in quotes: 1 « Organisateur » ({{DENOMINATION}}, SIRET, registered office) · 2 « Accès au jeu » — **free and no purchase necessary** (« gratuit et sans obligation d'achat »); participation via {{MECANISME}} (free entry is what keeps the draw out of L320-1 CSI — this clause is load-bearing, never conditional) · 3 « Participants » ({{AGE}} years minimum; one entry per person; {{TERRITOIRE}}; {{#if MINORS}}for minors, prize delivery requires the consent of a legal guardian{{/if}}) · 4 « Désignation des gagnants » ({{MODE_TIRAGE}}; date; notification; claim period for the prize then forfeiture: {{DELAI}}) · 5 « Dotation » (annex: list of prizes + unit value incl. VAT; no cash equivalent) · 6 « Données personnelles » (purpose limited to the draw and prize delivery, short retention, refer to T4) · 7 « Modification ou annulation » for cause · 8 « Accessibilité du règlement » ({{URL}}) · 9 « Droit applicable ». Per-draw annex: dates, exact prizes, precise draw method. Note: deposit of the règlement with a commissaire de justice is **optional** since loi n° 2014-1545 (evidentiary measure, not required).
 
 ## Notes for the drafting agent
 

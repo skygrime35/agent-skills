@@ -12,9 +12,11 @@ Detected shape (verify each element in Phase 0):
 - **TLS via certbot** (`--nginx` installer), one cert per FQDN.
 - **Base domain** from the plugin option `${user_config.new_project_host_domain_pattern}` (default `<dashed-ip>.nip.io`, a DNS-free pattern where any `<label>.<dashed-ip>.nip.io` resolves to the VPS). A real wildcard domain, when configured, takes precedence.
 
-Phase 0 detection: `which nginx docker`, `sudo -n true`, list `sites-available/` and their `proxy_pass` ports, `ss -tlnp` for listeners, `docker ps` port bindings, public IP (for the nip.io base), read the deployment registry.
+Phase 0 detection (skipped when hosting is disabled): `which nginx docker`, `sudo -n true`, list `sites-available/` and their `proxy_pass` ports, `ss -tlnp` for listeners, `docker ps` port bindings, public IP (for the nip.io base), read the deployment registry.
 
 ## Deployment recipe (Phase 5)
+
+Skipped entirely when `--no-host` is passed or `${user_config.new_project_hosting_enabled}` is false (the run then follows the `--no-host` behavior: artifact + proof, and the final report states that hosting was disabled, as a stated choice rather than a blind spot).
 
 1. **Name & port.** Name: `<project>` (validated at Checkpoint 1, collision-checked there against existing confs, compose projects and the registry). Port: first free port in the range `${user_config.new_project_port_range_start}`-`${user_config.new_project_port_range_end}`, checked against `ss -tlnp`, every `proxy_pass` in `sites-available/`, `docker ps`, and the registry. Collision ⇒ next port, **never** kill a listener.
 2. **Run the app — the whole app**: `docker compose up -d` with **every** service the application needs (backend, database, cache, workers — never a front pointing at a mocked or absent backend), `restart: unless-stopped`, **named volumes for every stateful service** so data survives restarts, ports bound `127.0.0.1:<port>:…` — never `0.0.0.0` — and **explicit resource limits** (`mem_limit`, `cpus`) sized to the app: a deployment must never be able to starve the host's other services (an OOM here takes preprod projects down with it). Verify persistence: `docker compose restart`, then confirm previously entered data is still there. (A non-dockerized fallback — systemd user unit — is acceptable for trivial static sites; docker is the default.)

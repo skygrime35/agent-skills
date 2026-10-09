@@ -7,9 +7,11 @@ argument-hint: "[audit|build|verify|speed] [--dry-run] [flags...]"
 
 # /test-coverage
 
+In reference files, `${user_config.<key>}` is not substituted: use the value this file shows for that option.
+
 Auto-detects surfaces, test frameworks, launchability and persists its state in `.claude/test-coverage.yml` and `.claude/test-coverage/inventory.yml` (stable IDs, timestamped by git SHA). It **never fixes application code and never touches production**: a test that reveals a bug stays as an annotated skip plus a P0/P1 finding. In `speed` it may edit test **infrastructure** only (runner configs, conftest/setup, harness runner), never a test body, an assertion or application code.
 
-Reports follow `${user_config.test_coverage_report_language}` (default `fr`); every file, identifier and comment is English.
+Reports follow `${user_config.test_coverage_report_language}` (default `en`); every file, identifier and comment is English. The report templates in `references/` are written in English; when the report language differs, translate their headings and labels (the meaning and every rule stay identical).
 
 ## Usage
 
@@ -45,7 +47,7 @@ Builds and maintains the exhaustive suite (inventory, scenario derivation, cover
 4. **Exhaustive per action, bounded by shared state.** Every outcome of every isolated action (nominal, each expected error, canonical edges); chains of 2-3 actions only where they share state; longer chains are class `costly`: listed, priced, behind their own confirmation.
 5. **A minted ID is minted forever.** FEAT/SCEN IDs survive refactors via fingerprint matching (anchor, symbol, arbitrated candidate); ambiguities go to arbitration, never auto-merged; >30 % unmatched features stops the run and proposes an explicit re-baseline.
 6. **Written tests run locally/CI only, never against production.** Hosts in `prod_hosts:` (config) are checked against the runner's targets before any execution, and `rg` sweeps written tests for prod URLs. Preprod-only scenarios are written, marked `gated-preprod`, handed to `/full-test`; never inherit its deploy/reseed powers.
-7. **Fan out for reading; one pair of hands per write; no silent caps.** Exploration, derivation and mapping run across **disjoint domains** (out-of-scope discoveries are referrals routed by the main loop). A single arbitration spend per run (audit wave 9, speed wave 7). `inventory.yml` is written by the main loop alone; in build, one agent per test file. The build worklist is **all** open gaps by default; any narrowing is stated in the report.
+7. **Fan out for reading; one pair of hands per write; no silent caps.** Exploration, derivation and mapping run across **disjoint domains** (out-of-scope discoveries are referrals routed by the main loop). A single arbitration spend per run (audit wave 6, speed wave 3). `inventory.yml` is written by the main loop alone; in build, one agent per test file. The build worklist is **all** open gaps by default; any narrowing is stated in the report.
 8. **Faster only if it detects exactly the same bugs.** `speed` proves every lever with three invariants (same collected count per runner, same pass/fail/skip id sets, zero assertion diff) and reverts any lever breaking one. A flaky-under-parallelism test goes to a serial group, never deleted or skipped; a retry budget shrinks only with an equivalent guard in the same lever. Quarantine is confirmed one entry at a time, still executed, reported apart. Baseline before, proof after.
 
 ## Agents and tools
@@ -61,7 +63,7 @@ Degradations (each reported): no `AskUserQuestion` => plain-text question with t
 | `${CLAUDE_SKILL_DIR}/references/detection.md` | Phase 0 of any mode — probes, launchability, domain partition, referral protocol |
 | `${CLAUDE_SKILL_DIR}/references/config-schema.md` | Reading/writing `.claude/test-coverage.yml` |
 | `${CLAUDE_SKILL_DIR}/references/inventory-schema.md` | Reading/writing `inventory.yml`; ID stability rules; audit trailer |
-| `${CLAUDE_SKILL_DIR}/references/scenario-derivation.md` | Audit wave 7 — derivation grid per feature kind, bounding rules, cost classes |
+| `${CLAUDE_SKILL_DIR}/references/scenario-derivation.md` | Audit wave 4 — derivation grid per feature kind, bounding rules, cost classes |
 | `${CLAUDE_SKILL_DIR}/references/audit-grid.md` | Mode audit — finding taxonomy, severity ladder, report + trailer contract |
 | `${CLAUDE_SKILL_DIR}/references/writing.md` | Mode build — isolation, fixtures, skip/todo patterns, discovered-bug protocol |
 | `${CLAUDE_SKILL_DIR}/references/speed.md` | Mode speed — measurement, lever catalogue, invariants, flakiness, write surface, report, `speed:` config |
@@ -106,7 +108,7 @@ Follow phases in order. TaskCreate the phases at start; append one line per comp
 | 9 | Arbitration: final dedupe, kill anything without evidence, settle ambiguous ID matches, rank P0-P3 | per-domain syntheses + disputed cases only | **opus-deep** (explicit request or after opus-standard failure; else opus-standard) | 8 | 6 |
 | 10 | Write `inventory.yml` + report with machine-readable trailer | — | main loop | 9 | 7 |
 
-   Waves 2-5 attach **evidence** to every feature/scenario (`file:line`, screenshot/navigation trace, probe output); wave 6 pre-dedupes so arbitration gets per-domain syntheses and disputed cases, never the raw inventory. A dynamically-seen feature must attach to a static entry point before it may mint a FEAT, else it goes to arbitration.
+   Waves 2-5 attach **evidence** to every feature/scenario (`file:line`, screenshot/navigation trace, probe output); wave 3 pre-dedupes so arbitration (wave 6) gets per-domain syntheses and disputed cases, never the raw inventory. A dynamically-seen feature must attach to a static entry point before it may mint a FEAT, else it goes to arbitration.
 3. **Report + registers.** Write `.claude/test-coverage/audit-<YYYY-MM-DD>-<SHORTSHA>.md` per `audit-grid.md` (gaps P0->P3: P0 = critical path with zero tests; P1 = expected error never verified on a main flow; P2 = uncovered edge case; P3 = costly chain / quality), accepted risks from `accepted_risks:`, blind spots, trailer for build. Update `coverage.status` per scenario. Verdict: "covered on the verified scope".
 
 ## Mode: build

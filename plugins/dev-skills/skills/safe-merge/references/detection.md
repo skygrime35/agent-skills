@@ -46,6 +46,8 @@ Search, in rough order of specificity:
 
 **Critical rule:** many platforms deploy from their own side with **nothing committed in the repo**. If you can't positively identify the trigger, set `deploy_trigger: unknown` and treat the merge as **potentially production-impacting**. Also confirm the endpoint the deploy exposes (`/api/version`, `/health`, a build SHA header) so Phase 4/7 can assert what's actually running.
 
+Also record whether **SOURCE** itself deploys prod (a push trigger on SOURCE targeting the prod environment, or SOURCE pushing a prod-deploying tag): `yes` / `no` / `unknown`. Anything but `no` forbids any push to SOURCE before the Phase 6 go.
+
 Deploy-trigger states to record: `auto-branch` (push to TARGET deploys) · `auto-tag` (tag/release deploys — the merge itself may be inert; the *tag push* is the gated action) · `manual` (a human/CI button) · `unknown`.
 
 ## 4. Test/build command harvesting — CI is the oracle
@@ -56,7 +58,7 @@ Do **not** guess test commands. Read them from where the project actually runs t
 2. **Task runners:** `package.json` `scripts`, `Makefile`, `justfile`, `tox.ini`/`noxfile.py`, `Taskfile.yml`, `composer.json` scripts, `mix.exs` aliases, `Rakefile`, `build.gradle`, `Cargo.toml`.
 3. **Package manager** from the lockfile: `package-lock.json`→npm, `pnpm-lock.yaml`→pnpm, `yarn.lock`→yarn, `bun.lockb`→bun, `poetry.lock`→poetry, `uv.lock`→uv, `Pipfile.lock`→pipenv. Using the wrong one breaks installs.
 
-**Classify every discovered command `safe-to-run` vs `side-effecting`.** Anything matching deploy/publish/release/prod/migrate-prod/`push`/`rm`/`drop` is side-effecting — **never auto-run it**. Add CI-mode flags to avoid hangs: `CI=true`, Vitest/Jest `--run`/`--watchAll=false`, `--ci`, non-interactive/`--yes`. Note commands that need services (testcontainers, a live DB) so a "bare" run doesn't produce a false red.
+**Classify every discovered command `safe-to-run` vs `side-effecting`.** Anything matching deploy/publish/release/prod/migrate-prod/`push`/`rm`/`drop` is side-effecting — **never auto-run it**. Add CI-mode flags to avoid hangs: `CI=true`, Vitest/Jest `--run`/`--watchAll=false`, `--ci`, non-interactive/`--yes`. Note commands that need services (testcontainers, a live DB) so Phase 4 starts them and a "bare" run doesn't produce a false red.
 
 ## 5. DB / ORM / migration system
 

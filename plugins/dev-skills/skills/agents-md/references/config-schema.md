@@ -72,7 +72,7 @@ guardrail_scripts:               # what was installed and whether it is wired
 
 budget:                          # measured at last run
   instructions: 138
-  threshold: "see references/structure.md#instruction-budget"   # canonical figure lives there only
+  threshold: "frontier models follow roughly 150-200 instructions before adherence degrades; the harness already spends about 50 (as of 2026-10)"   # copied from the skill's structure.md "Instruction budget" section; refresh when re-checked
   always_loaded_chars: 24391
 
 knowledge_graph:                 # detected, never generated

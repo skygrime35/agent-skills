@@ -35,7 +35,7 @@ deploy:
 tests:                           # harvested from CI (the oracle); mark side-effecting ones
   static: ["docker compose exec -T backend pytest -q --no-cov", "cd frontend && npx next build"]
   e2e_flow:
-    trigger: "gh workflow run deploy.yml --ref develop"   # prefer workflow_dispatch over empty commits
+    trigger: "gh workflow run deploy.yml --ref develop"   # prefer workflow_dispatch; a pushed trigger commit must be reverted on SOURCE before the merge
     wait: "gh run watch <id> --interval 20 --exit-status"
     seed: "docker compose exec backend python manage.py seed_e2e_users"
     run:  "E2E_DEEP=1 bash scripts/tests/test.sh <PREPROD_URL>"
@@ -79,16 +79,17 @@ quirks:
 
 - After a run, stamp `detected_at` with the date and the TARGET SHA.
 - On each run, diff detected structural values vs stored. Structural drift → update automatically but **report it**. Drift touching a `quirks`/override → **keep the stored value and report the difference** (never ask, never overwrite).
+- In `--dry-run` the config is neither created nor refreshed: drift is only reported.
 - Recommend committing the structural block and gitignoring the `local` block (e.g. `.claude/safe-merge.local.yml`), so multiple machines don't fight over machine-specific paths.
 
 ## Run journal (`.claude/safe-merge/journal.md`)
 
-The only journal format (gitignore `.claude/safe-merge/`). Markdown, rewritten after each phase:
+The only journal format (gitignore `.claude/safe-merge/`). Markdown, rewritten after each phase. `--dry-run` writes no journal and archives none.
 
 ```markdown
 # safe-merge journal
 - run_id: <YYYYMMDD-HHMM>
-- mode: full | dry-run | revert
+- mode: full | revert
 - started: <ISO time>   updated: <ISO time>   # resume only if updated < 24 h ago
 - source: <branch> @ <sha>   target: <branch> @ <sha>   # resume only if both SHAs unchanged
 - preparation_authorized: yes | no   (at <ISO time>)
@@ -99,4 +100,6 @@ The only journal format (gitignore `.claude/safe-merge/`). Markdown, rewritten a
 - backups: <paths + sha256>   - tests: <suite: result>   - rehearsal: <duration, verdict>
 - blind_spots: [...]   - degraded_tools: [...]
 - changelog_draft: <path>   - rollback_file: <path>
+- source_prod_deploying: yes | no | unknown   # SOURCE push check
+- preprod_trigger_commit: <sha or none>   reverted_on_source: <sha or pending>
 ```
