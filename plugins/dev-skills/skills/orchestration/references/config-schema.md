@@ -26,8 +26,9 @@ detected_at:
 base_doc:                        # where the doctrine lives (probe D1/D2)
   file: AGENTS.md
   pointer: CLAUDE.md             # null if no pointer pattern
-  section_heading: "### 5. Orchestration multi-agents"
-  section_span: {start: 42, end: 95}
+  section_spans:                 # one entry per heading of the owned doctrine (D2); one entry when a single heading holds it
+    - {heading: "### 5. Orchestration multi-agents", start: 42, end: 95}
+  section_span: {start: 42, end: 95}   # alias, written only when section_spans has exactly one entry
   language: fr
   evidence: "CLAUDE.md contains @AGENTS.md"
 
@@ -95,7 +96,7 @@ local:                           # machine-specific, gitignore candidate
 
 ## Field rules
 
-**`base_doc.section_span`**: the only lines this skill may ever edit. Refreshed on every run; if the heading moved or vanished, that is a finding, not a silent re-anchor.
+**`base_doc.section_spans`**: the only lines this skill may ever edit, one `{heading, start, end}` per heading. Refreshed on every run; if a heading moved or vanished, that is a finding, not a silent re-anchor. Readers accept an older config that has only `section_span` (read it as a one-entry list). Writers write `section_spans`, and `section_span` only when there is exactly one span. Sync never writes outside the recorded spans.
 
 **`agents.types[].verified`**: `true` only when the file was stat'd and its frontmatter parsed during this run. An entry with `verified: false` must carry a `note` saying why. A type that failed to parse is never cited by the doctrine as if it worked.
 

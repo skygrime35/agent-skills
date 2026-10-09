@@ -24,7 +24,7 @@ grep -nE '^#{2,4} .*([Oo]rchestrat|[Mm]ulti.agent)' BASE_DOC
 grep -niE 'worktree|sous-agent|subagent|deleg|délég|parallel|parallél|effort' BASE_DOC
 ```
 
-The heading probe finds the owned section; record its span (start line, end line of the heading's content, bounded by the next same-level heading). The semantic probe finds orchestration rules living OUTSIDE that span: each such hit is recorded as **scattered doctrine** and feeds audit family O3. No heading but semantic hits: there is doctrine with no owned section, `init` on the doctrine scope still switches to `audit` (the artifact exists, dispersed).
+The heading probe finds the owned section; record its span (start line, end line of the heading's content, bounded by the next same-level heading). Doctrine may spread over several **consecutive sibling headings** (same level, no higher-level heading between them) that all cover the same topic: accept the run as one owned doctrine and record one span per heading in `section_spans`. Siblings count only when the topic is shown by the heading or its body (the same keywords as the heading probe); an unrelated sibling ends the run. The semantic probe finds orchestration rules living OUTSIDE that span: each such hit is recorded as **scattered doctrine** and feeds audit family O3. No heading but semantic hits: there is doctrine with no owned section, `init` on the doctrine scope still switches to `audit` (the artifact exists, dispersed).
 
 ## D3 - agents-md config
 
@@ -114,7 +114,7 @@ Runs in every mode when transcripts exist: in init it informs Q1.2, Q1.3 and the
 ## Output profile
 
 ```yaml
-base_doc: {file, pointer, section_heading, section_span, language, evidence}
+base_doc: {file, pointer, section_spans, language, evidence}
 scattered_doctrine: [{line, excerpt}]
 agents_md: {config, budget}
 agent_types: {global: [...], project: [...]}

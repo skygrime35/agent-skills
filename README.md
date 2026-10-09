@@ -9,6 +9,8 @@ claude plugin marketplace add skygrime35/claude-skills
 claude plugin install dev-skills@skygrime
 ```
 
+Restart running Claude Code sessions after installing or updating: a session does not load a plugin installed while it runs.
+
 Skills are then available as `/dev-skills:<skill>` (and by their short name when unambiguous). Defaults are plugin options: change them in `/config`.
 
 ## Skills (`plugins/dev-skills/skills/`)

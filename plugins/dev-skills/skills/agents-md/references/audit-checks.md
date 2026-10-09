@@ -2,7 +2,7 @@
 
 Contents:
 - P0 - active risk (P0.1-P0.4)
-- P1 - false facts (P1.1-P1.4)
+- P1 - false facts (P1.1-P1.5)
 - P2 - structure and cost (P2.1-P2.5)
 - P3 - hygiene (P3.1-P3.4)
 - Non-regression check
@@ -76,15 +76,13 @@ Every path cited anywhere in the documentation, resolved against the repository.
 2. **Resolve against every detected root**, not just the repository root: documentation legitimately writes paths relative to a domain (`shared/hooks/useMediaQuery.ts` under `frontend/src/`, `graph.json` under the artefact folder).
 
 ```bash
-ROOTS=". backend frontend/src AGENTS"      # from detection: repo root + each domain root
-grep -ohE '`[A-Za-z0-9_./-]+\.(md|py|ts|tsx|yml|yaml|json|sh|mjs)`' AGENTS.md AGENTS/*.md \
-  | sed 's/.*`\(.*\)`/\1/' | sort -u | grep '/' \
-  | while read -r f; do
-      found=0
-      for r in $ROOTS; do [ -e "$r/$f" ] && { found=1; break; }; done
-      [ $found -eq 1 ] || echo "DEAD: $f"
-    done
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok          # default scope: root docs, docs index, every tracked domain AGENTS.md
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok <file>…  # explicit files
 ```
+
+The script covers backtick paths and markdown links (with `#anchors`), resolves relative to the citing file, the repo root, then by suffix via `git ls-files`, and skips URLs, placeholders, globs and fenced code. Output `file:line<TAB>target<TAB>status`: `dead` is a finding, `ambiguous` (several suffix matches) is a P3 to disambiguate. Read-only; exit 1 when something is dead.
+
+**Archive paths.** Run the script a second time on the dated records (`archives.paths` from the project config, else `errors/`, `adr/`, `postmortems/`-style directories). Dead references there are not P1: report ONE P3 info finding with their count and the policy applied. Policy resolves as `--archives` > `archives.policy` > `${user_config.agents_md_archives_policy}` > `tolerate`. `tolerate`: leave them. `annotate` and `fix` act only in `sync`, see SKILL.md.
 
 A partial path that resolves under no root is a genuine finding, and a common one after a compression pass: shortening `backend/apps/orders/infrastructure/…` to `infrastructure/…` reads fine and points nowhere.
 
@@ -93,9 +91,11 @@ A partial path that resolves under no root is a genuine finding, and a common on
 The subtle variant: the file exists, the section named inside it does not.
 
 ```bash
-# for each "see FILE section X" reference
-grep -q "X" FILE || echo "FILE does not contain the promised section X"
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_sections.py --quiet-ok            # default scope as P1.2
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_sections.py --quiet-ok <file>…
 ```
+
+It checks `FILE § Section`, `see FILE section X` and markdown anchor citations (`FILE#anchor`, `#anchor`) against the target's headings. Same output format and exit codes as P1.2; read-only.
 
 Field case: a guardrail announced a debt register "sectioned Backend/Frontend/Infra/Doc/Legal/Tests"; the `Doc` section had never existed. Any agent following the rule looks for a section that is not there.
 
@@ -106,6 +106,21 @@ Claims like "the allowlist is empty", "all apps are migrated", "zero legacy". Ve
 ```bash
 grep -vc '^\s*#\|^\s*$' <the-allowlist-file>
 ```
+
+### P1.5 External-state claims contradicted by a live probe
+
+Claims about state outside the repository files: CI ("the hosted CI is disabled / phantom"), services and containers ("X is not running"), quotas, disabled features, "no workflow runs". Probe each one read-only:
+
+```bash
+gh run list --limit 10                       # are there runs at all, and their conclusions
+gh run view <run-id> --json jobs             # job-level conclusions
+docker compose config --quiet                # effective compose file, no side effect
+stat <path>                                  # existence, mtime of a claimed artefact
+```
+
+- Claim contradicted by the probe: **P1**. **P0** when the doc pairs the claim with a destructive instruction (for example "CI is phantom, delete its runs"): an agent will act on a false premise.
+- Claim that cannot be probed (no `gh` auth, daemon unreachable, sandbox): list it as a blind spot with its rank, never as a green check.
+- Probes stay read-only: no `gh run rerun|cancel|delete`, no `docker compose up|down|exec`, no API write. A probe that would change state is not run.
 
 ## P2 - structure and cost
 
@@ -194,6 +209,8 @@ ls .github/workflows/*.yml | while read w; do
   n=$(basename "$w"); grep -qi "${n%.yml}" AGENTS.md AGENTS/*.md 2>/dev/null || echo "undocumented workflow: $n"
 done
 ```
+
+When the doc has a "CI-equivalent / replay locally" list, compare it with the workflows' real steps: extract every `jobs.<id>.steps[].run` command from `.github/workflows/*.yml` (python3 with `yaml`, else grep of `run:`) and match each job against the list. A job whose commands appear nowhere in the list = **P2** (name the job). Jobs the project deliberately leaves out are listed in `ci_replay_excludes` of `.claude/agents-md.yml` and skipped.
 
 ## Non-regression check (mandatory after any sync batch touching guardrails)
 

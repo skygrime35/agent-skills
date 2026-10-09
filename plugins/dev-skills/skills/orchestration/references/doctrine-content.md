@@ -6,7 +6,7 @@ The menu of orchestration rules this skill can write into the base doc's owned s
 
 **Boundary note.** Branch discipline (check the branch and cohabitation before any modification), general output style, and knowledge-graph usage belong to the base doc's behaviour section, owned by `/agents-md`. This skill never writes them; its audit only reports overlap when the owned section restates them.
 
-**Rendering.** The canonical text below is the SOURCE, in English. At write time it is rendered into the output language decided in Phase 0 (a French base doc gets French prose), with the interview's variation points applied. Rendered, not copied: sentence order and idiom may adapt, imperatives and thresholds may not.
+**Rendering.** The canonical text below is the SOURCE, in English. At write time it is rendered into the output language decided in Phase 0 (a French base doc gets French prose), with the interview's variation points applied. Rendered, not copied: sentence order and idiom may adapt, imperatives and thresholds may not. Sync rewrites the doctrine only inside the recorded `section_spans` (config-schema.md), never elsewhere in the base doc.
 
 **Budget.** The full eight blocks cost roughly 29 to 34 instructions. Phase 2 must show the measured margin from probe D4 before proposing all eight; on a tight budget, propose B1+B7+B2+B3 (the load-bearing four) and justify dropping the rest.
 
@@ -18,7 +18,7 @@ Canonical text:
 
 > Token economy rule: never let a costly model handle a task a cheaper one does correctly. Order of capability (and cost), highest first: {LADDER}.
 >
-> **The orchestrator is a role, not a model**: it is the agent in direct dialogue with the user, whatever model runs it. Its job is to decompose the request and delegate each subtask to the **smallest model adequate for it**. The dispatch ladder is the list of agent types ordered by cost ({TYPE_LADDER}). At planning time, before execution starts, the orchestrator estimates the rung each subtask needs and dispatches at that rung, or one rung below when it hesitates between two; **never two rungs below its estimate**. A slight under-sizing is accepted because a failure escalates ({B7_REF}); a gross one only wastes the attempt. The orchestrator does not itself do work a lower model would do as well.{LOW_DEFAULT: **Delegated implementation starts at `{LOW}-standard`** whenever the orchestrator can write its brief (files, intended behaviour, verification); a higher rung needs a reason: a design choice the brief cannot settle, a cause still unknown, security- or data-sensitive work.}{DEEP_GATE: `{TOP}-deep` runs only when the user explicitly asks to dig deeper, or after `{TOP}-standard` failed on the same task.}
+> **The orchestrator is a role, not a model**: it is the agent in direct dialogue with the user, whatever model runs it. Its job is to decompose the request and delegate each subtask to the **smallest model adequate for it**. The dispatch ladder is the list of agent types ordered by cost ({TYPE_LADDER}). At planning time, before execution starts, the orchestrator estimates the rung each subtask needs and dispatches at that rung, or one rung below when it hesitates between two; **never two rungs below its estimate**. A slight under-sizing is accepted because a failure escalates ({B7_REF}); a gross one only wastes the attempt. The orchestrator does not itself do work a lower model would do as well.{ABOVE_MATRIX: `{ABOVE}` is not a rung: it has no agent type, it is chosen per invocation with a stated reason, and a verified failure on the highest rung goes back to the user, never up to `{ABOVE}`.}{LOW_DEFAULT: **Delegated implementation starts at `{LOW}-standard`** whenever the orchestrator can write its brief (files, intended behaviour, verification); a higher rung needs a reason: a design choice the brief cannot settle, a cause still unknown, security- or data-sensitive work.}{DEEP_GATE: `{TOP}-deep` runs only when the user explicitly asks to dig deeper, or after `{TOP}-standard` failed on the same task.}
 >
 > The number of agents follows the task: one for a simple task, more only when the work splits into independent parts. Independent agents are launched **in parallel**, subject to the isolation required by {B3_REF}, which is its precondition, not an optional precaution.
 >
@@ -26,6 +26,7 @@ Canonical text:
 
 Variation points:
 - `{LADDER}` pruned to Q1.1's available models (models.md tiers, plus Fable above the matrix when available).
+- `{ABOVE_MATRIX}` (with `{ABOVE}` = the model above `{TOP}`, for example `fable`) present whenever Q1.1 makes a model above the matrix available. It must say explicitly that this model is not a rung, so that the highest-rung failure rule in B7 cannot be read as a route to it (audit O2.6). Dropped when no such model is available.
 - Q1.2 sets the selection sentence: **cheapest-capable** (recommended) writes it as above; **balanced** replaces it with "default to `{MID}-standard`; go lower only for clearly mechanical work, higher only for clearly hard work"; **capability-first** with "economize only on mechanical tasks". The "never two rungs below" clause is kept under every posture.
 - `{TYPE_LADDER}` lists the generated types cheapest first (for example `haiku-quick` < `haiku-standard` < `sonnet-standard` < `opus-standard` < `opus-deep`); with no types (Q1.3 "None"), it lists the available models cheapest first. A rung is one entry of that list: a task estimated at `sonnet-standard` may start at `haiku-standard`, never at `haiku-quick`. When `{EFFORT_AXIS}` is present, write `{TYPE_LIST}` in that same cheapest-first order and let `{TYPE_LADDER}` point to it ("the types listed below, in that order") instead of listing them twice.
 - `{LOW_DEFAULT}` present when the matrix has a `{LOW}-standard` type and the posture is cheapest-capable. It counters the observed bias: without it, orchestrators sent fully briefed edits to the mid tier and never used the bottom one.
@@ -42,9 +43,9 @@ Canonical text:
 
 > A delegated result counts as done only once **checked objectively**: the tests, build or lint the brief named, or a review by another agent. The executing agent's own confidence is not a check.{CHEAP_REVIEW: When no automated check covers the change, a `{LOW}-standard` review of the result is the cheapest objective check.}
 >
-> On a verified failure, or when the agent reports it could not complete, re-dispatch **one rung higher** on the dispatch ladder with the failed attempt's report, so the next agent starts from it. Never retry the same rung unchanged; a single same-rung retry is allowed only when the failure came from the brief itself and the brief is corrected. A verified failure on the highest rung goes back to the user with the attempts' reports.
+> On a verified failure, or when the agent reports it could not complete, re-dispatch **one rung higher** on the dispatch ladder with the failed attempt's report, so the next agent starts from it. Never retry the same rung unchanged; a single same-rung retry is allowed only when the failure came from the brief itself and the brief is corrected. A verified failure on the highest rung of the matrix (`{TOP}-deep`, or `{TOP}-standard` when no deep type exists) goes back to the user with the attempts' reports.
 
-Variation points: `{CHEAP_REVIEW}` present only if the matrix has a `{LOW}-standard` type. Under the capability-first posture, the escalation paragraph may shrink to its last sentence; the verification paragraph stays.
+Variation points: `{CHEAP_REVIEW}` present only if the matrix has a `{LOW}-standard` type. The highest-rung wording is fixed to the matrix: a model above it (B1 `{ABOVE_MATRIX}`) is never a rung and never a step in this paragraph. Under the capability-first posture, the escalation paragraph may shrink to its last sentence; the verification paragraph stays.
 
 Cost: 4-5 instructions. Omit only when the doctrine has no delegation at all.
 
@@ -60,11 +61,13 @@ Canonical text:
 >
 > {FALLBACK: If delegation is unavailable (harness restricting agent launch, permission denied), the main agent executes itself and says so. An optimization rule never blocks the task.}
 >
+> {FORK_PLAN: `fork` and `Plan` run on the orchestrator's model: never use them for briefable work.}
+>
 > The delegated agent's tier follows the calibration above. Context economy does not exempt from token economy; the two combine.
 
-Variation points: `{RATIONALE}` included per Q2.2 (one sentence, costs one instruction); threshold wording follows Q2.1 ("mandatory" softens to "preferred" on the advisory answer); `{FALLBACK}` wording follows Q2.3, and if the human insists on "stop and ask" instead, write it but flag that an absolute with no workable exception is audit finding O3.2 territory.
+Variation points: `{RATIONALE}` included per Q2.2 (one sentence, costs one instruction); threshold wording follows Q2.1 ("mandatory" softens to "preferred" on the advisory answer); `{FALLBACK}` wording follows Q2.3, and if the human insists on "stop and ask" instead, write it but flag that an absolute with no workable exception is audit finding O3.2 territory. `{FORK_PLAN}` is optional: proposed only when the measured spend on `fork` and `Plan` is material (audit O8.4, at least 10% of subagent spend over the window); otherwise dropped.
 
-Cost: 4-5 instructions. Omit if Q2.1 answered advisory AND the budget is tight; a preference is not worth three rules.
+Cost: 4-5 instructions (6 with `{FORK_PLAN}`). Omit if Q2.1 answered advisory AND the budget is tight; a preference is not worth three rules.
 
 ## B3 - Parallelism under mandatory isolation
 

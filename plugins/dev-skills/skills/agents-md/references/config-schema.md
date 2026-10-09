@@ -23,6 +23,10 @@ policy:                          # run policies; command argument > this file > 
   tier: auto                     # auto | 1 | 2 | 3
   install_guardrail_scripts: true
   commit_convention: detect      # detect | enforce | skip
+archives:                        # dated records exempt from dead-reference fixes
+  paths: [errors/, adr/, postmortems/]
+  policy: tolerate               # tolerate | annotate | fix
+ci_replay_excludes: [release, nightly]   # workflow jobs deliberately absent from the doc's local CI-replay list
 detected_at:
   sha: <HEAD sha at detection>
   date: <ISO date>
@@ -100,6 +104,10 @@ local:                           # machine-specific, gitignore candidate
 **`guardrail_scripts[].wired`**: `false` until the human confirms the CI block was added. The skill proposes, it never wires.
 
 **`budget`**: recomputed on every audit and sync. A rise past the threshold is reported, not accepted.
+
+**`archives`**: `policy` resolves as `--archives` argument > this field > plugin option `user_config.agents_md_archives_policy` > `tolerate`. `tolerate`: dead references inside `paths` are one P3 info finding with the count. `annotate`: `sync` rewrites only the reference, as "`new` (formerly `old`)", never the record body. `fix`: `sync` replaces the reference. Human-authored: never rewritten by detection.
+
+**`ci_replay_excludes`**: job ids (or workflow names) that P3.4 skips when comparing the documented CI-replay list with the workflows. Human-authored; keep on drift.
 
 **`quirks`**: the only human-authored block. On drift, keep it and report the diff. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
 

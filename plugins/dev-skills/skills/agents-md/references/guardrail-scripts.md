@@ -4,7 +4,7 @@ Contents: The four checkers - Wiring: propose, never do - Wire after clearing, n
 
 A rule nobody checks decays. These scripts turn written prohibitions into mechanical ones.
 
-They live in `${CLAUDE_SKILL_DIR}/scripts/` and are **copied into the target project** (default `scripts/`, or wherever that project keeps its tooling), e.g. `cp ${CLAUDE_SKILL_DIR}/scripts/check_*.py <target>/scripts/`. Pure standard library, no dependency, exit 1 on violation.
+They live in `${CLAUDE_SKILL_DIR}/scripts/` and are **copied into the target project** (default `scripts/`, or wherever that project keeps its tooling), e.g. `cp ${CLAUDE_SKILL_DIR}/scripts/check_{no_todo,monolith,no_stub,forbidden_chars}.py <target>/scripts/` (not `check_dead_paths.py` / `check_sections.py`, which are audit-only). Pure standard library, no dependency, exit 1 on violation.
 
 ## The four checkers
 

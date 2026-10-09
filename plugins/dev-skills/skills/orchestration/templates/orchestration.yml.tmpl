@@ -12,7 +12,8 @@ base_doc:
   file: {{BASE_DOC}}
   pointer: {{POINTER}}              # null if no pointer pattern
   section_heading: "{{SECTION_HEADING}}"
-  section_span: {start: {{SPAN_START}}, end: {{SPAN_END}}}
+  section_spans:
+{{SPANS_LIST}}                    # one {heading, start, end} per heading (D2)
   language: {{LANG}}
   evidence: "{{BASE_DOC_EVIDENCE}}"
 

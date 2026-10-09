@@ -1,5 +1,5 @@
 ---
 type: regex
 target: last_message
-pattern: '(?s)\bOR-\d{2}\b.*\bFix:'
+pattern: '\bOR-\d{2}\b[\s\S]*\bFix:'
 ---

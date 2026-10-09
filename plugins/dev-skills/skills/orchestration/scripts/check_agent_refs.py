@@ -8,7 +8,7 @@ and O1.4/O2.1 (config vs reality) of the /orchestration skill. Stdlib only. Exit
 `file:line: message`.
 
 Usage:
-  check_agent_refs.py --doc AGENTS.md [--section-heading "..."]
+  check_agent_refs.py --doc AGENTS.md [--section-heading "..."]...
                       --agents-dir ~/.claude/agents [--agents-dir .claude/agents]
                       [--config .claude/orchestration.yml]
 """
@@ -159,7 +159,9 @@ def main():
     # Step 1: cited types resolve against the installed set (O1.1)
     if doc_path.is_file():
         doc_lines = doc_path.read_text(encoding="utf-8").splitlines()
-        for lineno, line in section_span(doc_lines, ARGS.section_heading):
+        headings = ARGS.section_heading or [None]
+        spans = [item for h in headings for item in section_span(doc_lines, h)]
+        for lineno, line in spans:
             for token in KEBAB.findall(line):
                 model_prefix = token.split("-", 1)[0]
                 looks_like_type = token in parsed or model_prefix in KNOWN_MODELS
@@ -195,8 +197,9 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--doc", required=True, help="base doc file (AGENTS.md / CLAUDE.md)")
-    parser.add_argument("--section-heading", default=None,
-                        help="heading of the owned section; whole doc if omitted")
+    parser.add_argument("--section-heading", action="append", default=None,
+                        help="heading of an owned section; repeat once per span "
+                             "(config section_spans); whole doc if omitted")
     parser.add_argument("--agents-dir", action="append", required=True,
                         help="directory of agent type .md files (repeatable)")
     parser.add_argument("--config", default=None, help=".claude/orchestration.yml")

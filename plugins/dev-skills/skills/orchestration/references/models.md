@@ -49,7 +49,7 @@ Consensus across Anthropic's engineering write-up, the Claude Code documentation
 - **Aliases lag new releases.** Observed 2026-10-07 on Claude Code 2.1.289: `haiku` still resolved to Claude Haiku 4.5 on Haiku 5.5's release day (10x the price, no effort support). The full ID `claude-haiku-5-5` resolved correctly, with an `unrecognized_model` warning from the harness, meaning its local model table did not know the model yet. Phase 4's resolution dispatch is what catches this. When an alias resolves to an older model, write the full ID, record it in `quirks`, and switch back to the alias once a harness update makes the alias resolve correctly.
 - `effort` accepts `low`, `medium`, `high`, `xhigh`, `max`; the levels available depend on the model.
 - `maxTurns` caps agentic turns. On reaching it, the output comes back marked partial and the agent can be resumed (Claude Code v2.1.246 or later).
-- Subagent model resolution order: per-invocation `model` parameter, then frontmatter `model`, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the main conversation's model. `Plan` inherits the main model unless `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`.
+- Subagent model resolution order: per-invocation `model` parameter, then frontmatter `model`, then `CLAUDE_CODE_SUBAGENT_MODEL`, then the main conversation's model. `Plan` inherits the main model unless `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`. `fork` runs on the orchestrator's model (audit O8.4).
 - `color` accepts `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `pink`, `cyan`.
 - The `name` field does not have to match the filename; this skill still requires it as a convention (O6.1).
 
