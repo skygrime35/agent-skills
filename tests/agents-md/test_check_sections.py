@@ -115,6 +115,64 @@ class SectionsTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, root, True)
         self.assertEqual(run_script(SCRIPT, root, "--quiet-ok", str(root / "docs/x.md")), (0, set()))
 
+    VIDEO_DOC = "# Videos\n\n## Thumbnail origin and cuts\n\n## `ready` gate on the essentials + local sync\n\n## Setup\n"
+
+    def test_label_with_and_is_not_cut(self):
+        extra = {"docs/V.md": self.VIDEO_DOC}
+        for text in ("see `docs/V.md` § Thumbnail origin and cuts.\n", "docs/V.md § Thumbnail origin and cuts\n"):
+            code, rows = self.check(text, extra=extra, citing_path="docs/x.md")
+            self.assertEqual(rows, {"docs/V.md § Thumbnail origin and cuts": "ok"}, text)
+            self.assertEqual(code, 0)
+
+    def test_prose_after_a_short_name_still_resolves(self):
+        extra = {"docs/V.md": self.VIDEO_DOC}
+        _, rows = self.check("docs/V.md § Setup and then run it\n", extra=extra, citing_path="docs/x.md")
+        self.assertEqual(rows, {"docs/V.md § Setup": "ok"})
+
+    def test_part_of_a_heading_before_and_stays_partial(self):
+        extra = {"docs/V.md": self.VIDEO_DOC}
+        _, rows = self.check("docs/V.md § Thumbnail origin\n", extra=extra, citing_path="docs/x.md")
+        self.assertEqual(rows, {"docs/V.md § Thumbnail origin": "partial"})
+
+    def test_backticked_label_with_trailing_word(self):
+        extra = {"docs/V.md": self.VIDEO_DOC}
+        for text in ("`docs/V.md` § `ready` gate.\n", "see docs/V.md § `ready` gate, then stop\n"):
+            code, rows = self.check(text, extra=extra, citing_path="docs/x.md")
+            self.assertEqual(rows, {"docs/V.md § ready gate": "ok"}, text)
+
+    def test_backticked_label_alone_keeps_partial_when_only_a_part(self):
+        extra = {"docs/V.md": self.VIDEO_DOC}
+        _, rows = self.check("docs/V.md § `ready`\n", extra=extra, citing_path="docs/x.md")
+        self.assertEqual(rows, {"docs/V.md § ready": "partial"})
+
+    def test_exact_backticked_heading_is_ok(self):
+        extra = {"docs/V.md": "# V\n\n## `ready`\n"}
+        _, rows = self.check("docs/V.md § `ready`\n", extra=extra, citing_path="docs/x.md")
+        self.assertEqual(rows, {"docs/V.md § ready": "ok"})
+
+    def test_directory_argument_recurses(self):
+        root = make_repo({"AGENTS.md": ROOT_DOC, "docs/a.md": "AGENTS.md § 6bis\n",
+                          "docs/sub/b.md": "AGENTS.md § Nowhere\n", "docs/note.txt": "AGENTS.md § Nowhere\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root, str(root / "docs"))
+        self.assertEqual(code, 1)
+        self.assertEqual(sorted(l.split("\t")[0] for l in lines), ["docs/a.md:1", "docs/sub/b.md:1"])
+
+    def test_archives_flag_scans_default_archive_dirs_only(self):
+        root = make_repo({"AGENTS.md": "AGENTS.md § Nowhere\n", "AGENTS/errors/e.md": "AGENTS.md § Absolute guardrails\n",
+                          "adr/0001.md": "AGENTS.md § Missing\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root, "--archives")
+        self.assertEqual(sorted(l.split("\t")[0] for l in lines), ["AGENTS/errors/e.md:1", "adr/0001.md:1"])
+        self.assertEqual(code, 1)
+
+    def test_archives_flag_uses_config_paths(self):
+        root = make_repo({"AGENTS.md": ROOT_DOC, ".claude/agents-md.yml": "archives:\n  paths: [old/]\n",
+                          "old/x.md": "AGENTS.md § Missing\n", "adr/y.md": "AGENTS.md § Missing\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        _, lines = run_raw(SCRIPT, root, "--archives")
+        self.assertEqual([l.split("\t")[0] for l in lines], ["old/x.md:1"])
+
     def test_usage_error_exit_code(self):
         code, _ = run_script(SCRIPT, make_repo({}), "/nonexistent/missing.md")
         self.assertEqual(code, 2)

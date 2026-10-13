@@ -127,7 +127,7 @@ find . -name 'AGENTS.md' -not -path '*/node_modules/*' | head -20
 ls AGENTS/ docs/agents/ 2>/dev/null
 ```
 
-Anything found sends `init` to `audit`. Also detect a knowledge graph (`graphify-out/`, `.graph.json`) and, if present, its build commit against HEAD.
+Also detect the doc map: a file that lists the `AGENTS/*.md` docs (`AGENTS/INDEX.md`, `AGENTS/ARCHITECTURE.md`, `docs/README.md`...), by grepping for links or names of the `AGENTS/*.md` files; record its path for `structure.index`, or null. Anything found sends `init` to `audit`. Also detect a knowledge graph (`graphify-out/`, `.graph.json`) and, if present, its build commit against HEAD.
 
 ## 9. Size and history
 
@@ -178,7 +178,30 @@ Ownership: this skill owns the whole `.gitignore` procedure and applies it in ON
 
 Final probe (mandatory at the end of any run that wrote files; audit writes nothing and skips it): run `git check-ignore -v --no-index <path>` on every path that must be ignored (journals, `*.local.*` configs, `.claude/settings.local.json`, `.claude/worktrees/`) and on every path that must be committed and was written by this run (`.claude/agents-md.yml`, the scripts directory, `AGENTS.md`, `CLAUDE.md`, `AGENTS/`, hooks, agent types). Print the table `path | expected | matching pattern or none | verdict`. A mismatch is fixed in the same run (minimal edit below) and the table is printed again; a mismatch that survives the fix is reported as a failure of the run.
 
-Fix (init and sync, in the plan): minimal `.gitignore` edits. Append the missing ignore lines. A whole-directory `.claude/` pattern becomes `.claude/*` plus negations (`!.claude/settings.json`, `!.claude/agents/`, ...) for every must-not-be-ignored path that exists or will be written, because a negation under an ignored directory has no effect. Re-check every probed path with `git check-ignore`. A tracked file that must be ignored: propose `git rm --cached <path>` in the plan (never delete the working copy).
+Verdict rule for `git check-ignore -v`: the last matching pattern decides. A match on a `!` pattern means NOT ignored (the output line shows the negation); no match (exit 1) also means not ignored. Only a match on a non-negated pattern means ignored.
+
+Order matters: ignore lines for journals and local files go AFTER the negations, because a negation such as `!.claude/x/` re-includes `.claude/x/journal.md` when it comes later. Exact ordered block to write (only the lines for paths that exist or are planned, in this order):
+
+```gitignore
+.claude/*
+!.claude/settings.json
+!.claude/agents/
+!.claude/commands/
+!.claude/skills/
+!.claude/agents-md.yml
+!.claude/agents-md/
+!.claude/orchestration.yml
+!.claude/orchestration/
+.claude/settings.local.json
+.claude/*.local.yml
+.claude/*/journal.md
+.claude/full-test/fix-loop-*/journal.md
+.claude/worktrees/
+```
+
+Re-probe with `git check-ignore -v --no-index` after writing; a journal path matching a `!` line means the ignore lines sit above the negations: move them below.
+
+Fix (init and sync, in the plan): minimal `.gitignore` edits. Append the missing ignore lines (after the negations, see above). A whole-directory `.claude/` pattern becomes `.claude/*` plus negations (`!.claude/settings.json`, `!.claude/agents/`, ...) for every must-not-be-ignored path that exists or will be written, because a negation under an ignored directory has no effect. Re-check every probed path with `git check-ignore`. A tracked file that must be ignored: propose `git rm --cached <path>` in the plan (never delete the working copy).
 
 ## Profile handed to the writing phases
 

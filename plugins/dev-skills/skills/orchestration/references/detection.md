@@ -48,7 +48,7 @@ ls ~/.claude/agents/*.md 2>/dev/null
 ls .claude/agents/*.md 2>/dev/null
 ```
 
-Parse every frontmatter: `name`, `description`, `model`, `effort`, `maxTurns`, `color`, `disallowedTools`. Verify `name` equals the filename stem. Keep the two inventories separate: the global one is machine-local and belongs under `local:` in the config; the project one is versioned. A file that fails to parse is recorded with `verified: false` and a note, never silently dropped.
+Parse every frontmatter: `name`, `description`, `model`, `effort`, `maxTurns`, `color`, `disallowedTools`. Verify `name` equals the filename stem. Keep the two inventories separate: the global one is machine-local and belongs under `local.global_types` (name, model, effort, maxTurns, verbatim) in `.claude/orchestration.local.yml`, never in the committed `agents.types`; the project one is versioned and is the only source of `agents.types`. A file that fails to parse is recorded with `verified: false` and a note, never silently dropped.
 
 ## D6 - Statusline
 

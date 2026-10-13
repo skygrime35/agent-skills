@@ -188,5 +188,40 @@ class DeadPathsTest(unittest.TestCase):
         _, lines = run_raw(SCRIPT, root)
         self.assertFalse(any("YYYY" in l for l in lines), lines)
 
+    def _git_repo(self, files: dict):
+        root = make_repo(files)
+        self.addCleanup(shutil.rmtree, root, True)
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+        return root
+
+    def test_gitignored_missing_directory_is_local(self):
+        root = self._git_repo({**BASE, "AGENTS.md": "`docs/logs/` and `docs/shots/` and `docs/gone/`\n",
+                               ".gitignore": "logs/\ndocs/shots\n"})
+        code, rows = run_script(SCRIPT, root)
+        self.assertEqual(dict(rows), {"docs/logs/": "local", "docs/shots/": "local", "docs/gone/": "dead"})
+        self.assertEqual(code, 1)
+
+    def test_negated_ignore_pattern_is_not_local(self):
+        root = self._git_repo({**BASE, "AGENTS.md": "`docs/keep/x.md`\n", ".gitignore": "docs/keep/*\n!docs/keep/x.md\n"})
+        _, rows = run_script(SCRIPT, root)
+        self.assertEqual(dict(rows), {"docs/keep/x.md": "dead"})
+
+    def test_directory_argument_recurses(self):
+        root = make_repo({"AGENTS.md": "`gone/a.md`\n", "docs/a.md": "`gone/b.md`\n", "docs/sub/c.md": "`gone/c.md`\n",
+                          "docs/skip.txt": "`gone/d.md`\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root, str(root / "docs"))
+        self.assertEqual(code, 1)
+        self.assertEqual(sorted(l.split("\t")[0] for l in lines if not l.startswith("#")),
+                         ["docs/a.md:1", "docs/sub/c.md:1"])
+
+    def test_archives_excluded_by_default_and_scannable_by_directory(self):
+        root = make_repo({"AGENTS.md": "ok\n", "AGENTS/errors/e.md": "`gone/e.md`\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        self.assertEqual(run_raw(SCRIPT, root)[0], 0)
+        self.assertEqual(run_raw(SCRIPT, root, str(root / "AGENTS" / "errors"))[0], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

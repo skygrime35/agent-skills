@@ -32,7 +32,7 @@ Target: 60 to 120 lines in AGENTS.md. If it grows past 200, propose tier 2.
 AGENTS.md          transverse: behaviour, guardrails, vital commands
 CLAUDE.md          pointer
 AGENTS/
-  INDEX.md         table of contents: which file holds what, when to load it
+  INDEX.md         (or the existing doc map) table of contents: which file holds what, when to load it
   ARCHITECTURE.md  current state, not history
   COMMANDS.md      the full verified command reference
   TESTING.md       suites, how to run them, what is gated behind what
@@ -101,6 +101,8 @@ Generate these in every tier, adapted to the project. They encode failures obser
 - **Delegation** (only where subagents exist). With a threshold: below the cost of a delegation round trip, do it inline.
 
 ## INDEX.md
+
+Do not assume the file name. Use the doc map detected by detection.md section 8 (any file that lists the `AGENTS/*.md` docs, for example `ARCHITECTURE.md`) and record its path in `structure.index` of the config; point root and CLAUDE.md at it. Create `AGENTS/INDEX.md` only when no map exists. The rest of this section applies to whichever file plays the role.
 
 The index earns its place only if it says **when to load each file**, not just what each file is. A list of filenames is what `ls` already gives.
 

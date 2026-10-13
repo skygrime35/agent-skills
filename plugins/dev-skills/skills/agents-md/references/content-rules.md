@@ -102,7 +102,7 @@ Wire the check **after** clearing the existing violations, never before, or the 
 
 ## 10. CLAUDE.md is a pointer, never a copy
 
-Where a project uses both, `CLAUDE.md` imports `AGENTS.md` and adds nothing but the import and, at most, a few lines of hierarchy explanation. Two competing sources of truth are worth less than one: they drift, and the reader cannot tell which won.
+Where a project uses both, `CLAUDE.md` imports `AGENTS.md` and adds nothing but the import and, at most, one pointer line of hierarchy explanation (audit-checks.md P2.6). Two competing sources of truth are worth less than one: they drift, and the reader cannot tell which won.
 
 ## 11. Prose density
 

@@ -114,7 +114,9 @@ local:                           # machine-specific, gitignore candidate
 
 **`archives`**: `policy` resolves as `--archives` argument > this field > plugin option `user_config.agents_md_archives_policy` > `tolerate`. `tolerate`: dead references inside `paths` are one P3 info finding with the count. `annotate`: `sync` rewrites only the reference, as "`new` (formerly `old`)", never the record body. `fix`: `sync` replaces the reference. Human-authored: never rewritten by detection.
 
-**`ci_replay_excludes`**: job ids (or workflow names) that P3.4 skips when comparing the documented CI-replay list with the workflows. Human-authored; keep on drift.
+**`structure.index`**: path of the existing doc map (a file listing the `AGENTS/*.md` docs, any name), or `AGENTS/INDEX.md` when this skill created it, or null at tier 1.
+
+**`ci_replay_excludes`**: job ids (or workflow names) that P3.4 passes to `check_ci_replay.py --exclude` and skips when comparing the documented CI-replay list with the workflows. Human-authored; keep on drift.
 
 **`quirks`**: the only human-authored block. On drift, keep it and report the diff. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
 

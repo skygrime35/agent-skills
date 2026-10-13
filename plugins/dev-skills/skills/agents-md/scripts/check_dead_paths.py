@@ -368,12 +368,23 @@ def expand(paths: list[str]) -> list[Path]:
 
 
 def is_ignored(root: Path, rel: str) -> bool:
-    """True when git says the (possibly missing) path is ignored; False outside git."""
-    try:
-        return subprocess.run(["git", "-C", str(root), "check-ignore", "-q", "--", rel],
-                              capture_output=True).returncode == 0
-    except OSError:
-        return False
+    """True when git says the (possibly missing) path is ignored; False outside git.
+
+    A directory-only pattern (`logs/`) never matches a missing path without its trailing
+    slash, so both spellings are asked. A `!` negation match prints a line and exits 0
+    with `-q` unset, so the verbose form is used and negated matches count as not ignored.
+    """
+    for spelling in dict.fromkeys((rel.rstrip("/"), rel.rstrip("/") + "/")):
+        try:
+            out = subprocess.run(["git", "-C", str(root), "check-ignore", "-v", "--", spelling],
+                                 capture_output=True, text=True)
+        except OSError:
+            return False
+        if out.returncode == 0 and out.stdout.strip() and "\t" in out.stdout:
+            pattern = out.stdout.split("\t", 1)[0].split(":", 2)[-1]
+            if not pattern.startswith("!"):
+                return True
+    return False
 
 
 def main() -> int:

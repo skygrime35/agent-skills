@@ -186,3 +186,17 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 | R5-4 | Canonical checkers not installed next to a project variant; `guardrail_scripts` status in config; template = schema | IN 1.7.0 |
 | R5-5 | Owner's rank for cross-skill findings; non-regression reports additions; final `git check-ignore` probe; rule-stating lines excluded from greps; CI replay mapped by command | IN 1.7.0 |
 | R5-6 | orchestration: template = schema, verbatim model fields, `in-agents-md-section` report style, spend checks need a 7-day window | IN 1.7.0 |
+
+---
+
+## Round 6 (2026-10-13, third real-project run of 1.7.0) — all IN 1.8.0
+
+| # | Fix | Status |
+|---|---|---|
+| R6-1 | Moving a script keeps its lint/format/type-check/test scopes (CI, replay, hooks, per-dir tool configs) | IN 1.8.0 |
+| R6-2 | References made dead by the skill's own move are updated, archives included (annotate form) | IN 1.8.0 |
+| R6-3 | New P2.6: CLAUDE.md more than the import plus one pointer line | IN 1.8.0 |
+| R6-4 | `check_ci_replay.py`: CI jobs vs local replay (markdown block or script), root AGENTS.md block canonical | IN 1.8.0 |
+| R6-5 | check_sections label cutting fixed, dir args, `--archives`; check_dead_paths ignored dirs = `local` | IN 1.8.0 |
+| R6-6 | .gitignore ordered block (ignores after negations) and `check-ignore -v` verdict rule; existing doc map used as tier-3 index; unmarked-copy proof procedure; P3.2/P2.3 noise | IN 1.8.0 |
+| R6-7 | orchestration: committed config owns project-scope types only, global types in `orchestration.local.yml`; O7.10, O4.3 report-style check; mandatory final-message skeleton | IN 1.8.0 |

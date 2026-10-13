@@ -3,7 +3,7 @@
 Contents:
 - P0 - active risk (P0.1-P0.4)
 - P1 - false facts (P1.1-P1.6)
-- P2 - structure and cost (P2.1-P2.5)
+- P2 - structure and cost (P2.1-P2.6)
 - P3 - hygiene (P3.1-P3.7)
 - Non-regression check
 
@@ -154,8 +154,10 @@ Flag any section several times larger than the project's own vital commands. Tag
 
 The reliable tell: a cross-reference that follows a restatement of its own target.
 
+Scope: the always-loaded files only (root AGENTS.md, CLAUDE.md, every domain AGENTS.md). `AGENTS/*.md` are on-demand reference files where cross-references are normal: never scanned here.
+
 ```bash
-grep -niE "see (the )?(section )?(above|below)|cf\. §|as (stated|mentioned) above" AGENTS.md AGENTS/*.md
+grep -niE "see (the )?(section )?(above|below)|cf\. §|as (stated|mentioned) above" AGENTS.md CLAUDE.md */AGENTS.md 2>/dev/null
 ```
 
 Each hit: check whether the referenced content was just restated. If so, one of the two is surplus.
@@ -185,6 +187,16 @@ git ls-files 'AGENTS.md' 'CLAUDE.md' '*/AGENTS.md' 'AGENTS/**' | xargs grep -niE
   | grep -viE "volatile|never (write|document)|do not (write|document)|must not|avoid"
 ```
 
+### P2.6 CLAUDE.md is more than a pointer
+
+content-rules §10: CLAUDE.md holds the `@AGENTS.md` import and at most one pointer line. Anything else is a copy of AGENTS.md content (two sources of truth that drift).
+
+```bash
+sed '/<!--/,/-->/d' CLAUDE.md | grep -vE '^\s*$|^\s*#|^@AGENTS\.md\s*$' | wc -l   # non-empty, non-heading, non-import, non-comment lines
+```
+
+More than one remaining line: **P2** (evidence: the surplus lines with `file:line`). Fix: reduce CLAUDE.md to the import plus one pointer line, after checking that every removed statement exists in AGENTS.md (quote where, `file:line`); a statement absent from AGENTS.md is moved there first, in the same batch. Never delete a prohibition without that probe.
+
 ## P3 - hygiene
 
 ### P3.1 Generic filler
@@ -200,11 +212,11 @@ Every hit is a candidate for deletion: it spends budget to say what the model al
 If the file forbids something, check the file, **outside the lines that state the rule itself** (the anti-TODO rule necessarily contains `TODO`; the no-emoji rule may quote one). Count only lines outside guardrail sections, and drop rule-stating lines:
 
 ```bash
-awk '/^#+ /{g = tolower($0) ~ /guardrail/} !g' AGENTS.md | grep -viE "anti-todo|no \`?(TODO|FIXME)|never .*(TODO|FIXME)|forbidden" | grep -c "TODO\|FIXME"   # against its own anti-TODO rule
+awk '/^#+ /{g = tolower($0) ~ /guardrail/} !g' AGENTS.md | grep -viE "anti-todo|no \`?(TODO|FIXME)|never .*(TODO|FIXME)|forbidden" | sed -E 's#[A-Za-z0-9_./-]*(TODO|FIXME)[A-Za-z0-9_./-]*\.[A-Za-z]+##g' | grep -c "TODO\|FIXME"   # against its own anti-TODO rule
 awk '/^#+ /{g = tolower($0) ~ /guardrail/} !g' AGENTS.md | grep -oP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' | wc -l   # against its own no-emoji rule
 ```
 
-Only an occurrence outside the rule statement is a finding; quote it with its `file:line`.
+Only an occurrence outside the rule statement is a finding; quote it with its `file:line`. A file name (`TODO.md`, `docs/FIXME.txt`) is never an occurrence: the `sed` stage strips such names before counting. A mention of the debt register by name ("the TODO entry", "l'entrée TODO") is not a deferral marker either: read each remaining hit before reporting it.
 
 ### P3.3 Missing mechanical enforcement
 
@@ -226,7 +238,16 @@ ls .github/workflows/*.yml | while read w; do
 done
 ```
 
-When the doc has a "CI-equivalent / replay locally" list, compare it with the workflows' real steps: extract every `jobs.<id>.steps[].run` command from `.github/workflows/*.yml` (python3 with `yaml`, else grep of `run:`). **Map by command, never by job name.** When the replay is a script (for example `scripts/ci_local.sh` with its own step names), read the script's commands and match each CI command against them (normalise whitespace, drop `cd`/env prefixes and flags that only select the runner). A CI job none of whose commands appears in any replay step or listed command = **P2** (name the job and its unmatched commands); a job whose commands are all found is covered even when no step carries its name. Jobs the project deliberately leaves out are listed in `ci_replay_excludes` of `.claude/agents-md.yml` and skipped.
+When the doc has a "CI-equivalent / replay locally" list, compare it with the workflows mechanically:
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_ci_replay.py --replay AGENTS.md --heading "<heading>" [--exclude <job>]...   # replay = fenced block under a heading
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_ci_replay.py --replay scripts/ci_local.sh [--exclude <job>]...               # replay = script (repeat --replay to combine sources)
+```
+
+Output: TSV `job<TAB>covered|missing|excluded`, exit 1 when a job is missing. The script maps by command, never by job name (a job whose commands are all found is covered even when no step carries its name). Pass each id of `ci_replay_excludes` (`.claude/agents-md.yml`) as `--exclude`. A `missing` job = **P2** (name the job and its unmatched commands). Before reporting, read each `missing` job's commands yourself: the script is a heuristic, and a false `missing` is dropped from the report and mentioned as a script limit.
+
+**Which replay list (several may exist).** The canonical one is the vital-commands block of the root AGENTS.md. Other lists (`AGENTS/COMMANDS.md`, a script such as `scripts/ci_local.sh`) are acceptable only if they say they mirror it or point to it; otherwise run the check on each of them too. The report states which list was used and which others exist, with their status (pointer present, checked, diverging).
 
 ### P3.5 Misplaced agentic script (migration candidate)
 

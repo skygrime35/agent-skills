@@ -106,5 +106,97 @@ class CheckAgentRefsTest(unittest.TestCase):
         self.assertEqual(code, 0, out)  # Beta's ghost is outside the only span
 
 
+LOCAL = """local:
+  global_types:
+    - {{name: glob-type, model: {model}, effort: {effort}}}
+"""
+
+
+class GlobalTypesTest(unittest.TestCase):
+    """D1: committed config lists project types; global types live in the local file."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        self.project = self.root / "project-agents"
+        self.glob = self.root / "global-agents"
+        self.project.mkdir()
+        self.glob.mkdir()
+        self.doc = self.root / "AGENTS.md"
+        self.doc.write_text("# T\n\n## Orchestration\nUse `owned-one` and `glob-type`.\n")
+        self.config = self.root / "orchestration.yml"
+        self.config.write_text(CONFIG.format(location="project"))
+        (self.project / "owned-one.md").write_text(GOOD_AGENT.format(name="owned-one"))
+
+    def write_global(self, name="glob-type", bad=False):
+        template = BAD_AGENT if bad else GOOD_AGENT
+        (self.glob / f"{name}.md").write_text(template.format(name=name))
+
+    def write_local(self, model="haiku", effort="medium"):
+        (self.root / "orchestration.local.yml").write_text(
+            LOCAL.format(model=model, effort=effort))
+
+    def run_check(self, *extra):
+        return run("--doc", str(self.doc), "--agents-dir", str(self.glob),
+                   "--agents-dir", str(self.project), "--config", str(self.config),
+                   "--global-agents-dir", str(self.glob), "--only-owned", *extra)
+
+    def test_project_type_broken_only_owned_exits_1(self):
+        (self.project / "owned-one.md").write_text(BAD_AGENT.format(name="owned-one"))
+        self.write_global()
+        code, out = self.run_check()
+        self.assertEqual(code, 1, out)
+        self.assertIn("missing required key: effort", out)
+
+    def test_global_type_broken_only_owned_is_warning(self):
+        self.write_global(bad=True)
+        code, out = self.run_check()
+        self.assertEqual(code, 0, out)
+        self.assertIn("warning:", out)
+
+    def test_global_type_matching_local_file_exits_0(self):
+        self.write_global()
+        self.write_local()
+        code, out = self.run_check()
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("warning:", out)
+
+    def test_global_type_differing_from_local_file_warns(self):
+        self.write_global()
+        self.write_local(effort="low")
+        code, out = self.run_check()
+        self.assertEqual(code, 0, out)
+        self.assertIn("warning:", out)
+        self.assertIn("glob-type.effort", out)
+
+    def test_global_type_absent_warns(self):
+        self.write_local()
+        code, out = self.run_check()
+        self.assertEqual(code, 0, out)
+        self.assertIn("warning:", out)
+        self.assertIn("glob-type", out)
+
+    def test_strict_absent_global_type_errors(self):
+        self.write_local()
+        code, out = self.run_check("--strict")
+        self.assertEqual(code, 1, out)
+
+    def test_strict_mismatch_errors(self):
+        self.write_global()
+        self.write_local(effort="low")
+        code, out = self.run_check("--strict")
+        self.assertEqual(code, 1, out)
+        self.assertIn("glob-type.effort", out)
+
+    def test_legacy_config_listing_global_type_is_not_owned(self):
+        self.config.write_text(CONFIG.format(location="project")
+                               + "    - {name: glob-type, model: opus, effort: high}\n")
+        self.write_global()
+        code, out = self.run_check()
+        self.assertEqual(code, 0, out)
+        self.assertIn("warning:", out)
+
+
 if __name__ == "__main__":
     unittest.main()

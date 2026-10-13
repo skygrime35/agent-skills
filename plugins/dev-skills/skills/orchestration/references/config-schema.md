@@ -43,13 +43,9 @@ agents:                          # subagent type definitions
   location: global               # global | project, human decision at init (Q0.1)
   path: ~/.claude/agents/
   fallback_documented: true      # doctrine carries the machine-absent fallback
-  types:
-    - {name: haiku-quick,     model: haiku,  effort: low,    maxTurns: 130,  color: green,  verified: true}
-    - {name: haiku-standard,  model: haiku,  effort: medium, maxTurns: 160,  color: cyan,   verified: true}
-    - {name: sonnet-standard, model: sonnet, effort: medium, maxTurns: 180,  color: blue,   verified: true}
-    - {name: opus-standard,   model: opus,   effort: medium, maxTurns: 220, color: yellow, verified: true}
-    - {name: opus-deep,       model: opus,   effort: high,   maxTurns: 250, color: red,    verified: true}
-  overrides:                     # built-in replacements (Q1.4)
+  types:                         # OWNED types only: project-scope files (`.claude/agents/`). Global types are never copied here (see Local file)
+    - {name: project-reviewer, model: sonnet, effort: medium, maxTurns: 180, color: blue, verified: true}   # example of a project-scope type
+  overrides:                     # built-in replacements (Q1.4), project-scope files only
     - {name: Explore, model: haiku, effort: medium, verified: true}
 
 doctrine:
@@ -97,6 +93,13 @@ local:                           # machine-specific, this file is gitignored
   subagent_model_env: sonnet     # CLAUDE_CODE_SUBAGENT_MODEL as found in settings.json; null if unset
   statusline: true               # ~/.claude/subagent-statusline.sh exists
   global_types_present: [haiku-quick, haiku-standard, sonnet-standard, opus-standard, opus-deep, Explore]
+  global_types:                  # values of the global types the doctrine relies on, copied verbatim from the files (D5)
+    - {name: haiku-quick,     model: haiku,  effort: low,    maxTurns: 130}
+    - {name: haiku-standard,  model: haiku,  effort: medium, maxTurns: 160}
+    - {name: sonnet-standard, model: sonnet, effort: medium, maxTurns: 180}
+    - {name: opus-standard,   model: opus,   effort: medium, maxTurns: 220}
+    - {name: opus-deep,       model: opus,   effort: high,   maxTurns: 250}
+    - {name: Explore,         model: haiku,  effort: medium}
   delegation_capable: true       # harness exposes the Agent tool; unknown => blind spot
 ```
 
@@ -105,6 +108,8 @@ local:                           # machine-specific, this file is gitignored
 **`base_doc.section_spans`**: the only lines this skill may ever edit, one `{heading, start, end}` per heading. Refreshed on every run; if a heading moved or vanished, that is a finding, not a silent re-anchor. Readers accept an older config that has only `section_span` (read it as a one-entry list). Writers write `section_spans`, and `section_span` only when there is exactly one span. Sync never writes outside the recorded spans.
 
 **`agents.types[].model`, `effort`, `maxTurns`**: copied verbatim from the type file, whatever it says (an alias such as `haiku`, or a pinned full model id). The config never normalises them, and `check_agent_refs` compares them exactly against the file.
+
+**`agents.types` and `agents.overrides` are project-scope only.** Committed values copied from machine-local global files make `check_agent_refs.py --only-owned` fail on any machine whose global types differ. Types found only under `~/.claude/agents/` go to `local.global_types` of `.claude/orchestration.local.yml` with their values; the doctrine may cite them (with its documented fallback). The checker compares an installed global type with its local entry (mismatch or absence: warning; error with `--strict`) and checks frontmatter only for project-scope types. An old committed config listing global types is migrated by sync (O7.10).
 
 **`agents.types[].verified`**: `true` only when the file was stat'd and its frontmatter parsed during this run. An entry with `verified: false` must carry a `note` saying why. A type that failed to parse is never cited by the doctrine as if it worked.
 

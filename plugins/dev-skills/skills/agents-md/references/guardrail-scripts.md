@@ -1,6 +1,6 @@
 # Guardrail scripts: generating and wiring
 
-Contents: The four checkers - Install or variant (init and sync) - Copy and stamp - Canonical copies - Project variants - Script triage - Wiring: propose, never do - Wire after clearing, never before - Choosing thresholds - Allowlists
+Contents: The four checkers - Install or variant (init and sync) - Copy and stamp - Canonical copies - Unmarked copy of a canonical script - Project variants - Script triage - Wiring: propose, never do - Wire after clearing, never before - Choosing thresholds - Allowlists
 
 A rule nobody checks decays. These scripts turn written prohibitions into mechanical ones.
 
@@ -67,6 +67,17 @@ diff <(sed 2d <project copy>) <(sed 2d ${CLAUDE_SKILL_DIR}/scripts/check_X.py)
 | Diff, marker version older than the plugin version | outdated | sync replaces it (single plan); audit: P3 |
 | Diff, marker version equals current, or no marker | edited locally | never overwrite blindly: show the diff in the plan and treat as a project variant |
 
+## Unmarked copy of a canonical script
+
+A project script with the canonical file name, no marker and content that differs is classified by running both, never by reading. Run the canonical script and the project copy on the repository with equivalent options and compare stdout and exit code:
+
+| Result | Verdict | Action |
+|---|---|---|
+| Identical output and identical exit code | outdated copy | replace it by the canonical script (stamped); adapt its tests in the same batch |
+| Different output or exit code | project variant | keep it; each extra capability is an upstream candidate (see Project variants) |
+
+Put both outputs in the plan as proof. If either cannot run (missing interpreter, input absent), the verdict is a blind spot, not a replacement. No proof, no replacement.
+
 ## Project variants
 
 A project script with the same purpose as a canonical checker (file size / monolith, deferral markers, stubs, forbidden characters, agent references), whatever its name, including a name equal or close to a canonical one (`check_forbidden_chars.py`, `check_no_todos.py`, `check_file_size.py`, ...) when it has no `dev-skills:` marker and is not identical to the canonical script (a file name alone never makes a script agentic), and each locally edited copy. A variant stays where it is and is compared as below. Run both on the project with equivalent options, compare the findings:
@@ -84,8 +95,9 @@ Classification: detection.md section 10. Ownership: this skill moves or replaces
 - **Before any move or replacement, in this order:**
   1. `git grep -n <script name>` over the WHOLE tracked tree (tests, docs, CI workflows, hooks, pre-commit config, Makefile, package.json, templates, archives; not a fixed file list). Archive and history files follow the archives policy.
   2. Find every test that references the script (for example `scripts/tests_unit/test_<name>.py`).
-  3. Moving changes the depth: check how the script computes the repository root (`Path(__file__).parent.parent`, `parents[N]`, relative paths) and adapt it.
-- **After**: update every reference found, fix the tests in the same batch, then run every test that references the script, run each moved script from its new location and every updated hook or target that can run locally. A failure stops the batch and is reported.
+  3. **Scope inventory (moves keep every scope they were in).** Find every lint, format, type-check and test command and every tool config whose scope covers the OLD location: CI workflows, the local replay list, pre-commit, Makefile, package.json, and tool configs (ruff, flake8, mypy, pyproject sections, per-directory configs such as `scripts/ruff.toml`). Extend each to the NEW location in the same batch: add the path to the command, or pass the per-directory config explicitly (a config that applied by directory no longer applies after the move). Field case: CI ran `ruff check --isolated scripts` and `ruff format --check scripts` with `scripts/ruff.toml`; the moved file silently left the lint.
+  4. Moving changes the depth: check how the script computes the repository root (`Path(__file__).parent.parent`, `parents[N]`, relative paths) and adapt it.
+- **After**: update every reference found (archives and history files included, whatever the archives policy: the policy governs only pre-existing dead references, never one this move creates; in archive and history files use the annotate form "`new` (formerly `old`)" and leave the record body untouched), fix the tests in the same batch, then run every test that references the script, run each moved script from its new location and every updated hook or target that can run locally. Run each extended lint, format and type-check command on the moved file when its tool is installed; otherwise list it as a blind spot. A failure stops the batch and is reported.
 - Ambiguous script: leave it, list it as a blind spot.
 
 ## Wiring: propose, never do

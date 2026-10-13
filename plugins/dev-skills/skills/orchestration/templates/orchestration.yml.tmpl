@@ -27,7 +27,7 @@ agents:
   location: {{LOCATION}}            # global | project (Q0.1)
   path: {{AGENTS_PATH}}
   fallback_documented: {{FALLBACK_DOCUMENTED}}
-  types:
+  types:                            # project-scope types only; global types go to orchestration.local.yml
 {{TYPES_LIST}}
   overrides:
 {{OVERRIDES_LIST}}
