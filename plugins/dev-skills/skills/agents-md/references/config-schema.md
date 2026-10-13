@@ -26,7 +26,7 @@ policy:                          # run policies; command argument > this file > 
   commit_convention: detect      # detect | enforce | skip
 archives:                        # dated records exempt from dead-reference fixes
   paths: [errors/, adr/, postmortems/]
-  policy: tolerate               # tolerate | annotate | fix
+  policy: tolerate               # DEFAULT is tolerate. Other values: annotate (rewrites references), fix (replaces them). Keep tolerate unless the human asks
 ci_replay_excludes: [release, nightly]   # workflow jobs deliberately absent from the doc's local CI-replay list
 detected_at:
   sha: <HEAD sha at detection>

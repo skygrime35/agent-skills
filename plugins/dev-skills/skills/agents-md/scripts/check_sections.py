@@ -48,7 +48,13 @@ from pathlib import Path
 
 EXIT_OK, EXIT_DEAD, EXIT_USAGE = 0, 1, 2
 
-DEFAULT_FILES = ["AGENTS.md", "CLAUDE.md", "AGENTS/INDEX.md", "docs/INDEX.md", "docs/index.md"]
+DEFAULT_FILES = [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "AGENTS/INDEX.md",
+    "docs/INDEX.md",
+    "docs/index.md",
+]
 DOMAIN_FILE_NAME = "AGENTS.md"
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build"}
 
@@ -65,14 +71,22 @@ LABEL_SPLIT_RE = re.compile(r"\s+[/&+]\s+")
 # "FILE § Section", "FILE section Section", "FILE, section Section". Groups 2-4: quoted
 # forms; 5/6: a backticked span and the plain words right after it; 7: bare text (runs to
 # punctuation; " and "/" or " are handled as cut candidates, "but"/"see" end it).
-CITE_RE = re.compile(FILE_PAT + r"[\s,:]*(?:§+|\bsections?\b)\s*(?:\"([^\"]+)\"|«\s*([^»]+?)\s*»|“([^”]+)”|`([^`]+)`([^.;,)\n`]*?)(?=\s+(?:but|see)\s|[.;,)`]|$)|([^.;,)\n`]+?)(?=\s+(?:but|see)\s|[.;,)]|$))", re.I)
+CITE_RE = re.compile(
+    FILE_PAT
+    + r"[\s,:]*(?:§+|\bsections?\b)\s*(?:\"([^\"]+)\"|«\s*([^»]+?)\s*»|“([^”]+)”|`([^`]+)`([^.;,)\n`]*?)(?=\s+(?:but|see)\s|[.;,)`]|$)|([^.;,)\n`]+?)(?=\s+(?:but|see)\s|[.;,)]|$))",
+    re.I,
+)
 CUT_RE = re.compile(r"\s+(?:and|or)\s+", re.I)
 
 
 def git_files(root: Path) -> list[str]:
     try:
-        out = subprocess.run(["git", "-C", str(root), "ls-files"], capture_output=True,
-                             text=True, check=True).stdout
+        out = subprocess.run(
+            ["git", "-C", str(root), "ls-files"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
         return [line for line in out.splitlines() if line]
     except (OSError, subprocess.CalledProcessError):
         found = []
@@ -83,14 +97,20 @@ def git_files(root: Path) -> list[str]:
 
 
 def slugify(heading: str) -> str:
-    text = re.sub(r"[`*_~]|\[([^\]]*)\]\([^)]*\)", lambda m: m.group(1) or "", heading).lower()
+    text = re.sub(
+        r"[`*_~]|\[([^\]]*)\]\([^)]*\)", lambda m: m.group(1) or "", heading
+    ).lower()
     text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
     return re.sub(r"\s", "-", text.strip())
 
 
 def fold(text: str) -> str:
     """Lowercase and strip accents."""
-    return "".join(c for c in unicodedata.normalize("NFKD", text.lower()) if not unicodedata.combining(c))
+    return "".join(
+        c
+        for c in unicodedata.normalize("NFKD", text.lower())
+        if not unicodedata.combining(c)
+    )
 
 
 def words(text: str) -> list[str]:
@@ -100,7 +120,9 @@ def words(text: str) -> list[str]:
 
 def lines_outside_fences(path: Path):
     in_fence = False
-    for no, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+    for no, line in enumerate(
+        path.read_text(encoding="utf-8", errors="replace").splitlines(), 1
+    ):
         if FENCE_RE.match(line):
             in_fence = not in_fence
             continue
@@ -115,7 +137,11 @@ BULLETS: dict[Path, list[str]] = {}
 def headings_of(path: Path) -> list[str]:
     cache = HEADINGS.get(path)
     if cache is None:
-        cache = [m.group(2) for _, line in lines_outside_fences(path) if (m := HEADING_RE.match(line))]
+        cache = [
+            m.group(2)
+            for _, line in lines_outside_fences(path)
+            if (m := HEADING_RE.match(line))
+        ]
         HEADINGS[path] = cache
     return cache
 
@@ -123,7 +149,11 @@ def headings_of(path: Path) -> list[str]:
 def bullet_leads_of(path: Path) -> list[str]:
     cache = BULLETS.get(path)
     if cache is None:
-        cache = [m.group(1) for _, line in lines_outside_fences(path) if (m := BULLET_RE.match(line))]
+        cache = [
+            m.group(1)
+            for _, line in lines_outside_fences(path)
+            if (m := BULLET_RE.match(line))
+        ]
         BULLETS[path] = cache
     return cache
 
@@ -152,7 +182,9 @@ def strip_number(heading_words: list[str]) -> list[str]:
     return heading_words
 
 
-def label_match(titles: list[str], cited: str, lead_ok: bool = False) -> tuple[str, str]:
+def label_match(
+    titles: list[str], cited: str, lead_ok: bool = False
+) -> tuple[str, str]:
     """('ok'|'partial'|'dead', matching title) for a cited label against heading titles.
 
     lead_ok: the label starts with a backticked span, so a leading run of a heading is `ok`.
@@ -171,21 +203,30 @@ def label_match(titles: list[str], cited: str, lead_ok: bool = False) -> tuple[s
         if number and hw[0].rstrip(".") == number.rstrip("."):
             return "ok", h
         # label token: "6bis" -> "6bis. Client scopes"
-        if len(cited_words) == 1 and re.search(r"\d", hw[0]) and hw[0].rstrip(".:") == cited_words[0].rstrip(".:"):
+        if (
+            len(cited_words) == 1
+            and re.search(r"\d", hw[0])
+            and hw[0].rstrip(".:") == cited_words[0].rstrip(".:")
+        ):
             return "ok", h
         for full in title_forms(h):
             if cited_words == full:
                 return "ok", h
             # heading followed by prose that ran into the capture ("Setup steps - then run")
-            if len(full) >= MIN_WORDS and cited_words[:len(full)] == full:
+            if len(full) >= MIN_WORDS and cited_words[: len(full)] == full:
                 return "ok", h
-            if lead_ok and len(full) > len(cited_words) >= MIN_WORDS and full[:len(cited_words)] == cited_words:
+            if (
+                lead_ok
+                and len(full) > len(cited_words) >= MIN_WORDS
+                and full[: len(cited_words)] == cited_words
+            ):
                 return "ok", h
         # a contiguous run of the cited words (or its leading run) inside the heading
         for n in range(len(cited_words), 0, -1):
             run = cited_words[:n]
             if (n >= MIN_WORDS or len(cited_words) == 1) and any(
-                    hw[i:i + n] == run for i in range(len(hw) - n + 1)):
+                hw[i : i + n] == run for i in range(len(hw) - n + 1)
+            ):
                 partial = partial or h
                 break
     return ("partial", partial) if partial else ("dead", "")
@@ -215,7 +256,9 @@ def anchor_exists(path: Path, anchor: str) -> bool:
     return slugify(anchor) in slugs
 
 
-def resolve(target: str, base: Path, root: Path, tracked: list[str]) -> tuple[str, Path | None]:
+def resolve(
+    target: str, base: Path, root: Path, tracked: list[str]
+) -> tuple[str, Path | None]:
     if "/" in target.strip("/") or target == DOMAIN_FILE_NAME:
         order = (root / target, base.parent / target)  # repo-root citation first
     else:
@@ -246,7 +289,9 @@ def label_readings(match: re.Match) -> list[list[tuple[str, bool]]]:
         piece = piece.strip()
         readings = [(piece, lead and len(pieces) == 1)]
         if not quoted:
-            readings += [(piece[:c.start()].strip(), False) for c in CUT_RE.finditer(piece)]
+            readings += [
+                (piece[: c.start()].strip(), False) for c in CUT_RE.finditer(piece)
+            ]
             if lead and len(pieces) == 1:
                 readings.append((span.strip(), False))
         result.append([r for r in readings if r[0] or r is readings[0]])
@@ -259,14 +304,24 @@ def best_reading(path: Path, readings: list[tuple[str, bool]]) -> tuple[str, str
     best = None
     for label, lead_ok in readings:
         status, suggestion = section_status(path, label, lead_ok)
-        if best is None or RANK[status] > RANK[best[1]] or (
-                RANK[status] == RANK[best[1]] == RANK["ok"] and len(label) < len(best[0])):
+        if (
+            best is None
+            or RANK[status] > RANK[best[1]]
+            or (
+                RANK[status] == RANK[best[1]] == RANK["ok"]
+                and len(label) < len(best[0])
+            )
+        ):
             best = (label, status, suggestion)
     return best
 
 
 CONFIG_PATH = ".claude/agents-md.yml"
-DEFAULT_ARCHIVES = ("errors/", "adr/", "postmortems/")  # config-schema.md default for archives.paths
+DEFAULT_ARCHIVES = (
+    "errors/",
+    "adr/",
+    "postmortems/",
+)  # config-schema.md default for archives.paths
 
 
 def archive_paths(root: Path) -> list[str]:
@@ -288,8 +343,11 @@ def archive_files(root: Path, tracked: list[str]) -> list[Path]:
     found = []
     for name in tracked or [os.path.relpath(p, root) for p in root.rglob("*.md")]:
         wrapped = "/" + name
-        if name.endswith(".md") and any(("/" + p + "/") in wrapped for p in prefixes) \
-                and (root / name).is_file():
+        if (
+            name.endswith(".md")
+            and any(("/" + p + "/") in wrapped for p in prefixes)
+            and (root / name).is_file()
+        ):
             found.append(root / name)
     return sorted(set(found))
 
@@ -304,19 +362,36 @@ def expand(paths: list[str]) -> list[Path]:
 
 
 def default_files(root: Path, tracked: list[str]) -> list[Path]:
-    names = list(DEFAULT_FILES) + [f for f in tracked if f.endswith("/" + DOMAIN_FILE_NAME)]
+    names = list(DEFAULT_FILES) + [
+        f for f in tracked if f.endswith("/" + DOMAIN_FILE_NAME)
+    ]
     return [root / n for n in dict.fromkeys(names) if (root / n).is_file()]
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Check that cited sections and anchors exist in their target (read-only).",
-                                 epilog="Output: file:line<TAB>target<TAB>status (ok|ok-bullet|partial|dead|ambiguous). "
-                                        "Exit 0 none dead, 1 dead found, 2 usage error.")
-    ap.add_argument("files", nargs="*", help="markdown files or directories (recursed) to scan (default: agent docs found in the repo)")
-    ap.add_argument("--root", default=".", help="repository root (default: current directory)")
-    ap.add_argument("--quiet-ok", action="store_true", help="print only dead and ambiguous lines (hides ok and ok-bullet; partial stays)")
-    ap.add_argument("--archives", action="store_true",
-                    help="scan only the archive dirs (archives.paths of .claude/agents-md.yml, else errors/, adr/, postmortems/)")
+    ap = argparse.ArgumentParser(
+        description="Check that cited sections and anchors exist in their target (read-only).",
+        epilog="Output: file:line<TAB>target<TAB>status (ok|ok-bullet|partial|dead|ambiguous). "
+        "Exit 0 none dead, 1 dead found, 2 usage error.",
+    )
+    ap.add_argument(
+        "files",
+        nargs="*",
+        help="markdown files or directories (recursed) to scan (default: agent docs found in the repo)",
+    )
+    ap.add_argument(
+        "--root", default=".", help="repository root (default: current directory)"
+    )
+    ap.add_argument(
+        "--quiet-ok",
+        action="store_true",
+        help="print only dead and ambiguous lines (hides ok and ok-bullet; partial stays)",
+    )
+    ap.add_argument(
+        "--archives",
+        action="store_true",
+        help="scan only the archive dirs (archives.paths of .claude/agents-md.yml, else errors/, adr/, postmortems/)",
+    )
     try:
         args = ap.parse_args()
     except SystemExit as e:
@@ -327,8 +402,15 @@ def main() -> int:
         return EXIT_USAGE
     tracked = git_files(root)
     missing = [f for f in args.files if not Path(f).exists()]
-    files = expand(args.files) if args.files else (
-        archive_files(root, tracked) if args.archives else default_files(root, tracked))
+    files = (
+        expand(args.files)
+        if args.files
+        else (
+            archive_files(root, tracked)
+            if args.archives
+            else default_files(root, tracked)
+        )
+    )
     missing += [str(f) for f in files if not f.is_file()]
     if missing:
         print("error: not a file: " + ", ".join(missing), file=sys.stderr)
@@ -337,21 +419,33 @@ def main() -> int:
     for f in files:
         rel = os.path.relpath(f, root)
         for no, line in lines_outside_fences(f):
-            found: list[tuple[str, list, str]] = []  # (file target, section readings, link label)
+            found: list[
+                tuple[str, list, str]
+            ] = []  # (file target, section readings, link label)
             for m in LINK_RE.finditer(line):
                 if not re.match(r"[A-Za-z][A-Za-z0-9+.-]*:", m.group(1)):
-                    found.append((m.group(1), [("#" + m.group(2), False)], f"{m.group(1)}#{m.group(2)}"))
+                    found.append(
+                        (
+                            m.group(1),
+                            [("#" + m.group(2), False)],
+                            f"{m.group(1)}#{m.group(2)}",
+                        )
+                    )
             stripped = LINK_RE.sub("", line)
             for m in CITE_RE.finditer(stripped):
                 for readings in label_readings(m):
                     found.append((m.group(1), readings, ""))
             for target, readings, link_label in found:
-                status, path = ("ok", f) if not target else resolve(target, f, root, tracked)
+                status, path = (
+                    ("ok", f) if not target else resolve(target, f, root, tracked)
+                )
                 suggestion = ""
                 label = link_label or f"{target} § {readings[0][0]}"
                 if status == "ok" and path is not None:
                     if readings[0][0].startswith("#"):
-                        status = "ok" if anchor_exists(path, readings[0][0][1:]) else "dead"
+                        status = (
+                            "ok" if anchor_exists(path, readings[0][0][1:]) else "dead"
+                        )
                     else:
                         chosen, status, suggestion = best_reading(path, readings)
                         if status != "dead":

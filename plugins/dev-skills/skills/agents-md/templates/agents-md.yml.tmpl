@@ -10,7 +10,7 @@ policy:
   commit_convention: {{COMMIT_POLICY}} # detect | enforce | skip
 archives:
   paths: [{{ARCHIVE_PATHS}}]           # measured dated-record folders, empty list if none
-  policy: {{ARCHIVES_POLICY}}          # tolerate | annotate | fix
+  policy: {{ARCHIVES_POLICY}}          # default: tolerate. Other values: annotate | fix (only on explicit request)
 ci_replay_excludes: []                 # HUMAN-AUTHORED job ids deliberately absent from the doc's CI-replay list
 detected_at:
   sha: {{HEAD_SHA}}

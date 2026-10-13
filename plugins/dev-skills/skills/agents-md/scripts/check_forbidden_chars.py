@@ -37,14 +37,46 @@ EMOJI_RANGES = [
 ]
 
 DEFAULT_EXCLUDES = [
-    "*/node_modules/*", "*/.next/*", "*/.git/*", "*/dist/*", "*/build/*",
-    "*/__pycache__/*", "*/venv/*", "*/.venv/*", "*.lock", "*.min.js", "*.map",
+    "*/node_modules/*",
+    "*/.next/*",
+    "*/.git/*",
+    "*/dist/*",
+    "*/build/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*.lock",
+    "*.min.js",
+    "*.map",
 ]
 
 TEXT_SUFFIXES = {
-    ".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue", ".svelte",
-    ".md", ".mdx", ".json", ".yml", ".yaml", ".toml", ".html", ".css", ".scss",
-    ".go", ".rs", ".rb", ".java", ".kt", ".php", ".sh", ".txt",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".vue",
+    ".svelte",
+    ".md",
+    ".mdx",
+    ".json",
+    ".yml",
+    ".yaml",
+    ".toml",
+    ".html",
+    ".css",
+    ".scss",
+    ".go",
+    ".rs",
+    ".rb",
+    ".java",
+    ".kt",
+    ".php",
+    ".sh",
+    ".txt",
 }
 
 COMMENT_PREFIXES = ("//", "#", "*", "/*", "<!--", '"""', "'''")
@@ -97,19 +129,34 @@ def describe(ch: str) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("paths", nargs="+", help="files or directories to scan")
-    ap.add_argument("--chars", default="dashes",
-                    help="named set (%s, emoji) or a literal comma list" % ", ".join(NAMED_SETS))
-    ap.add_argument("--exclude", action="append", default=[], help="extra glob to skip (repeatable)")
-    ap.add_argument("--comments-only", action="store_true", help="only flag hits on comment lines")
-    ap.add_argument("--code-only", action="store_true", help="only flag hits outside comment lines")
-    ap.add_argument("--max-report", type=int, default=50, help="stop printing after N hits")
+    ap.add_argument(
+        "--chars",
+        default="dashes",
+        help="named set (%s, emoji) or a literal comma list" % ", ".join(NAMED_SETS),
+    )
+    ap.add_argument(
+        "--exclude", action="append", default=[], help="extra glob to skip (repeatable)"
+    )
+    ap.add_argument(
+        "--comments-only", action="store_true", help="only flag hits on comment lines"
+    )
+    ap.add_argument(
+        "--code-only", action="store_true", help="only flag hits outside comment lines"
+    )
+    ap.add_argument(
+        "--max-report", type=int, default=50, help="stop printing after N hits"
+    )
     args = ap.parse_args()
 
-    matchers = [build_matcher(tok) for tok in args.chars.split(",") if tok] \
-        if args.chars not in NAMED_SETS and args.chars != "emoji" and "," in args.chars \
+    matchers = (
+        [build_matcher(tok) for tok in args.chars.split(",") if tok]
+        if args.chars not in NAMED_SETS and args.chars != "emoji" and "," in args.chars
         else [build_matcher(args.chars)]
+    )
 
     patterns = DEFAULT_EXCLUDES + args.exclude
     hits = 0
@@ -131,13 +178,17 @@ def main() -> int:
                     hits += 1
                     if shown < args.max_report:
                         shown += 1
-                        print(f"{path}:{lineno}:{col}: {describe(ch)}  |  {line.strip()[:90]}")
+                        print(
+                            f"{path}:{lineno}:{col}: {describe(ch)}  |  {line.strip()[:90]}"
+                        )
 
     if hits:
         if hits > shown:
             print(f"... {hits - shown} more")
         label = ", ".join(lbl for _, lbl in matchers)
-        print(f"\nFAIL: {hits} forbidden character(s) [{label}] in {', '.join(args.paths)}")
+        print(
+            f"\nFAIL: {hits} forbidden character(s) [{label}] in {', '.join(args.paths)}"
+        )
         return 1
 
     print(f"OK: no forbidden character in {', '.join(args.paths)}")

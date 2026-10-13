@@ -29,6 +29,10 @@ are ignored; `npm|pnpm|yarn` are one tool; `npm test` equals `npm run test`; pat
 joined with the working directory (`cd backend && ruff check .` = `ruff check backend`).
 A CI command is covered by a replay command with the same tool and subcommand whose
 paths cover it (equal, a parent directory, or `.`), or when either side has no path.
+Shell functions of a replay script that forward their arguments (`svc() { docker compose exec -T app \"$@\"; }`)
+resolve to the inner command at each call. A CI command that runs a project script wrapping a tool
+the replay runs directly (CI `python3 scripts/check_x.py` vs replay `vulture ...`) stays missing; the
+detail names the script, the wrapped tool and the replay command so the reader can exclude knowingly.
 A `python -c` inline script cannot be normalised and is reported as missing.
 
 Output, a `# ci:` comment line then one line per job:
@@ -52,35 +56,205 @@ from pathlib import Path
 EXIT_OK, EXIT_MISSING, EXIT_USAGE = 0, 1, 2
 
 WORKFLOW_GLOBS = ("*.yml", "*.yaml")
-SHELL_KEYWORDS = {"if", "then", "else", "elif", "do", "while", "until", "time", "!", "{", "(", "sudo", "exec", "command"}
-SHELL_DROP = {"for", "case", "done", "fi", "esac", "}", ")", "[", "[[", "echo", "printf", "cat", "exit", "export",
-              "set", "unset", "test", "true", "false", ":", "read", "trap", "source", ".", "return", "local",
-              "shift", "sleep", "mkdir", "rm", "cp", "mv", "ln", "touch", "chmod", "tee", "wc", "env", "declare",
-              "function", "readonly", "wait", "kill", "pwd", "ls", "tail", "head", "date", "basename", "dirname",
-              "gzip", "gunzip", "tar", "zip", "unzip", "cut", "sort", "uniq", "awk", "sed", "xargs", "tr", "find", "diff", "jq"}
+SHELL_KEYWORDS = {
+    "if",
+    "then",
+    "else",
+    "elif",
+    "do",
+    "while",
+    "until",
+    "time",
+    "!",
+    "{",
+    "(",
+    "sudo",
+    "exec",
+    "command",
+}
+SHELL_DROP = {
+    "for",
+    "case",
+    "done",
+    "fi",
+    "esac",
+    "}",
+    ")",
+    "[",
+    "[[",
+    "echo",
+    "printf",
+    "cat",
+    "exit",
+    "export",
+    "set",
+    "unset",
+    "test",
+    "true",
+    "false",
+    ":",
+    "read",
+    "trap",
+    "source",
+    ".",
+    "return",
+    "local",
+    "shift",
+    "sleep",
+    "mkdir",
+    "rm",
+    "cp",
+    "mv",
+    "ln",
+    "touch",
+    "chmod",
+    "tee",
+    "wc",
+    "env",
+    "declare",
+    "function",
+    "readonly",
+    "wait",
+    "kill",
+    "pwd",
+    "ls",
+    "tail",
+    "head",
+    "date",
+    "basename",
+    "dirname",
+    "gzip",
+    "gunzip",
+    "tar",
+    "zip",
+    "unzip",
+    "cut",
+    "sort",
+    "uniq",
+    "awk",
+    "sed",
+    "xargs",
+    "tr",
+    "find",
+    "diff",
+    "jq",
+}
 # (tool, first word of the subcommand) that only prepare the environment.
-SETUP = {("pip", "install"), ("pip3", "install"), ("pip", "download"), ("npm", "ci"), ("npm", "install"),
-         ("npm", "i"), ("yarn", "install"), ("pnpm", "install"), ("apt-get", "install"), ("apt-get", "update"),
-         ("apt", "install"), ("apt", "update"), ("docker", "load"), ("docker", "save"), ("docker", "login"),
-         ("docker", "rm"), ("docker", "pull"), ("docker", "push"), ("docker", "info"), ("docker", "ps"),
-         ("docker", "logout"), ("docker compose", "down"), ("docker compose", "up"), ("docker compose", "pull"),
-         ("docker compose", "logs"), ("docker compose", "ps"), ("brew", "install"), ("gem", "install"),
-         ("go", "mod"), ("corepack", "enable"), ("uv", "sync"), ("uv", "pip"), ("poetry", "install"),
-         ("python", "-m pip"), ("pip", ""), ("docker", "image"), ("docker", "images"), ("docker", "inspect"),
-         ("docker", "builder"), ("docker", "system"), ("docker", "volume"), ("docker", "network"),
-         ("docker", "rmi"), ("docker", "version"), ("playwright", "install"), ("playwright", "install-deps"),
-         ("df", ""), ("du", ""), ("free", ""), ("git", "fetch"), ("git", "checkout"), ("git", "config"),
-         ("git", "clone"), ("git", "init")}
+SETUP = {
+    ("pip", "install"),
+    ("pip3", "install"),
+    ("pip", "download"),
+    ("npm", "ci"),
+    ("npm", "install"),
+    ("npm", "i"),
+    ("yarn", "install"),
+    ("pnpm", "install"),
+    ("apt-get", "install"),
+    ("apt-get", "update"),
+    ("apt", "install"),
+    ("apt", "update"),
+    ("docker", "load"),
+    ("docker", "save"),
+    ("docker", "login"),
+    ("docker", "rm"),
+    ("docker", "pull"),
+    ("docker", "push"),
+    ("docker", "info"),
+    ("docker", "ps"),
+    ("docker", "logout"),
+    ("docker compose", "down"),
+    ("docker compose", "up"),
+    ("docker compose", "pull"),
+    ("docker compose", "logs"),
+    ("docker compose", "ps"),
+    ("brew", "install"),
+    ("gem", "install"),
+    ("go", "mod"),
+    ("corepack", "enable"),
+    ("uv", "sync"),
+    ("uv", "pip"),
+    ("poetry", "install"),
+    ("python", "-m pip"),
+    ("pip", ""),
+    ("docker", "image"),
+    ("docker", "images"),
+    ("docker", "inspect"),
+    ("docker", "builder"),
+    ("docker", "system"),
+    ("docker", "volume"),
+    ("docker", "network"),
+    ("docker", "rmi"),
+    ("docker", "version"),
+    ("playwright", "install"),
+    ("playwright", "install-deps"),
+    ("df", ""),
+    ("du", ""),
+    ("free", ""),
+    ("git", "fetch"),
+    ("git", "checkout"),
+    ("git", "config"),
+    ("git", "clone"),
+    ("git", "init"),
+}
 # Flags whose next token is a value to skip when looking for the subcommand.
-VALUE_FLAGS = {"-f", "-p", "--file", "--project-name", "--env-file", "--profile", "--project-directory", "-C",
-               "--prefix", "--cwd", "--workdir", "-w", "-e", "--env", "-u", "--user"}
-RUNNER_PREFIXES = {("uvx",), ("npx",), ("bunx",), ("pipx", "run"), ("uv", "run"), ("poetry", "run"),
-                   ("pnpm", "dlx"), ("pnpm", "exec"), ("yarn", "dlx"), ("npm", "exec"), ("pipenv", "run"),
-                   ("python", "-m"), ("python3", "-m")}
-SKIP_ACTIONS = re.compile(r"^(actions|docker|github|astral-sh|peaceiris|codecov)/|/setup-|cache|login|buildx|qemu|"
-                          r"upload|download|checkout|artifact|configure-", re.I)
-NODE_LIKE = {"python", "node", "bash", "sh", "zsh", "ruby", "perl", "deno", "bun", "php"}
-TOOL_ALIAS = {"python3": "python", "py": "python", "pip3": "pip", "pnpm": "npm", "yarn": "npm", "bunx": "npx"}
+VALUE_FLAGS = {
+    "-f",
+    "-p",
+    "--file",
+    "--project-name",
+    "--env-file",
+    "--profile",
+    "--project-directory",
+    "-C",
+    "--prefix",
+    "--cwd",
+    "--workdir",
+    "-w",
+    "-e",
+    "--env",
+    "-u",
+    "--user",
+}
+RUNNER_PREFIXES = {
+    ("uvx",),
+    ("npx",),
+    ("bunx",),
+    ("pipx", "run"),
+    ("uv", "run"),
+    ("poetry", "run"),
+    ("pnpm", "dlx"),
+    ("pnpm", "exec"),
+    ("yarn", "dlx"),
+    ("npm", "exec"),
+    ("pipenv", "run"),
+    ("python", "-m"),
+    ("python3", "-m"),
+}
+SKIP_ACTIONS = re.compile(
+    r"^(actions|docker|github|astral-sh|peaceiris|codecov)/|/setup-|cache|login|buildx|qemu|"
+    r"upload|download|checkout|artifact|configure-",
+    re.I,
+)
+NODE_LIKE = {
+    "python",
+    "node",
+    "bash",
+    "sh",
+    "zsh",
+    "ruby",
+    "perl",
+    "deno",
+    "bun",
+    "php",
+}
+TOOL_ALIAS = {
+    "python3": "python",
+    "py": "python",
+    "pip3": "pip",
+    "pnpm": "npm",
+    "yarn": "npm",
+    "bunx": "npx",
+}
 ENV_ASSIGN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 SUBLIKE_RE = re.compile(r"^[a-z][\w:-]*$")
 PIPE_MARK = "\x00"
@@ -88,6 +262,7 @@ EXPR_RE = re.compile(r"\$\{\{.*?\}\}")
 
 
 # ------------------------------------------------------------------ shell splitting
+
 
 def split_commands(text: str) -> list[str]:
     """Split a shell snippet into simple commands on unquoted newlines, `;`, `&&`, `||`, `|`.
@@ -127,12 +302,16 @@ def split_commands(text: str) -> list[str]:
         elif c == ")" and depth:
             depth -= 1
             buf.append(c)
-        elif depth or (c == "&" and buf and buf[-1] == ">") or (c == "&" and text[i + 1:i + 2] == ">"):
+        elif (
+            depth
+            or (c == "&" and buf and buf[-1] == ">")
+            or (c == "&" and text[i + 1 : i + 2] == ">")
+        ):
             buf.append(c)
         elif c in "\n;|&":
             parts.append("".join(buf))
             buf = []
-            if c == "|" and text[i + 1:i + 2] not in ("|",):
+            if c == "|" and text[i + 1 : i + 2] not in ("|",):
                 buf.append(PIPE_MARK)  # right side of a pipe: a filter, not a check
             while i + 1 < n and text[i + 1] in "|&" and c in "|&":
                 i += 1
@@ -192,11 +371,20 @@ def words_of(command: str) -> list[str]:
 
 # ------------------------------------------------------------------ normalisation
 
+
 class Cmd:
     """One normalised command: tool, subcommand, absolute-ish paths, display text."""
 
-    def __init__(self, tool: str, sub: str, paths: frozenset[str], text: str, wildcard_sub: bool = False,
-                 inline: bool = False, wd_known: bool = True):
+    def __init__(
+        self,
+        tool: str,
+        sub: str,
+        paths: frozenset[str],
+        text: str,
+        wildcard_sub: bool = False,
+        inline: bool = False,
+        wd_known: bool = True,
+    ):
         self.tool, self.sub, self.paths, self.text = tool, sub, paths, text
         self.wildcard_sub, self.inline, self.wd_known = wildcard_sub, inline, wd_known
 
@@ -204,7 +392,12 @@ class Cmd:
 def pathlike(token: str, root: Path, wd: str, loose: bool = False) -> bool:
     """Whether a token is a path argument; loose: the working directory is unknown, so a name
     existing one level below the root counts."""
-    if not token or token.startswith(("-", "$", "~", "/")) or "=" in token or "://" in token:
+    if (
+        not token
+        or token.startswith(("-", "$", "~", "/"))
+        or "=" in token
+        or "://" in token
+    ):
         return False
     if re.fullmatch(r"[\d.:]+", token) and token != ".":
         return False
@@ -214,16 +407,25 @@ def pathlike(token: str, root: Path, wd: str, loose: bool = False) -> bool:
     if "*" in clean or "{" in clean:
         clean = re.split(r"[*{]", clean)[0].rstrip("/")
         return bool(clean)
-    if "/" in token or (root / wd / clean).exists() or (root / clean).exists() or re.search(r"\.\w{1,5}$", token):
+    if (
+        "/" in token
+        or (root / wd / clean).exists()
+        or (root / clean).exists()
+        or re.search(r"\.\w{1,5}$", token)
+    ):
         return True
-    return loose and any((d / clean).exists() for d in root.iterdir() if d.is_dir() and not d.name.startswith("."))
+    return loose and any(
+        (d / clean).exists()
+        for d in root.iterdir()
+        if d.is_dir() and not d.name.startswith(".")
+    )
 
 
 def join_path(wd: str, token: str) -> str:
     """Working directory + path argument, cut before the first placeholder or glob segment."""
     m = re.search(r"[*{$<\[]", token)
     if m:
-        token = token[:m.start()]
+        token = token[: m.start()]
         if not token.endswith("/"):
             token = token.rsplit("/", 1)[0] if "/" in token else ""
     token = token or "."
@@ -238,16 +440,33 @@ def unwrap(words: list[str], root: Path, wd: str) -> tuple[list[str], str | None
             words = words[1:]
         elif w == "env":
             words = words[1:]
-            while words and (ENV_ASSIGN_RE.match(words[0]) or words[0].startswith(("-", "$"))):
+            while words and (
+                ENV_ASSIGN_RE.match(words[0]) or words[0].startswith(("-", "$"))
+            ):
                 words = words[1:]
         elif w == "dx" and len(words) > 1:
-            return unwrap_text(words[1], root, wd), None  # container working directory unknown
+            return unwrap_text(
+                words[1], root, wd
+            ), None  # container working directory unknown
         elif w in ("bash", "sh") and len(words) > 2 and words[1] == "-c":
             return unwrap_text(words[2], root, wd), wd
-        elif w == "docker" and len(words) > 2 and words[1] == "compose" or w == "docker-compose":
+        elif (
+            w == "docker"
+            and len(words) > 2
+            and words[1] == "compose"
+            or w == "docker-compose"
+        ):
             rest = words[2:] if w == "docker" else words[1:]
             i = 0
-            while i < len(rest) and rest[i] not in ("exec", "run", "build", "config", "up", "down", "pull"):
+            while i < len(rest) and rest[i] not in (
+                "exec",
+                "run",
+                "build",
+                "config",
+                "up",
+                "down",
+                "pull",
+            ):
                 i += 2 if rest[i] in VALUE_FLAGS else 1
             if i < len(rest) and rest[i] in ("exec", "run"):
                 j = i + 1
@@ -256,18 +475,24 @@ def unwrap(words: list[str], root: Path, wd: str) -> tuple[list[str], str | None
                 if j < len(rest):
                     service = rest[j]
                     if (root / service).is_dir():
-                        wd = posixpath.normpath(posixpath.join(wd, service)) if not wd else wd
-                    return words_after(rest[j + 1:], root, wd)
+                        wd = (
+                            posixpath.normpath(posixpath.join(wd, service))
+                            if not wd
+                            else wd
+                        )
+                    return words_after(rest[j + 1 :], root, wd)
             return ["docker compose"] + rest, wd
         else:
             break
     if words and "/" in words[0] and not words[0].startswith("-"):
-        words = ["bash"] + words  # an executable path is a script: `./scripts/x.sh` == `bash scripts/x.sh`
+        words = (
+            ["bash"] + words
+        )  # an executable path is a script: `./scripts/x.sh` == `bash scripts/x.sh`
     if words:
         tool = posixpath.basename(words[0])
         for prefix in RUNNER_PREFIXES:
-            if tuple(words[:len(prefix)]) == prefix and len(words) > len(prefix):
-                return words[len(prefix):], wd
+            if tuple(words[: len(prefix)]) == prefix and len(words) > len(prefix):
+                return words[len(prefix) :], wd
         words = [tool] + words[1:]
         words[0] = TOOL_ALIAS.get(words[0], words[0])
         if words[0] == "npx":
@@ -299,12 +524,21 @@ def normalise(text: str, root: Path, wd: str) -> tuple[Cmd | None, str]:
             return None, wd
         if target.startswith("/"):
             return None, ""
-        return None, posixpath.normpath(posixpath.join(wd, target)).lstrip("./") if target != ".." or wd else ""
+        return None, posixpath.normpath(posixpath.join(wd, target)).lstrip(
+            "./"
+        ) if target != ".." or wd else ""
     words, wd2 = unwrap(words, root, wd)
     known = wd2 is not None
     wd2 = wd2 or ""
-    if not words or words[0] in SHELL_DROP or ENV_ASSIGN_RE.match(words[0]) or words[0].endswith(":") \
-            or words[0].endswith((")", ";;")) or words[0].startswith("*") or "://" in words[0]:
+    if (
+        not words
+        or words[0] in SHELL_DROP
+        or ENV_ASSIGN_RE.match(words[0])
+        or words[0].endswith(":")
+        or words[0].endswith((")", ";;"))
+        or words[0].startswith("*")
+        or "://" in words[0]
+    ):
         return None, wd
     tool = TOOL_ALIAS.get(words[0], words[0])
     args = words[1:]
@@ -320,13 +554,22 @@ def normalise(text: str, root: Path, wd: str) -> tuple[Cmd | None, str]:
                 return Cmd("compileall", "", frozenset(), text), wd  # documented alias
             return Cmd(tool, "-c", frozenset(), text, inline=True), wd
         if args and args[0] == "-n" and tool in ("bash", "sh"):
-            return Cmd("bash", "-n", frozenset(join_path(wd2, a) for a in args[1:] if pathlike(a, root, wd2, not known)), text), wd
+            return Cmd(
+                "bash",
+                "-n",
+                frozenset(
+                    join_path(wd2, a)
+                    for a in args[1:]
+                    if pathlike(a, root, wd2, not known)
+                ),
+                text,
+            ), wd
         if first:
             sub = join_path(wd2, first)
-            rest = args[i + 1:]
+            rest = args[i + 1 :]
     elif tool == "npm" and first:
         if first == "run" or first == "run-script":
-            second = next((a for a in args[i + 1:] if not a.startswith("-")), "")
+            second = next((a for a in args[i + 1 :] if not a.startswith("-")), "")
             if not second:
                 return None, wd  # bare `npm run` lists scripts
             sub = f"run {second}"
@@ -334,25 +577,48 @@ def normalise(text: str, root: Path, wd: str) -> tuple[Cmd | None, str]:
             sub = f"run {first}"
         else:
             sub = first
-        rest = args[i + 1:]
-    elif first and SUBLIKE_RE.match(first) and not pathlike(first, root, wd2, not known) and (
-            not (root / wd2 / first).exists()):
-        sub, rest = first, args[i + 1:]
-    if (tool, sub.split(" ")[0] if tool != "python" else sub) in SETUP or (tool, sub) in SETUP:
+        rest = args[i + 1 :]
+    elif (
+        first
+        and SUBLIKE_RE.match(first)
+        and not pathlike(first, root, wd2, not known)
+        and (not (root / wd2 / first).exists())
+    ):
+        sub, rest = first, args[i + 1 :]
+    if (tool, sub.split(" ")[0] if tool != "python" else sub) in SETUP or (
+        tool,
+        sub,
+    ) in SETUP:
         return None, wd
     if tool == "pip" and sub == "install":
         return None, wd
-    paths = frozenset(join_path(wd2, a) for a in rest if pathlike(a, root, wd2, not known))
+    paths = frozenset(
+        join_path(wd2, a) for a in rest if pathlike(a, root, wd2, not known)
+    )
     if tool == "docker compose":
         # keep the compose file (`-f x`): it tells prod from preprod
-        paths = frozenset(join_path(wd2, a) for a in args if pathlike(a, root, wd2, not known))
+        paths = frozenset(
+            join_path(wd2, a) for a in args if pathlike(a, root, wd2, not known)
+        )
     return Cmd(tool, sub, paths, text, wd_known=known), wd
 
 
-def commands_of(text: str, root: Path, wd: str = "") -> list[Cmd]:
+def expand_wrapper(simple: str, wrappers: dict[str, str]) -> str:
+    """Replace a call of a shell wrapper function by the command it runs."""
+    words = words_of(simple)
+    if not words or words[0] not in wrappers:
+        return simple
+    return " ".join([wrappers[words[0]]] + [shlex.quote(w) for w in words[1:]])
+
+
+def commands_of(
+    text: str, root: Path, wd: str = "", wrappers: dict[str, str] | None = None
+) -> list[Cmd]:
     """Commands of a snippet run as one script: a `cd` carries over to the following commands."""
     out: list[Cmd] = []
     for simple in split_commands(text):
+        if wrappers:
+            simple = expand_wrapper(simple, wrappers)
         cmd, wd = normalise(simple, root, wd)
         if cmd is not None:
             out.append(cmd)
@@ -369,7 +635,11 @@ def list_commands(text: str, root: Path) -> list[Cmd]:
 
 def covers(replay: Cmd, ci: Cmd) -> bool:
     """Whether a replay command covers a CI command (rules in the module docstring)."""
-    if ci.tool == "coverage" and ci.sub in ("report", "xml", "html") and "--cov" in replay.text:
+    if (
+        ci.tool == "coverage"
+        and ci.sub in ("report", "xml", "html")
+        and "--cov" in replay.text
+    ):
         return True  # `coverage report --fail-under` is the gate `pytest --cov-fail-under` applies
     if replay.tool != ci.tool or (replay.sub != ci.sub and not ci.wildcard_sub):
         return False
@@ -377,6 +647,7 @@ def covers(replay: Cmd, ci: Cmd) -> bool:
         return False
     if not ci.paths or not replay.paths:
         return True
+
     def within(p: str, q: str) -> bool:
         if p == q or q == "." or p.startswith(q.rstrip("/") + "/"):
             return True
@@ -387,6 +658,7 @@ def covers(replay: Cmd, ci: Cmd) -> bool:
 
 
 # ------------------------------------------------------------------ CI side
+
 
 def indent_of(line: str) -> int:
     return len(line) - len(line.lstrip(" "))
@@ -415,13 +687,26 @@ def parse_workflow(path: Path, rel: str, root: Path) -> list[Job]:
     """Jobs of one workflow file, read line by line (see the module docstring)."""
     lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
     jobs: list[Job] = []
-    start = next((i for i, ln in enumerate(lines) if re.match(r"^jobs:\s*(#.*)?$", ln)), None)
+    start = next(
+        (i for i, ln in enumerate(lines) if re.match(r"^jobs:\s*(#.*)?$", ln)), None
+    )
     if start is None:
         return jobs
-    job_indent = next((indent_of(ln) for ln in lines[start + 1:] if ln.strip() and not ln.lstrip().startswith("#")), 2)
+    job_indent = next(
+        (
+            indent_of(ln)
+            for ln in lines[start + 1 :]
+            if ln.strip() and not ln.lstrip().startswith("#")
+        ),
+        2,
+    )
     blocks: list[tuple[str, list[str]]] = []
-    for ln in lines[start + 1:]:
-        if ln.strip() and not ln.lstrip().startswith("#") and indent_of(ln) < job_indent:
+    for ln in lines[start + 1 :]:
+        if (
+            ln.strip()
+            and not ln.lstrip().startswith("#")
+            and indent_of(ln) < job_indent
+        ):
             break
         m = re.match(r"^(\s*)([\w.-]+|\"[^\"]+\"):\s*(#.*)?$", ln)
         if m and indent_of(ln) == job_indent:
@@ -479,28 +764,37 @@ def step_commands(step: list[str], root: Path, job_wd: str) -> list[Cmd]:
             elif re.match(r"^[|>][+-]?\s*(#.*)?$", value.strip()):
                 block: list[str] = []
                 i += 1
-                while i < len(lines) and (not lines[i].strip() or indent_of(lines[i]) > key_indent):
+                while i < len(lines) and (
+                    not lines[i].strip() or indent_of(lines[i]) > key_indent
+                ):
                     block.append(lines[i])
                     i += 1
                 body_indent = min((indent_of(b) for b in block if b.strip()), default=0)
                 text = "\n".join(b[body_indent:] for b in block)
-                run_text = text.replace("\n", " ") if value.strip().startswith(">") else text
+                run_text = (
+                    text.replace("\n", " ") if value.strip().startswith(">") else text
+                )
                 continue
             else:
                 run_text = clean_scalar(value)
         i += 1
-    run_text = re.sub(r"\$\{\{\s*github\.workspace\s*\}\}/?", "", run_text)  # the repo root
+    run_text = re.sub(
+        r"\$\{\{\s*github\.workspace\s*\}\}/?", "", run_text
+    )  # the repo root
     run_text = EXPR_RE.sub("EXPR", run_text)
     if run_text:
         return commands_of(run_text, root, wd)
     if uses and not SKIP_ACTIONS.search(uses):
         name = uses.split("@")[0].rsplit("/", 1)[-1]
         name = re.sub(r"-action$", "", name)
-        return [Cmd(name, "", frozenset(), f"uses: {uses.split('@')[0]}", wildcard_sub=True)]
+        return [
+            Cmd(name, "", frozenset(), f"uses: {uses.split('@')[0]}", wildcard_sub=True)
+        ]
     return []
 
 
 # ------------------------------------------------------------------ replay side
+
 
 def md_blocks(path: Path, heading: str) -> list[str]:
     """Fenced code blocks of `path` under the first heading containing `heading`."""
@@ -528,19 +822,70 @@ def md_blocks(path: Path, heading: str) -> list[str]:
     return blocks
 
 
+FUNC_START_RE = re.compile(r"^\s*(?:function\s+)?([\w-]+)\s*\(\)\s*\{?(.*)$")
+FUNC_ARGS_RE = re.compile(r"^(.*?)\s*(?:\"\$@\"|\$@|\"\$\*\"|\$\*)")
+FUNC_PREFIX_DROP_RE = re.compile(r"^(?:\{|return|exec|command|then|do)\s+")
+
+
+def shell_wrappers(logical: list[str]) -> dict[str, str]:
+    """Shell functions that forward their arguments (`svc() { docker compose exec -T app "$@"; }`).
+
+    Maps the function name to the command words that precede the forwarded arguments.
+    Only functions whose body runs `docker`/`docker-compose` or another command before
+    `"$@"` count; a function that merely re-runs `"$@"` is not a wrapper.
+    """
+    wrappers: dict[str, str] = {}
+    name, depth = "", 0
+    for ln in logical:
+        if not name:
+            m = FUNC_START_RE.match(ln)
+            if not m:
+                continue
+            name, body = m.group(1), m.group(2)
+            depth = 0
+            if "{" not in ln:
+                name = ""  # `f()` with the brace on the next line is not supported
+                continue
+            depth = 1  # the opening brace of the definition line
+        else:
+            body = ln
+        depth += body.count("{") - body.count("}")
+        # the last forwarding command of the body wins
+        for part in re.split(r";|&&|\|\|", body.rstrip("}").strip()):
+            fm = FUNC_ARGS_RE.match(part.strip())
+            if fm:
+                prefix = fm.group(1).strip()
+                while FUNC_PREFIX_DROP_RE.match(prefix + " "):
+                    prefix = FUNC_PREFIX_DROP_RE.sub("", prefix + " ", count=1).strip()
+                if prefix and not prefix.startswith(("local ", "shift")):
+                    wrappers[name] = prefix
+        if depth <= 0:
+            name = ""
+    return wrappers
+
+
 def script_commands(path: Path, root: Path) -> list[Cmd]:
-    """Commands of a shell script: `step|advisory g n "cmd"` lines and plain column-0 lines."""
+    """Commands of a shell script: `step|advisory g n "cmd"` lines and plain column-0 lines.
+
+    Calls of wrapper functions defined in the script resolve to the inner command."""
     text = path.read_text(encoding="utf-8", errors="replace")
     logical = re.sub(r"\\\n", " ", text).splitlines()
+    wrappers = shell_wrappers(logical)
     has_steps = any(re.match(r"^\s*(step|advisory)\s", ln) for ln in logical)
     out: list[Cmd] = []
     for ln in logical:
         if re.match(r"^\s*(step|advisory)\s", ln):
             words = words_of(ln)
             if len(words) >= 4:
-                out += commands_of(words[3].replace("\\$", "$"), root)
-        elif (not has_steps or indent_of(ln) == 0) and ln.strip() and not re.match(r"^\s*[\w-]+\(\)", ln):
-            out += commands_of(ln, root)
+                out += commands_of(
+                    words[3].replace("\\$", "$"), root, wrappers=wrappers
+                )
+        elif (
+            (not has_steps or indent_of(ln) == 0)
+            and ln.strip()
+            and not re.match(r"^\s*[\w-]+\(\)", ln)
+        ):
+            out += commands_of(ln, root, wrappers=wrappers)
     return out
 
 
@@ -556,22 +901,76 @@ def replay_commands(spec: str, heading: str, root: Path) -> list[Cmd]:
     return script_commands(path, root)
 
 
+GENERIC_TOOLS = {"python", "bash", "sh", "node", "npm", "docker compose", "docker"}
+
+
+def wrap_hint(ci: Cmd, replay: list[Cmd], root: Path) -> str:
+    """Name both sides when a CI project script wraps a tool the replay runs directly.
+
+    The command stays missing (the replay does not run the script); the hint lets the
+    reader exclude the job knowingly when the two are equivalent."""
+    if ci.tool not in ("python", "bash", "sh", "node") or not ci.sub:
+        return ""
+    script = root / ci.sub
+    if not script.is_file():
+        return ""
+    body = script.read_text(encoding="utf-8", errors="replace")
+    for r in replay:
+        if r.tool in GENERIC_TOOLS:
+            continue
+        t = re.escape(r.tool)
+        # invoked, not merely mentioned: a quoted argv item, `-m tool` or a command line
+        if not re.search(rf"[\"']{t}[\"']|-m\s+{t}\b|^\s*{t}\s", body, re.MULTILINE):
+            continue
+        return (
+            f" (script {ci.sub} wraps `{r.tool}`; replay runs "
+            f"`{r.text.strip()[:60]}`: exclude the job only if they are equivalent)"
+        )
+    return ""
+
+
 # ------------------------------------------------------------------ main
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(
         description="Check that a local replay list covers every CI job (read-only).",
         epilog="Output: file:job<TAB>status<TAB>detail, status covered|missing|excluded. "
-               "Exit 0 none missing, 1 missing, 2 usage error.")
-    ap.add_argument("--root", default=".", help="repository root (default: current directory)")
-    ap.add_argument("--workflows", default=".github/workflows", help="workflow directory, relative to the root")
-    ap.add_argument("--replay", action="append", default=[], metavar="FILE",
-                    help="replay list: a markdown file (fenced blocks under --heading) or a shell script; repeatable")
-    ap.add_argument("--heading", default="", help="text of the markdown heading holding the replay block "
-                                                  "(default: every fenced block of the file)")
-    ap.add_argument("--exclude", action="append", default=[], metavar="JOB",
-                    help="job id, job name or file:job to report as excluded; repeatable")
-    ap.add_argument("--only-missing", action="store_true", help="print only missing jobs (and the comment line)")
+        "Exit 0 none missing, 1 missing, 2 usage error.",
+    )
+    ap.add_argument(
+        "--root", default=".", help="repository root (default: current directory)"
+    )
+    ap.add_argument(
+        "--workflows",
+        default=".github/workflows",
+        help="workflow directory, relative to the root",
+    )
+    ap.add_argument(
+        "--replay",
+        action="append",
+        default=[],
+        metavar="FILE",
+        help="replay list: a markdown file (fenced blocks under --heading) or a shell script; repeatable",
+    )
+    ap.add_argument(
+        "--heading",
+        default="",
+        help="text of the markdown heading holding the replay block "
+        "(default: every fenced block of the file)",
+    )
+    ap.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        metavar="JOB",
+        help="job id, job name or file:job to report as excluded; repeatable",
+    )
+    ap.add_argument(
+        "--only-missing",
+        action="store_true",
+        help="print only missing jobs (and the comment line)",
+    )
     try:
         args = ap.parse_args()
     except SystemExit as e:
@@ -595,7 +994,9 @@ def main() -> int:
     jobs: list[Job] = []
     for f in files:
         jobs += parse_workflow(f, os.path.relpath(f, root), root)
-    print(f"# ci: {len(jobs)} jobs in {len(files)} workflows; replay: {len(replay)} commands from {', '.join(args.replay)}")
+    print(
+        f"# ci: {len(jobs)} jobs in {len(files)} workflows; replay: {len(replay)} commands from {', '.join(args.replay)}"
+    )
     missing = 0
     for job in jobs:
         label = f"{job.file}:{job.jid}"
@@ -604,9 +1005,16 @@ def main() -> int:
         elif not job.commands:
             status, detail = "excluded", "no checkable command"
         else:
-            gaps = [c.text.strip().replace("\n", " ")[:90] for c in job.commands
-                    if not any(covers(r, c) for r in replay)]
-            status, detail = ("missing", " ; ".join(gaps)) if gaps else ("covered", f"{len(job.commands)} commands")
+            gaps = [
+                c.text.strip().replace("\n", " ")[:90] + wrap_hint(c, replay, root)
+                for c in job.commands
+                if not any(covers(r, c) for r in replay)
+            ]
+            status, detail = (
+                ("missing", " ; ".join(gaps))
+                if gaps
+                else ("covered", f"{len(job.commands)} commands")
+            )
         missing += status == "missing"
         if status == "missing" or not args.only_missing:
             print(f"{label}\t{status}\t{detail}")

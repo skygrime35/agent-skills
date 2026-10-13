@@ -84,7 +84,7 @@ quirks: []                       # HUMAN-AUTHORED. Never rewritten by detection.
 
 ## Local file
 
-`.claude/orchestration.local.yml`, gitignored (`/agents-md` owns the `.gitignore` procedure; audit O7.7), refreshed by detection on every run. Readers merge it over the committed file; a `local:` block found in the committed file is finding O7.8 and is moved here.
+`.claude/orchestration.local.yml`, gitignored (ignore lines applied by sync, SKILL.md Gitignore; audit O7.7), refreshed by detection on every run. Readers merge it over the committed file; a `local:` block found in the committed file is finding O7.8 and is moved here.
 
 ```yaml
 local:                           # machine-specific, this file is gitignored

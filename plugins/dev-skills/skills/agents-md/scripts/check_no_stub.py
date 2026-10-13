@@ -24,9 +24,19 @@ import sys
 from pathlib import Path
 
 DEFAULT_EXCLUDES = [
-    "*/node_modules/*", "*/.next/*", "*/.git/*", "*/dist/*", "*/build/*",
-    "*/__pycache__/*", "*/venv/*", "*/.venv/*", "*/migrations/*",
-    "*.lock", "*.min.js", "*.map", "*.d.ts",
+    "*/node_modules/*",
+    "*/.next/*",
+    "*/.git/*",
+    "*/dist/*",
+    "*/build/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/migrations/*",
+    "*.lock",
+    "*.min.js",
+    "*.map",
+    "*.d.ts",
 ]
 
 JS_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".vue", ".svelte"}
@@ -50,7 +60,9 @@ def is_protocol_or_abstract(node: ast.ClassDef) -> bool:
     return False
 
 
-def has_decorator(node: ast.FunctionDef | ast.AsyncFunctionDef, names: set[str]) -> bool:
+def has_decorator(
+    node: ast.FunctionDef | ast.AsyncFunctionDef, names: set[str]
+) -> bool:
     for d in node.decorator_list:
         n = getattr(d, "id", None) or getattr(d, "attr", None)
         if n in names:
@@ -74,11 +86,17 @@ def python_stubs(path: Path, text: str) -> list[str]:
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if id(node) in exempt_functions or has_decorator(node, {"abstractmethod", "overload"}):
+            if id(node) in exempt_functions or has_decorator(
+                node, {"abstractmethod", "overload"}
+            ):
                 continue
             body = list(node.body)
-            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
-                    and isinstance(body[0].value.value, str):
+            if (
+                body
+                and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)
+            ):
                 docstring, body = True, body[1:]
             else:
                 docstring = False
@@ -86,7 +104,9 @@ def python_stubs(path: Path, text: str) -> list[str]:
                 continue
             # `pass` as the only statement of a *documented* function is the smell.
             if len(body) == 1 and isinstance(body[0], ast.Pass) and docstring:
-                out.append(f"{path}:{node.lineno}: `{node.name}` is documented but its body is `pass`")
+                out.append(
+                    f"{path}:{node.lineno}: `{node.name}` is documented but its body is `pass`"
+                )
         if isinstance(node, ast.Raise):
             exc = node.exc
             name = None
@@ -100,7 +120,9 @@ def python_stubs(path: Path, text: str) -> list[str]:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("paths", nargs="+")
     ap.add_argument("--exclude", action="append", default=[])
     args = ap.parse_args()
@@ -110,11 +132,17 @@ def main() -> int:
 
     for root in args.paths:
         p = Path(root)
-        files = [p] if p.is_file() else [
-            f for f in p.rglob("*")
-            if f.is_file() and (f.suffix == ".py" or f.suffix in JS_SUFFIXES)
-            and not excluded(f, patterns)
-        ]
+        files = (
+            [p]
+            if p.is_file()
+            else [
+                f
+                for f in p.rglob("*")
+                if f.is_file()
+                and (f.suffix == ".py" or f.suffix in JS_SUFFIXES)
+                and not excluded(f, patterns)
+            ]
+        )
         for f in files:
             try:
                 text = f.read_text(encoding="utf-8", errors="strict")

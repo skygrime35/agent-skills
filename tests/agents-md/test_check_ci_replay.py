@@ -197,6 +197,52 @@ class CiReplayTest(unittest.TestCase):
         files["R.md"] = md.replace("dev", "prod")
         self.assertEqual(self.run_check(files, "--replay", "R.md")[1]["a"][0], "covered")
 
+    def test_shell_wrapper_functions_resolve_to_inner_command(self):
+        script = (
+            "#!/usr/bin/env bash\n"
+            "tools() { docker compose exec -T backend \"$@\"; }\n"
+            "runner() {\n"
+            "  docker compose run --rm backend \"$@\"\n"
+            "}\n"
+            "step backend lint \"tools ruff check .\"\n"
+            "step backend fmt \"runner ruff format --check .\"\n"
+            "step scripts ruff-s \"ruff check --isolated scripts\"\n"
+            "step backend types \"cd backend && mypy --strict apps config\"\n"
+            "step frontend fe \"cd frontend && npm run test && npx tsc --noEmit\"\n"
+            "step scan s \"trivy image app:latest\"\n"
+        )
+        _, rows, _ = self.run_check({"scripts/replay.sh": script}, "--replay", "scripts/replay.sh")
+        self.assertEqual(rows["lint"][0], "covered")
+
+    def test_wrapper_function_name_unknown_stays_missing(self):
+        script = "step backend lint \"tools ruff check .\"\n"
+        _, rows, _ = self.run_check({"scripts/replay.sh": script}, "--replay", "scripts/replay.sh")
+        self.assertEqual(rows["lint"][0], "missing")
+
+    def test_missing_script_job_names_wrapped_tool_and_replay_command(self):
+        wf = "jobs:\n  arch:\n    runs-on: x\n    steps:\n      - run: python3 scripts/check_dead.py\n"
+        files = {
+            ".github/workflows/ci.yml": wf,
+            "scripts/check_dead.py": "import subprocess\nsubprocess.run(['python', '-m', 'vulture', 'apps'])\n",
+            "R.md": "```\npython -m vulture apps --min-confidence 60\n```\n",
+        }
+        code, rows, _ = self.run_check(files, "--replay", "R.md")
+        self.assertEqual((code, rows["arch"][0]), (1, "missing"))
+        detail = rows["arch"][1]
+        self.assertIn("check_dead.py", detail)
+        self.assertIn("wraps `vulture`", detail)
+        self.assertIn("python -m vulture apps", detail)
+
+    def test_script_that_only_mentions_a_tool_gets_no_hint(self):
+        wf = "jobs:\n  arch:\n    runs-on: x\n    steps:\n      - run: python3 scripts/check_dead.py\n"
+        files = {
+            ".github/workflows/ci.yml": wf,
+            "scripts/check_dead.py": '"""Not related to vulture output."""\n',
+            "R.md": "```\npython -m vulture apps\n```\n",
+        }
+        _, rows, _ = self.run_check(files, "--replay", "R.md")
+        self.assertNotIn("wraps", rows["arch"][1])
+
     def test_only_missing_hides_covered(self):
         _, _, lines = self.run_check({"AGENTS.md": REPLAY_MD}, "--replay", "AGENTS.md", "--heading", "Vital",
                                      "--only-missing")

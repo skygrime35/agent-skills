@@ -57,7 +57,9 @@ KEBAB = re.compile(r"`([a-z0-9]+(?:-[a-z0-9]+)+)`")
 
 findings = []
 warnings = []
-QUIRKS = ""  # text of the config's quirks block; a type named there may run at xhigh/max
+QUIRKS = (
+    ""  # text of the config's quirks block; a type named there may run at xhigh/max
+)
 
 
 def finding(path, line, message):
@@ -125,8 +127,10 @@ def check_frontmatter(name, path, finding=finding):
         finding(path, 1, "malformed or missing frontmatter")
         return None
     for key, value in fm.items():
-        if ": " in value and value[:1] not in ("\"", "'"):
-            finding(path, 1, f"unquoted {key} value contains ': ', invalid YAML: quote it")
+        if ": " in value and value[:1] not in ('"', "'"):
+            finding(
+                path, 1, f"unquoted {key} value contains ': ', invalid YAML: quote it"
+            )
     for key in ("name", "description", "model", "effort"):
         if not fm.get(key):
             finding(path, 1, f"frontmatter missing required key: {key}")
@@ -135,7 +139,11 @@ def check_frontmatter(name, path, finding=finding):
     if fm.get("effort") and fm["effort"] not in EFFORTS:
         finding(path, 1, f"effort {fm['effort']!r} not in {sorted(EFFORTS)}")
     if fm.get("effort") in ("xhigh", "max") and name not in QUIRKS:
-        finding(path, 1, f"effort {fm['effort']!r} with no quirks entry naming {name!r} (O8.1)")
+        finding(
+            path,
+            1,
+            f"effort {fm['effort']!r} with no quirks entry naming {name!r} (O8.1)",
+        )
     if "maxTurns" in fm and not re.fullmatch(r"[1-9][0-9]*", fm["maxTurns"]):
         finding(path, 1, f"maxTurns {fm['maxTurns']!r} is not a positive integer")
     if fm.get("color") and fm["color"] not in COLORS:
@@ -160,8 +168,17 @@ def config_entries(config_path):
             section = m.group(1)
             continue
         if section:
-            if stripped.startswith("- ") or stripped.startswith("-{") or stripped.startswith("- {"):
-                entry = dict(re.findall(r"\b(name|model|effort|maxTurns)\s*:\s*([A-Za-z0-9-]+)", stripped))
+            if (
+                stripped.startswith("- ")
+                or stripped.startswith("-{")
+                or stripped.startswith("- {")
+            ):
+                entry = dict(
+                    re.findall(
+                        r"\b(name|model|effort|maxTurns)\s*:\s*([A-Za-z0-9-]+)",
+                        stripped,
+                    )
+                )
                 if entry.get("name"):
                     entries[entry["name"]] = (entry, i, section)
             elif stripped and not raw.startswith((" ", "\t")):
@@ -199,7 +216,12 @@ def local_global_types(local_path):
             continue
         if inside:
             if stripped.startswith("-"):
-                entry = dict(re.findall(r"\b(name|model|effort|maxTurns)\s*:\s*([A-Za-z0-9.-]+)", stripped))
+                entry = dict(
+                    re.findall(
+                        r"\b(name|model|effort|maxTurns)\s*:\s*([A-Za-z0-9.-]+)",
+                        stripped,
+                    )
+                )
                 if entry.get("name"):
                     entries[entry["name"]] = (entry, i)
             elif stripped and not stripped.startswith("#"):
@@ -243,13 +265,21 @@ def main():
     if ARGS.only_owned and config_ok:
         config_names = set(config_types(Path(ARGS.config)))
         # Owned = listed in the config AND installed in a project-scope dir.
-        owned = {n for n in config_names
-                 if any(not is_global_dir(p.parent) for p in installed.get(n, []))}
+        owned = {
+            n
+            for n in config_names
+            if any(not is_global_dir(p.parent) for p in installed.get(n, []))
+        }
         missing_dirs = [d for d in ARGS.agents_dir if not Path(d).expanduser().is_dir()]
         if missing_dirs and config_location(Path(ARGS.config)) == "global":
             degraded = True
-            warning(ARGS.config, 1, "agents.location is global and agents dir missing ("
-                    + ", ".join(missing_dirs) + "): global types cannot be verified here")
+            warning(
+                ARGS.config,
+                1,
+                "agents.location is global and agents dir missing ("
+                + ", ".join(missing_dirs)
+                + "): global types cannot be verified here",
+            )
     missing_dirs = [d for d in ARGS.agents_dir if not Path(d).expanduser().is_dir()]
     for d in missing_dirs:
         (finding if ARGS.strict else warning)(d, 1, "agents dir does not exist")
@@ -281,12 +311,19 @@ def main():
                     # Under --only-owned a cited type the config does not list is a
                     # global (machine-local) type: absent is a warning, not an error.
                     sink = miss
-                    if (ARGS.only_owned and config_ok and not ARGS.strict
-                            and token not in config_names):
+                    if (
+                        ARGS.only_owned
+                        and config_ok
+                        and not ARGS.strict
+                        and token not in config_names
+                    ):
                         sink = warning
-                    sink(doc_path, lineno,
-                         f"cited agent type `{token}` installed in none of: "
-                         + ", ".join(ARGS.agents_dir))
+                    sink(
+                        doc_path,
+                        lineno,
+                        f"cited agent type `{token}` installed in none of: "
+                        + ", ".join(ARGS.agents_dir),
+                    )
     else:
         finding(doc_path, 1, "doc file not found")
 
@@ -296,34 +333,53 @@ def main():
         if config_path.is_file():
             for name, (entry, lineno) in config_types(config_path).items():
                 if name not in parsed:
-                    miss(config_path, lineno,
-                         f"config lists type {name!r} but no parseable file exists")
+                    miss(
+                        config_path,
+                        lineno,
+                        f"config lists type {name!r} but no parseable file exists",
+                    )
                     continue
                 legacy_global = ARGS.only_owned and name not in owned
                 sink3 = warning if legacy_global and not ARGS.strict else finding
                 for key in ("model", "effort", "maxTurns"):
                     if entry.get(key) and parsed[name].get(key) != entry[key]:
-                        sink3(config_path, lineno,
-                                f"config says {name}.{key}={entry[key]!r}, "
-                                f"file says {parsed[name].get(key)!r}")
+                        sink3(
+                            config_path,
+                            lineno,
+                            f"config says {name}.{key}={entry[key]!r}, "
+                            f"file says {parsed[name].get(key)!r}",
+                        )
         else:
             finding(config_path, 1, "config file not found")
 
     # Step 4: global types recorded in the local file (D1 design: machine-local)
-    local_path = Path(ARGS.local_config) if ARGS.local_config else (
-        Path(ARGS.config).with_name("orchestration.local.yml") if ARGS.config else None)
+    local_path = (
+        Path(ARGS.local_config)
+        if ARGS.local_config
+        else (
+            Path(ARGS.config).with_name("orchestration.local.yml")
+            if ARGS.config
+            else None
+        )
+    )
     if local_path and local_path.is_file():
         sink4 = finding if ARGS.strict else warning
         for name, (entry, lineno) in local_global_types(local_path).items():
             if name not in parsed:
-                sink4(local_path, lineno,
-                      f"local file records global type {name!r} but no parseable file is installed")
+                sink4(
+                    local_path,
+                    lineno,
+                    f"local file records global type {name!r} but no parseable file is installed",
+                )
                 continue
             for key in ("model", "effort", "maxTurns"):
                 if entry.get(key) and parsed[name].get(key) != entry[key]:
-                    sink4(local_path, lineno,
-                          f"local file says {name}.{key}={entry[key]!r}, "
-                          f"installed file says {parsed[name].get(key)!r}")
+                    sink4(
+                        local_path,
+                        lineno,
+                        f"local file says {name}.{key}={entry[key]!r}, "
+                        f"installed file says {parsed[name].get(key)!r}",
+                    )
 
     for f in findings + warnings:
         print(f)
@@ -332,26 +388,49 @@ def main():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--doc", required=True, help="base doc file (AGENTS.md / CLAUDE.md)")
-    parser.add_argument("--section-heading", action="append", default=None,
-                        help="heading of an owned section; repeat once per span "
-                             "(config section_spans); whole doc if omitted")
-    parser.add_argument("--agents-dir", action="append", required=True,
-                        help="directory of agent type .md files (repeatable)")
+    parser.add_argument(
+        "--doc", required=True, help="base doc file (AGENTS.md / CLAUDE.md)"
+    )
+    parser.add_argument(
+        "--section-heading",
+        action="append",
+        default=None,
+        help="heading of an owned section; repeat once per span "
+        "(config section_spans); whole doc if omitted",
+    )
+    parser.add_argument(
+        "--agents-dir",
+        action="append",
+        required=True,
+        help="directory of agent type .md files (repeatable)",
+    )
     parser.add_argument("--config", default=None, help=".claude/orchestration.yml")
-    parser.add_argument("--only-owned", action="store_true",
-                        help="errors only for types listed in the config's agents.types / "
-                             "agents.overrides; other files and missing global dirs only warn")
-    parser.add_argument("--local-config", default=None,
-                        help=".claude/orchestration.local.yml (default: next to --config); "
-                             "its local.global_types are compared with the installed files "
-                             "(mismatch or absence: warning, error with --strict)")
-    parser.add_argument("--global-agents-dir", action="append", default=None,
-                        help="agents dir holding machine-local (global) types, besides "
-                             "~/.claude/agents; its types are never owned (repeatable)")
-    parser.add_argument("--strict", action="store_true",
-                        help="an absent --agents-dir (and every unresolved type) is an error, "
-                             "not a warning")
+    parser.add_argument(
+        "--only-owned",
+        action="store_true",
+        help="errors only for types listed in the config's agents.types / "
+        "agents.overrides; other files and missing global dirs only warn",
+    )
+    parser.add_argument(
+        "--local-config",
+        default=None,
+        help=".claude/orchestration.local.yml (default: next to --config); "
+        "its local.global_types are compared with the installed files "
+        "(mismatch or absence: warning, error with --strict)",
+    )
+    parser.add_argument(
+        "--global-agents-dir",
+        action="append",
+        default=None,
+        help="agents dir holding machine-local (global) types, besides "
+        "~/.claude/agents; its types are never owned (repeatable)",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="an absent --agents-dir (and every unresolved type) is an error, "
+        "not a warning",
+    )
     ARGS = parser.parse_args()
     if ARGS.only_owned and not ARGS.config:
         parser.error("--only-owned requires --config")

@@ -72,10 +72,12 @@ def price_for(model):
 
 
 def usage_cost(usage, price):
-    return (usage.get("input_tokens", 0) * price[0]
-            + usage.get("output_tokens", 0) * price[1]
-            + usage.get("cache_read_input_tokens", 0) * price[2]
-            + usage.get("cache_creation_input_tokens", 0) * price[3]) / 1e6
+    return (
+        usage.get("input_tokens", 0) * price[0]
+        + usage.get("output_tokens", 0) * price[1]
+        + usage.get("cache_read_input_tokens", 0) * price[2]
+        + usage.get("cache_creation_input_tokens", 0) * price[3]
+    ) / 1e6
 
 
 def assistant_messages(path):
@@ -97,8 +99,12 @@ def assistant_messages(path):
             yield msg.get("model", ""), msg.get("usage") or {}, entry.get("version", "")
 
 
-DEFAULT_DAYS = 30  # window when neither --since/--days nor an installed type file gives a start
-MIN_WINDOW_DAYS = 7  # a shorter window is too short to judge spend or run shares (audit O8 rule)
+DEFAULT_DAYS = (
+    30  # window when neither --since/--days nor an installed type file gives a start
+)
+MIN_WINDOW_DAYS = (
+    7  # a shorter window is too short to judge spend or run shares (audit O8 rule)
+)
 
 
 def encode_cwd(path):
@@ -130,12 +136,24 @@ def repo_roots():
     if _ROOTS is None:
         paths = {os.getcwd()}
         try:
-            common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-                                    capture_output=True, text=True, check=True).stdout.strip()
+            common = subprocess.run(
+                ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
             paths.add(os.path.dirname(common.rstrip("/")))
-            listing = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                                     capture_output=True, text=True, check=True).stdout
-            paths.update(line[len("worktree "):] for line in listing.splitlines() if line.startswith("worktree "))
+            listing = subprocess.run(
+                ["git", "worktree", "list", "--porcelain"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout
+            paths.update(
+                line[len("worktree ") :]
+                for line in listing.splitlines()
+                if line.startswith("worktree ")
+            )
         except (OSError, subprocess.CalledProcessError):
             pass  # not a git repo: the cwd alone
         _ROOTS = {encode_cwd(p) for p in paths}
@@ -143,7 +161,10 @@ def repo_roots():
 
 
 def installed_type_files():
-    dirs = [os.path.expanduser("~/.claude/agents"), os.path.join(os.getcwd(), ".claude", "agents")]
+    dirs = [
+        os.path.expanduser("~/.claude/agents"),
+        os.path.join(os.getcwd(), ".claude", "agents"),
+    ]
     return [f for d in dirs for f in glob.glob(os.path.join(d, "*.md"))]
 
 
@@ -159,8 +180,13 @@ def window_start():
         return time.time() - ARGS.days * 86400, f"--days {ARGS.days}"
     files = installed_type_files()
     if files:
-        return min(os.path.getmtime(f) for f in files), "oldest installed agent type file"
-    return time.time() - DEFAULT_DAYS * 86400, f"no installed type file: last {DEFAULT_DAYS} days"
+        return min(
+            os.path.getmtime(f) for f in files
+        ), "oldest installed agent type file"
+    return (
+        time.time() - DEFAULT_DAYS * 86400,
+        f"no installed type file: last {DEFAULT_DAYS} days",
+    )
 
 
 def started_at(path):
@@ -173,7 +199,9 @@ def started_at(path):
                 except ValueError:
                     continue
                 if stamp:
-                    return datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
+                    return datetime.datetime.fromisoformat(
+                        stamp.replace("Z", "+00:00")
+                    ).timestamp()
                 break
     except (OSError, ValueError):
         pass
@@ -183,23 +211,39 @@ def started_at(path):
 def main():
     root = os.path.expanduser(ARGS.projects_dir)
     cutoff, cutoff_label = window_start()
-    scope = "all projects" if ARGS.all_projects else (
-        f"projects matching {ARGS.project!r}" if ARGS.project else f"current repo ({os.getcwd()})")
+    scope = (
+        "all projects"
+        if ARGS.all_projects
+        else (
+            f"projects matching {ARGS.project!r}"
+            if ARGS.project
+            else f"current repo ({os.getcwd()})"
+        )
+    )
     window_days = (time.time() - cutoff) / 86400
     too_short = window_days < MIN_WINDOW_DAYS
-    print(f"Scope: {scope}; since {datetime.datetime.fromtimestamp(cutoff):%Y-%m-%d} ({cutoff_label}); "
-          f"window_days {int(window_days)}; too_short: {'true' if too_short else 'false'}\n")
+    print(
+        f"Scope: {scope}; since {datetime.datetime.fromtimestamp(cutoff):%Y-%m-%d} ({cutoff_label}); "
+        f"window_days {int(window_days)}; too_short: {'true' if too_short else 'false'}\n"
+    )
 
-    by_type = collections.defaultdict(lambda: {"runs": 0, "calls": 0, "ctx": 0, "cost": 0.0,
-                                               "models": collections.Counter(),
-                                               "versions": collections.Counter()})
+    by_type = collections.defaultdict(
+        lambda: {
+            "runs": 0,
+            "calls": 0,
+            "ctx": 0,
+            "cost": 0.0,
+            "models": collections.Counter(),
+            "versions": collections.Counter(),
+        }
+    )
     for path in glob.glob(os.path.join(root, "*", "*", "subagents", "*.jsonl")):
         if not in_scope(os.path.relpath(path, root).split(os.sep)[0]):
             continue
         if started_at(path) < cutoff:
             continue
         try:
-            with open(path[:-len(".jsonl")] + ".meta.json") as fh:
+            with open(path[: -len(".jsonl")] + ".meta.json") as fh:
                 agent_type = json.load(fh).get("agentType") or "?"
         except (OSError, ValueError):
             agent_type = "?"
@@ -211,8 +255,11 @@ def main():
                 continue
             row["versions"][version or "?"] += 1
             row["calls"] += 1
-            row["ctx"] += (usage.get("input_tokens", 0) + usage.get("cache_read_input_tokens", 0)
-                           + usage.get("cache_creation_input_tokens", 0))
+            row["ctx"] += (
+                usage.get("input_tokens", 0)
+                + usage.get("cache_read_input_tokens", 0)
+                + usage.get("cache_creation_input_tokens", 0)
+            )
             row["cost"] += usage_cost(usage, price)
             row["models"][model] += 1
 
@@ -233,14 +280,18 @@ def main():
         return 1
 
     print("Subagents (estimated, API list prices)")
-    print(f"{'type':20} {'runs':>5} {'calls/run':>9} {'ctx/call':>9} {'$/run':>7} {'$ total':>8} {'share':>6}  model ids (exact)")
+    print(
+        f"{'type':20} {'runs':>5} {'calls/run':>9} {'ctx/call':>9} {'$/run':>7} {'$ total':>8} {'share':>6}  model ids (exact)"
+    )
     for agent_type, r in sorted(by_type.items(), key=lambda kv: -kv[1]["cost"]):
         runs = max(r["runs"], 1)
         calls = max(r["calls"], 1)
         top_model = ",".join(m for m, _ in r["models"].most_common()) or "-"
         share = 100 * r["cost"] / sub_total if sub_total else 0
-        print(f"{agent_type:20} {r['runs']:5} {r['calls'] / runs:9.0f} {r['ctx'] / calls / 1e3:8.0f}k "
-              f"{r['cost'] / runs:7.2f} {r['cost']:8.0f} {share:5.1f}%  {top_model}")
+        print(
+            f"{agent_type:20} {r['runs']:5} {r['calls'] / runs:9.0f} {r['ctx'] / calls / 1e3:8.0f}k "
+            f"{r['cost'] / runs:7.2f} {r['cost']:8.0f} {share:5.1f}%  {top_model}"
+        )
 
     main_total = sum(main_by_model.values())
     print(f"\nMain sessions: ${main_total:.0f}   subagents: ${sub_total:.0f}")
@@ -248,7 +299,9 @@ def main():
         print(f"  {model:24} ${cost:8.0f}")
 
     # Appended after the legacy output (existing consumers keep parsing the table above).
-    print("\nResolved models and CLI versions per type (probe O8.10; different ids = different models)")
+    print(
+        "\nResolved models and CLI versions per type (probe O8.10; different ids = different models)"
+    )
     for agent_type, r in sorted(by_type.items()):
         models = ", ".join(f"{m} x{n}" for m, n in r["models"].most_common()) or "-"
         versions = ", ".join(f"{v} x{n}" for v, n in r["versions"].most_common()) or "-"
@@ -257,18 +310,34 @@ def main():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--since", default=None, metavar="YYYY-MM-DD",
-                        help="only sessions started on or after this date "
-                             "(default: oldest mtime of the installed agent type files)")
-    parser.add_argument("--days", type=int, default=None, help="window in days instead of --since")
-    parser.add_argument("--all-projects", action="store_true",
-                        help="read the transcripts of every project, not only the current repo")
-    parser.add_argument("--project", default=None,
-                        help="only transcript folders whose name contains this substring")
-    parser.add_argument("--projects-dir", default="~/.claude/projects",
-                        help="Claude Code transcripts root")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--since",
+        default=None,
+        metavar="YYYY-MM-DD",
+        help="only sessions started on or after this date "
+        "(default: oldest mtime of the installed agent type files)",
+    )
+    parser.add_argument(
+        "--days", type=int, default=None, help="window in days instead of --since"
+    )
+    parser.add_argument(
+        "--all-projects",
+        action="store_true",
+        help="read the transcripts of every project, not only the current repo",
+    )
+    parser.add_argument(
+        "--project",
+        default=None,
+        help="only transcript folders whose name contains this substring",
+    )
+    parser.add_argument(
+        "--projects-dir",
+        default="~/.claude/projects",
+        help="Claude Code transcripts root",
+    )
     ARGS = parser.parse_args()
     if ARGS.since and ARGS.days is not None:
         parser.error("--since and --days are exclusive")

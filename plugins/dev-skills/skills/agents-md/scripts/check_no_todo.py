@@ -22,14 +22,41 @@ from pathlib import Path
 DEFAULT_MARKERS = ["TODO", "FIXME", "XXX", "HACK", "OPTIMIZE", "REVIEW"]
 
 DEFAULT_EXCLUDES = [
-    "*/node_modules/*", "*/.next/*", "*/.git/*", "*/dist/*", "*/build/*",
-    "*/__pycache__/*", "*/venv/*", "*/.venv/*", "*/migrations/*",
-    "*.lock", "*.min.js", "*.map", "*/TODO.md",
+    "*/node_modules/*",
+    "*/.next/*",
+    "*/.git/*",
+    "*/dist/*",
+    "*/build/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/migrations/*",
+    "*.lock",
+    "*.min.js",
+    "*.map",
+    "*/TODO.md",
 ]
 
 TEXT_SUFFIXES = {
-    ".py", ".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".vue", ".svelte",
-    ".go", ".rs", ".rb", ".java", ".kt", ".php", ".sh", ".css", ".scss", ".sql",
+    ".py",
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".vue",
+    ".svelte",
+    ".go",
+    ".rs",
+    ".rb",
+    ".java",
+    ".kt",
+    ".php",
+    ".sh",
+    ".css",
+    ".scss",
+    ".sql",
 }
 
 
@@ -51,13 +78,22 @@ def iter_files(roots: list[str], patterns: list[str], suffixes: set[str]):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("paths", nargs="+")
     ap.add_argument("--markers", default=",".join(DEFAULT_MARKERS))
-    ap.add_argument("--allow", action="append", default=[], help="extra glob to skip (repeatable)")
-    ap.add_argument("--suffixes", default="", help="comma list overriding the default code suffixes")
-    ap.add_argument("--strict", action="store_true",
-                    help="flag every occurrence, including prose citing the debt register")
+    ap.add_argument(
+        "--allow", action="append", default=[], help="extra glob to skip (repeatable)"
+    )
+    ap.add_argument(
+        "--suffixes", default="", help="comma list overriding the default code suffixes"
+    )
+    ap.add_argument(
+        "--strict",
+        action="store_true",
+        help="flag every occurrence, including prose citing the debt register",
+    )
     args = ap.parse_args()
 
     markers = [m.strip() for m in args.markers.split(",") if m.strip()]
@@ -75,8 +111,9 @@ def main() -> int:
             r"|\b(?:" + alt + r")\s*(?:\([^)]*\))?\s*:)"
         )
     patterns = DEFAULT_EXCLUDES + args.allow
-    suffixes = {s if s.startswith(".") else "." + s
-                for s in args.suffixes.split(",") if s} or TEXT_SUFFIXES
+    suffixes = {
+        s if s.startswith(".") else "." + s for s in args.suffixes.split(",") if s
+    } or TEXT_SUFFIXES
 
     hits = 0
     for path in iter_files(args.paths, patterns, suffixes):

@@ -26,6 +26,7 @@ Usage: count_rules.py FILE... [--section-heading TEXT]... [--lang auto|en|fr]
                       [--skip-heading REGEX]... [--no-skip]
 Exit codes: 0 counted, 2 usage error or unreadable file.
 """
+
 import argparse
 import json
 import re
@@ -34,18 +35,55 @@ import unicodedata
 
 MODALS = {
     "en": ["must", "never", "always", "required", "forbidden", "shall", "do not"],
-    "fr": ["doit", "doivent", "jamais", "toujours", "obligatoire", "obligatoires",
-           "interdit", "interdite", "interdits", "interdites", "ne pas",
-           "ne jamais", "aucun", "aucune", "il faut"],
+    "fr": [
+        "doit",
+        "doivent",
+        "jamais",
+        "toujours",
+        "obligatoire",
+        "obligatoires",
+        "interdit",
+        "interdite",
+        "interdits",
+        "interdites",
+        "ne pas",
+        "ne jamais",
+        "aucun",
+        "aucune",
+        "il faut",
+    ],
 }
 PROHIBITIONS = {
     "en": ["never", "must not", "forbidden", "do not", "don't"],
-    "fr": ["jamais", "interdit", "interdite", "interdits", "interdites", "ne pas", "aucun", "aucune"],
+    "fr": [
+        "jamais",
+        "interdit",
+        "interdite",
+        "interdits",
+        "interdites",
+        "ne pas",
+        "aucun",
+        "aucune",
+    ],
 }
 # Stopwords used only to guess the language of a file in --lang auto.
 STOP = {
     "en": {"the", "is", "and", "for", "with", "that", "this", "are", "to", "of"},
-    "fr": {"le", "la", "les", "des", "est", "une", "pour", "dans", "que", "qui", "avec", "sur", "du"},
+    "fr": {
+        "le",
+        "la",
+        "les",
+        "des",
+        "est",
+        "une",
+        "pour",
+        "dans",
+        "que",
+        "qui",
+        "avec",
+        "sur",
+        "du",
+    },
 }
 # Headings (folded) whose sections hold facts, not rules: the every-item rule is off there.
 DEFAULT_SKIP = [
@@ -115,7 +153,8 @@ def split_units(lines):
                 in_comment = False
             continue
         if FENCE.match(line):
-            flush_para(); flush_item()
+            flush_para()
+            flush_item()
             in_fence = not in_fence
             continue
         if in_fence:
@@ -126,15 +165,18 @@ def split_units(lines):
             continue
         m = HEADING.match(line)
         if m:
-            flush_para(); flush_item()
+            flush_para()
+            flush_item()
             sections.append({"level": len(m.group(1)), "heading": m.group(2)})
             section = len(sections) - 1
             continue
         if not line.strip():
-            flush_para(); flush_item()
+            flush_para()
+            flush_item()
             continue
         if line.lstrip().startswith("|"):
-            flush_para(); flush_item()
+            flush_para()
+            flush_item()
             if re.fullmatch(r"[\s|:-]+", line):
                 if table_last is not None and table_last == len(units) - 1:
                     units.pop()  # the row above a separator is the header
@@ -145,7 +187,8 @@ def split_units(lines):
             continue
         li = LIST_ITEM.match(line)
         if li:
-            flush_para(); flush_item()
+            flush_para()
+            flush_item()
             item = li.group(1)
             continue
         if item is not None and line.startswith((" ", "\t")):
@@ -153,7 +196,8 @@ def split_units(lines):
             continue
         flush_item()
         para.append(line.strip())
-    flush_para(); flush_item()
+    flush_para()
+    flush_item()
     return sections, units
 
 
@@ -176,10 +220,23 @@ def count_file(path, lang_opt, skip_res):
     lines = text.splitlines()
     sections, units = split_units(lines)
     flags = skipped_flags(sections, skip_res)
-    stats = [{"heading": s["heading"], "level": s["level"], "skipped": flags[n],
-              "statements": 0, "prohibitions": 0} for n, s in enumerate(sections)]
-    preamble = {"heading": "(before first heading)", "level": 0, "skipped": False,
-                "statements": 0, "prohibitions": 0}
+    stats = [
+        {
+            "heading": s["heading"],
+            "level": s["level"],
+            "skipped": flags[n],
+            "statements": 0,
+            "prohibitions": 0,
+        }
+        for n, s in enumerate(sections)
+    ]
+    preamble = {
+        "heading": "(before first heading)",
+        "level": 0,
+        "skipped": False,
+        "statements": 0,
+        "prohibitions": 0,
+    }
     for idx, kind, unit in units:
         folded = fold(unit)
         target = stats[idx] if idx >= 0 else preamble
@@ -218,26 +275,45 @@ def select(result, pattern):
             i = j
         else:
             i += 1
-    summary = {"pattern": pattern, "matched": matched,
-               "statements": sum(s["statements"] for s in covered),
-               "prohibitions": sum(s["prohibitions"] for s in covered)}
+    summary = {
+        "pattern": pattern,
+        "matched": matched,
+        "statements": sum(s["statements"] for s in covered),
+        "prohibitions": sum(s["prohibitions"] for s in covered),
+    }
     return summary, covered
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(
-        description="Count normative statements and prohibitions (read-only, JSON on stdout).")
+        description="Count normative statements and prohibitions (read-only, JSON on stdout)."
+    )
     ap.add_argument("files", nargs="+", help="Markdown files to count")
-    ap.add_argument("--section-heading", action="append", default=[], metavar="TEXT",
-                    help="also total the section whose heading contains TEXT (accent- and "
-                         "case-insensitive, subsections included); repeatable")
-    ap.add_argument("--lang", choices=["auto", "en", "fr"], default="auto",
-                    help="marker list: auto guesses per file (default)")
-    ap.add_argument("--skip-heading", action="append", default=None, metavar="REGEX",
-                    help="regex on the folded heading marking a non-normative section "
-                         "(replaces the defaults; repeatable)")
-    ap.add_argument("--no-skip", action="store_true",
-                    help="treat every section as normative")
+    ap.add_argument(
+        "--section-heading",
+        action="append",
+        default=[],
+        metavar="TEXT",
+        help="also total the section whose heading contains TEXT (accent- and "
+        "case-insensitive, subsections included); repeatable",
+    )
+    ap.add_argument(
+        "--lang",
+        choices=["auto", "en", "fr"],
+        default="auto",
+        help="marker list: auto guesses per file (default)",
+    )
+    ap.add_argument(
+        "--skip-heading",
+        action="append",
+        default=None,
+        metavar="REGEX",
+        help="regex on the folded heading marking a non-normative section "
+        "(replaces the defaults; repeatable)",
+    )
+    ap.add_argument(
+        "--no-skip", action="store_true", help="treat every section as normative"
+    )
     args = ap.parse_args(argv)
     patterns = [] if args.no_skip else (args.skip_heading or DEFAULT_SKIP)
     try:
@@ -264,15 +340,19 @@ def main(argv=None):
         results.append(res)
     out = {
         "files": results,
-        "totals": {"statements": sum(r["statements"] for r in results),
-                   "prohibitions": sum(r["prohibitions"] for r in results)},
+        "totals": {
+            "statements": sum(r["statements"] for r in results),
+            "prohibitions": sum(r["prohibitions"] for r in results),
+        },
         "total_statements": sum(r["statements"] for r in results),
         "total_prohibitions": sum(r["prohibitions"] for r in results),
         "note": "heuristic, about +/-10%; harness share not included",
     }
     if args.section_heading:
-        out["selected_totals"] = {"statements": sum(s["statements"] for s in covered),
-                                  "prohibitions": sum(s["prohibitions"] for s in covered)}
+        out["selected_totals"] = {
+            "statements": sum(s["statements"] for s in covered),
+            "prohibitions": sum(s["prohibitions"] for s in covered),
+        }
     json.dump(out, sys.stdout, indent=2, ensure_ascii=False)
     print()
     return 0

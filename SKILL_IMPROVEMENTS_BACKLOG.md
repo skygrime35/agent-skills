@@ -200,3 +200,14 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 | R6-5 | check_sections label cutting fixed, dir args, `--archives`; check_dead_paths ignored dirs = `local` | IN 1.8.0 |
 | R6-6 | .gitignore ordered block (ignores after negations) and `check-ignore -v` verdict rule; existing doc map used as tier-3 index; unmarked-copy proof procedure; P3.2/P2.3 noise | IN 1.8.0 |
 | R6-7 | orchestration: committed config owns project-scope types only, global types in `orchestration.local.yml`; O7.10, O4.3 report-style check; mandatory final-message skeleton | IN 1.8.0 |
+
+---
+
+## Round 7 (2026-10-13, fourth real-project run of 1.8.0) — all IN 1.8.1
+
+| # | Fix | Status |
+|---|---|---|
+| R7-1 | Each skill makes its own written `.claude/` paths committable in its own run (ordered block, final probe); negations only for existing/written paths | IN 1.8.1 |
+| R7-2 | Shipped scripts `ruff format`-ed; stamped copies excluded from project FORMAT only (lint kept) | IN 1.8.1 |
+| R7-3 | Test breakage patterns when a canonical script replaces a project copy | IN 1.8.1 |
+| R7-4 | check_ci_replay resolves shell wrapper functions; wrapper-script vs direct-tool detail; archives example = tolerate; "no scope found" recorded; final-message skeleton printed even for a parent agent | IN 1.8.1 |
