@@ -35,6 +35,8 @@ Before the first modification of a task: `git branch --show-current`, then `git 
 
 **Never switch branches without approval.** `checkout`, `switch`, `reset`, `pull --rebase`, `stash` change what every session sharing this directory sees.
 
+**Parallel agents never edit the same working tree**: one git worktree per agent. <!-- agents-md:isolation-stub. Minimal rule: run /orchestration to complete it (it replaces this line with the full parallelism doctrine). -->
+
 {{#OUTPUT_DENSITY}}
 ### 6. Output mode
 

@@ -1,0 +1,4 @@
+schema_version: "1.0"
+name: agents-md-audit-flags-volatile
+context:
+  scaffold_script: fixture.sh

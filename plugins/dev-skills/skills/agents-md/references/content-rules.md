@@ -12,7 +12,7 @@ Contents:
 - 9 Mechanical checks
 - 10 CLAUDE.md pointer
 - 11 Prose density
-- 12 Concurrency isolation is not written here
+- 12 Concurrency isolation: one line, owned by /orchestration
 
 The rules in this file decide the quality of everything the skill produces. They are ordered by how much damage ignoring them causes.
 
@@ -110,6 +110,6 @@ Write the way an engineering report is written: result first, no preamble, no re
 
 Every line is paid for on every session, in every subagent. A paragraph that could be a table row should be a table row.
 
-## 12. Concurrency isolation is not written here
+## 12. Concurrency isolation: one line, owned by /orchestration
 
-Parallelism and isolation rules are owned by `/orchestration`. Never generate a "Concurrency isolation" subsection in the behaviour section. When more than one agent may run, the init report recommends `/orchestration`. Audit check P0.1 still flags documentation that encourages parallel agents with no isolation mechanism anywhere (the orchestration section counts).
+Parallelism and isolation rules are owned by `/orchestration`. Write only the one-line stub of the template (branch discipline, marker `agents-md:isolation-stub`); never expand it into a "Concurrency isolation" subsection. When more than one agent may run, the init report recommends `/orchestration`. Audit check P0.1 still flags documentation that encourages parallel agents with no isolation mechanism anywhere (the orchestration section counts).

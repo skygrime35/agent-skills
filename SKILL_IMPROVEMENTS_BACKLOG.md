@@ -139,3 +139,6 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 | R2-5 | B4 omitted when the base doc already has an ask-on-ambiguity rule (`omitted-redundant`) | IN 1.4.0 |
 | R2-6 | `check_agent_refs.py --only-owned` for CI (non-owned files and absent global dirs are warnings) | IN 1.4.0 |
 | R2-7 | agents-md avoids volatile state (current branch, task in progress, open PRs, drifting counts) in every agentic doc, arbitrating exceptions itself; audit flags it under P2.5 | IN 1.4.0 |
+| R2-8 | agents-md writes a one-line isolation stub (`agents-md:isolation-stub`, one worktree per parallel agent, points to `/orchestration`), which orchestration replaces | IN 1.4.0 |
+| R2-9 | Tracked-checkers exception ignores dev-skills' own checkers (they are a relocation candidate, not a project convention) | IN 1.4.0 |
+| R2-10 | Evals: audit flags volatile state, sync proposes checker relocation, orchestration init absorbs the stub | IN 1.4.0 |
