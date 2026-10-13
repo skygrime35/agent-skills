@@ -1,6 +1,6 @@
 {
   "name": "dev-skills",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"
@@ -33,7 +33,7 @@
     "agents_md_guardrail_scripts_path": {
       "type": "string",
       "title": "Guardrail scripts path",
-      "description": "Project-relative folder where the check_*.py guardrail scripts are copied (unless the project already tracks check_* scripts in scripts/).",
+      "description": "Project-relative folder where the check_*.py guardrail scripts are copied.",
       "default": ".claude/agents-md/"
     },
     "agents_md_commit_convention_policy": {

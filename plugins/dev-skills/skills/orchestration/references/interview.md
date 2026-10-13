@@ -15,8 +15,8 @@ Runs in Phase 1 of `init`, and in `sync` only when a batch changes policy. The g
 
 Q1.1 has no recommended option: in autopilot the available models are the current lineup of `models.md` (after D11), minus any model whose resolution dispatch fails in Phase 4.
 
-Only these may still interrupt the run, each because no default can be safe:
-- **Q0.2** several candidate base docs or orchestration headings (D1/D2 ambiguous);
+Only these may still interrupt the run, each because no default can be safe (the three questions kept on the default path; nothing else is asked):
+- **Q0.2** several candidate base docs or orchestration headings that the rules below cannot pick: first try the base doc named by the CLAUDE.md pointer, then `AGENTS.md`, then the heading that matches the orchestration probe. Only a tie left after that is asked;
 - **Q4.3** a language conflict with a rule the project states (guardrail, never resolved silently);
 - an **O2.3 contradiction** with a rule elsewhere in the base doc (for example "never spawn subagents").
 
@@ -70,7 +70,7 @@ Five questions, so two salvos: Q1.1 to Q1.3, then Q1.4 and Q1.5. Present alongsi
 - **Q4.1 Ask-before-dispatch posture?** Auto-answered when the base doc already holds an equivalent ask-on-ambiguity / think-before-coding rule (whoever wrote it): B4 is omitted, `policy.ask_before_dispatch: omitted-redundant`, and the plan says so. Otherwise [Ask the user freely, as much as needed, whenever intent is ambiguous, before decomposing (Recommended) | Minimize questions, bias to action]. Effect: B4 present or absent.
 - **Q4.2 Session naming?** Pre-answered by probe D6. Statusline present: [Task description only, no model/effort prefix, badge shows them; fallback format documented for machines without it (Recommended) | Always prefix]. Statusline absent: [Prefix format `model(effort): task` (Recommended) | Task description only]. Effect: B5 variant.
 - **Q4.3 Language resolution.** Only if probe D7 found a conflict. Quote the stated rule and its location, list the options, record the decision in `policy.language_resolution`.
-- **Q4.4 Where does the check script go?** [`.claude/orchestration/` (Recommended) | `scripts/` | Skip the checks scope]. Automatic exception, announced in the plan and not asked: when `git ls-files 'scripts/check_*'` lists at least one file that is not a dev-skills checker (check_no_todo.py, check_monolith.py, check_no_stub.py, check_forbidden_chars.py, check_agent_refs.py) (the project tracks its own checkers there), the recommendation becomes `scripts/`, next to them. An untracked or just-created `scripts/` (including one created by `/agents-md`) never counts. If git ignores the chosen folder (`git check-ignore -q <path>/check_agent_refs.py`), the plan adds a `.gitignore` negation (`!<path>`; a whole-directory pattern such as `.claude/` must first become `.claude/*`, or the negation has no effect; re-check with `git check-ignore`) so the script is committed. Effect: `checks[].path`, `wired: false` regardless.
+- **Q4.4 retired (round 3).** No question. The check script always goes to `.claude/orchestration/check_agent_refs.py`, printed in the plan with source `recommended` (or `project`/`plugin option` when `policy.check_script_path` / `orchestration_check_script_path` names another path). Skipping the checks scope is done with `--scope=doctrine,agents`, never asked. If git ignores the chosen folder (`git check-ignore -q <path>/check_agent_refs.py`), the plan adds a `.gitignore` negation (`!<path>`; a whole-directory pattern such as `.claude/` must first become `.claude/*`, or the negation has no effect; re-check with `git check-ignore`) so the script is committed. Effect: `checks[].path`, `wired: false` regardless.
 
 ## Answer-to-artifact map
 
@@ -93,4 +93,3 @@ Five questions, so two salvos: Q1.1 to Q1.3, then Q1.4 and Q1.5. Present alongsi
 | Q4.1 | B4 (absent when `omitted-redundant`) | `policy.ask_before_dispatch` | |
 | Q4.2 | B5 variant | `policy.session_naming` | |
 | Q4.3 | rendering language | `policy.language_resolution` | |
-| Q4.4 | | `policy.check_script_path`, `checks[].path` | check script location |

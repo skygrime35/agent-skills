@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# dev-skills: agents-md __PLUGIN_VERSION__
 """Fail when unimplemented placeholders reach the shipped tree.
 
 The rule: not implemented means not merged. A documented function whose body

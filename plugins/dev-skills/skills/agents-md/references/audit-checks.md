@@ -2,9 +2,9 @@
 
 Contents:
 - P0 - active risk (P0.1-P0.4)
-- P1 - false facts (P1.1-P1.5)
+- P1 - false facts (P1.1-P1.6)
 - P2 - structure and cost (P2.1-P2.5)
-- P3 - hygiene (P3.1-P3.4)
+- P3 - hygiene (P3.1-P3.7)
 - Non-regression check
 
 Each check states what it looks for, the command that runs it, and the severity of a hit. **No finding without the evidence that produced it.**
@@ -122,6 +122,10 @@ stat <path>                                  # existence, mtime of a claimed art
 - Claim that cannot be probed (no `gh` auth, daemon unreachable, sandbox): list it as a blind spot with its rank, never as a green check.
 - Probes stay read-only: no `gh run rerun|cancel|delete`, no `docker compose up|down|exec`, no API write. A probe that would change state is not run.
 
+### P1.6 .gitignore contradicts the agentic file set
+
+Probes and expected state: detection.md section 12. Finding **P1** (evidence: the `git check-ignore` / `git ls-files` output) when a must-be-ignored path is tracked or not ignored (`.claude/settings.local.json`, `*.local.*` configs, run journals, `.claude/worktrees/`), or a must-not-be-ignored path is ignored (`.claude/settings.json`, `.claude/agents/`, `.claude/<skill>.yml`, `.claude/<skill>/`, AGENTS.md, CLAUDE.md, `AGENTS/`); a whole-directory `.claude/` pattern is the usual cause. Paths that do not exist are "not applicable". Fix line: the minimal `.gitignore` edit, plus `git rm --cached <path>` for a tracked local file (never deletes the working copy). Zero writes in audit.
+
 ## P2 - structure and cost
 
 ### P2.1 Instruction budget
@@ -217,6 +221,18 @@ done
 ```
 
 When the doc has a "CI-equivalent / replay locally" list, compare it with the workflows' real steps: extract every `jobs.<id>.steps[].run` command from `.github/workflows/*.yml` (python3 with `yaml`, else grep of `run:`) and match each job against the list. A job whose commands appear nowhere in the list = **P2** (name the job). Jobs the project deliberately leaves out are listed in `ci_replay_excludes` of `.claude/agents-md.yml` and skipped.
+
+### P3.5 Misplaced agentic script (migration candidate)
+
+Classification and evidence: detection.md section 10; destinations: guardrail-scripts.md (Script triage). One P3 per agentic script outside `.claude/<skill>/`, stating the evidence (marker line, file name, or the agentic paths it reads) and the references that would be updated. Ambiguous scripts are listed as blind spots.
+
+### P3.6 Outdated or edited checker copy
+
+Compare per guardrail-scripts.md (Canonical copies). Content differs and marker version older: P3 "outdated copy" (sync replaces it). Edited locally (marker version current, or no marker): P3 with the diff, handled as a project variant.
+
+### P3.7 Project variant of a canonical checker
+
+Run both per guardrail-scripts.md (Project variants). P3 "replaceable variant" when the canonical script covers every finding (cite both outputs); P3 "upstream candidate" for each extra capability the variant has (what, `file:line`).
 
 ## Non-regression check (mandatory after any sync batch touching guardrails)
 

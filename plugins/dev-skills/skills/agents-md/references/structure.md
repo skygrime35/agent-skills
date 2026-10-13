@@ -97,7 +97,7 @@ Generate these in every tier, adapted to the project. They encode failures obser
 - **Branch discipline.** Establish the current branch before the first modification. Never modify the production branch without an explicit request. Never switch branches without approval: it changes what every session sharing the directory sees.
 - **Staging discipline.** Stage only files you modified yourself: it prevents one session committing another's in-flight work into an unrelated commit.
 - **Concurrency isolation: one-line stub only.** The branch-discipline block carries a single rule (one git worktree per parallel agent) marked `agents-md:isolation-stub`, pointing to `/orchestration`, which owns parallelism and isolation and replaces the stub with its full doctrine. Never expand it here. When multiple agents are possible, the init report recommends running `/orchestration`.
-- **Output density** (optional, ask). Engineering-report prose: result first, no preamble, no closing summary. If generated, it must carry the bound: density applies to prose, never to the work, and never licenses skipping clarifying questions or hiding a risk.
+- **Output density** (optional; included only when `.claude/agents-md.yml` or the plan opts in, never asked). Engineering-report prose: result first, no preamble, no closing summary. If generated, it must carry the bound: density applies to prose, never to the work, and never licenses skipping clarifying questions or hiding a risk.
 - **Delegation** (only where subagents exist). With a threshold: below the cost of a delegation round trip, do it inline.
 
 ## INDEX.md

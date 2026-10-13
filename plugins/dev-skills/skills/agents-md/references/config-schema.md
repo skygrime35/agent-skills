@@ -22,7 +22,7 @@ policy:                          # run policies; command argument > this file > 
   language: en                   # doc language
   tier: auto                     # auto | 1 | 2 | 3
   install_guardrail_scripts: true
-  guardrail_scripts_path: .claude/agents-md/   # argument > this field > plugin option user_config.agents_md_guardrail_scripts_path > scripts/ if git tracks scripts/check_* > .claude/agents-md/
+  guardrail_scripts_path: .claude/agents-md/   # this field > plugin option user_config.agents_md_guardrail_scripts_path > .claude/agents-md/
   commit_convention: detect      # detect | enforce | skip
 archives:                        # dated records exempt from dead-reference fixes
   paths: [errors/, adr/, postmortems/]
@@ -37,7 +37,7 @@ language:
   written: en                    # what the docs are written in
   detected: fr                   # what the repo's own prose uses
   conflict: "AGENTS.md guardrail requires French for all documentation"
-  resolution: "human chose English on 2026-07-29"   # null if no conflict
+  resolution: "repository rule applied (French) on 2026-07-29"   # null if no conflict
 
 structure:                       # every file this skill generated or now owns
   root: AGENTS.md
@@ -69,7 +69,7 @@ commit_convention:
   scopes: [billing, users, ui, infra]
 
 guardrail_scripts:               # what was installed and whether it is wired
-  - {name: check_no_todo,        path: .claude/agents-md/check_no_todo.py,        wired: false}
+  - {name: check_no_todo,        path: .claude/agents-md/check_no_todo.py,        wired: false, marker_version: "1.4.0"}   # version stamped at copy time
   - {name: check_monolith,       path: .claude/agents-md/check_monolith.py,       wired: false,
      thresholds: {file: 400, function: 75, class: 200, component: 150}}
   - {name: check_forbidden_chars, path: .claude/agents-md/check_forbidden_chars.py, wired: false,
@@ -100,7 +100,9 @@ local:                           # machine-specific, gitignore candidate
 
 **`commands`**: an entry with `verified: false` must carry a `note` saying why. A command that failed is never written into the documentation as if it worked.
 
-**`language.conflict`**: populated whenever the repository states a documentation language rule that differs from the default. Never resolve it silently; `resolution` records the human's decision and when.
+**`language.conflict`**: populated whenever the repository states a documentation language rule that differs from the default. Never resolve it silently; `resolution` records the rule applied and when.
+
+**`guardrail_scripts[].marker_version`**: plugin version in the copy's `dev-skills: agents-md <version>` marker, refreshed on every copy or replacement.
 
 **`guardrail_scripts[].wired`**: `false` until the human confirms the CI block was added. The skill proposes, it never wires.
 

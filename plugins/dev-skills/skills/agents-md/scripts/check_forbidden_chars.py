@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# dev-skills: agents-md __PLUGIN_VERSION__
 """Fail when forbidden characters appear in a configured scope.
 
 Typical targets: em dash / en dash (the most recognisable tell of generated

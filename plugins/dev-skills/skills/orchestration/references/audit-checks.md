@@ -70,7 +70,9 @@ For every file in both D5 inventories:
 - **O7.1 P1** A check script recorded in the config but missing on disk. Evidence: config entry + `ls` output.
 - **O7.2 P1** `wired: true` with no CI or pre-commit evidence (probe D10's grep empty). A false fact about enforcement is worse than no enforcement. Evidence: the config line + the empty grep.
 - **O7.3 P2** The script exists but scans a location that is not the current `agents.location` (moved agents dir, renamed doc). Evidence: the script's arguments in CI vs the config.
-- **O7.4 P3** The check script sits in `scripts/` although git tracks no other `scripts/check_*` file and nothing wires it: migration candidate to `.claude/orchestration/` (sync proposes it). Evidence: `git ls-files 'scripts/check_*'` + D10 grep.
+- **O7.4 P3** `check_agent_refs.py` (by file name or `dev-skills: orchestration` marker) found outside `.claude/orchestration/`: migration candidate. Sync moves it with `git mv`, updates every reference (CI, pre-commit, Makefile, package.json, docs, `.claude/orchestration.yml`), wired or not, then re-runs it from the new path. Evidence: D10 `find` and grep output.
+- **O7.5 P3** A project copy older than the canonical script (marker version lower than `plugin.json`, or content differs and it is unedited). Sync replaces it with the canonical copy in the plan. Evidence: marker line + canonical version.
+- **O7.6 P3** A locally edited copy (content differs with the current or no marker version). Observation only: the diff goes in the report, extra capabilities are listed as upstream candidates for the skill repo. Never overwritten blindly. Evidence: the diff hunks.
 
 ## O8 - Model economy
 

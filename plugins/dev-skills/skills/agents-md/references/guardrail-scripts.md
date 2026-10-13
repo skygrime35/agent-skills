@@ -1,10 +1,10 @@
 # Guardrail scripts: generating and wiring
 
-Contents: The four checkers - Wiring: propose, never do - Wire after clearing, never before - Choosing thresholds - Allowlists
+Contents: The four checkers - Copy and stamp - Canonical copies - Project variants - Script triage - Wiring: propose, never do - Wire after clearing, never before - Choosing thresholds - Allowlists
 
 A rule nobody checks decays. These scripts turn written prohibitions into mechanical ones.
 
-They live in `${CLAUDE_SKILL_DIR}/scripts/` and are **copied into the target project** at `<scripts_path>` (resolution in SKILL.md: argument > `guardrail_scripts_path` in config > `user_config.agents_md_guardrail_scripts_path` > tracked-checkers exception > `.claude/agents-md/`), e.g. `cp ${CLAUDE_SKILL_DIR}/scripts/check_{no_todo,monolith,no_stub,forbidden_chars}.py <target>/<scripts_path>` (not `check_dead_paths.py` / `check_sections.py`, which are audit-only). Pure standard library, no dependency, exit 1 on violation.
+They live in `${CLAUDE_SKILL_DIR}/scripts/` and are **copied into the target project** at `<scripts_path>` (resolution in SKILL.md: `guardrail_scripts_path` in config > `user_config.agents_md_guardrail_scripts_path` > `.claude/agents-md/`; no other exception), copied as described in Copy and stamp (not `check_dead_paths.py` / `check_sections.py`, which are audit-only). Pure standard library, no dependency, exit 1 on violation.
 
 ## The four checkers
 
@@ -27,9 +27,54 @@ This is not a detail. The first field run of the naive version produced four hit
 
 `check_monolith.py` uses the Python AST for function and class limits (exact), and file-level line counts elsewhere. It deliberately does **not** brace-count other languages: the false positives are worse than the missed hits. Blank lines and comment-only lines are not counted.
 
+## Copy and stamp
+
+The canonical scripts in `${CLAUDE_SKILL_DIR}/scripts/` carry the placeholder line `# dev-skills: agents-md __PLUGIN_VERSION__` right after the shebang. Read the version from `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json` (`version`), then:
+
+```bash
+V=<plugin version>
+for f in no_todo monolith no_stub forbidden_chars; do
+  sed "2s/__PLUGIN_VERSION__/$V/" ${CLAUDE_SKILL_DIR}/scripts/check_$f.py > <target>/<scripts_path>/check_$f.py
+done
+chmod +x <target>/<scripts_path>/check_*.py
+```
+
+The marker line is the only difference between canonical and copy. Copies are needed because CI cannot read the plugin cache.
+
+## Canonical copies
+
+On every run, compare each project copy (marker or legacy file name) with the canonical script, marker line excluded:
+
+```bash
+diff <(sed 2d <project copy>) <(sed 2d ${CLAUDE_SKILL_DIR}/scripts/check_X.py)
+```
+
+| Result | Verdict | Action |
+|---|---|---|
+| No diff, marker version equals current or older | current | refresh the marker only in sync |
+| Diff, marker version older than the plugin version | outdated | sync replaces it (single plan); audit: P3 |
+| Diff, marker version equals current, or no marker | edited locally | never overwrite blindly: show the diff in the plan and treat as a project variant |
+
+## Project variants
+
+A project script with the same purpose as a canonical checker (file size / monolith, deferral markers, stubs, forbidden characters, agent references), whatever its name (`check_file_size.py`, `check_no_todos.py`, ...), and each locally edited copy. Run both on the project with equivalent options, compare the findings:
+
+- The canonical script finds everything the variant finds, and its thresholds and allowlists are expressible as canonical options or config: propose replacing the variant by the canonical copy in `<scripts_path>`, wiring updated to the equivalent options. Put both runs' outputs in the plan as proof.
+- The variant checks more: keep it, and report each extra capability as an "upstream candidate" (what it checks, `file:line`) so the canonical script can absorb it in the skill repo.
+- Never delete a project check without that proof that the replacement covers it. No proof, no replacement.
+
+## Script triage
+
+Classification: detection.md section 10. Destination of agentic scripts: dev-skills scripts go to `.claude/<their skill>/` (agents-md checkers to `<scripts_path>`); project-written scripts that read only agentic files go to `.claude/agents-md/`, or `.claude/orchestration/` when they only check agent types or orchestration config. Project scripts are never moved.
+
+- **audit**: each misplaced agentic script is a P3 finding (migration candidate) with its classification evidence. Zero writes.
+- **init / sync**: the moves are part of the single plan confirmation, no separate question. Use `git mv`.
+- Wired scripts move too: update every reference (CI workflows, pre-commit config, Makefile, package.json scripts, docs, `.claude/<skill>.yml` paths), then run each moved script from its new location and every updated hook or target that can run locally, to prove nothing broke. A failure stops the batch and is reported.
+- Ambiguous script: leave it, list it as a blind spot.
+
 ## Wiring: propose, never do
 
-Hand the human the block for their detected platform, with `<scripts_path>` replaced by the resolved path. Do not edit the pipeline.
+Hand the human the block (the one exception is updating the references of a script the triage moved) for their detected platform, with `<scripts_path>` replaced by the resolved path. Do not edit the pipeline.
 
 The blocks below go in the target project (its CI config), never in this skill.
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# dev-skills: agents-md __PLUGIN_VERSION__
 """Fail when deferral markers are left in shipped code.
 
 The rule this enforces: either do it now, or record it in the debt register.

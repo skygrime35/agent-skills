@@ -82,14 +82,15 @@ Worktrees usable: B3 may name them as the strong isolation form. A migration fra
 ## D10 - Existing checks
 
 ```bash
-ls scripts/check_agent_refs.py .claude/orchestration/check_agent_refs.py 2>/dev/null
+ls .claude/orchestration/check_agent_refs.py 2>/dev/null
+find . -name check_agent_refs.py -not -path '*/node_modules/*' -not -path './.git/*' 2>/dev/null
+grep -rl 'dev-skills: orchestration' . --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null
 grep -rn 'check_agent_refs' .github/workflows/ .pre-commit-config.yaml 2>/dev/null
-git ls-files 'scripts/check_*' 2>/dev/null
+grep -rn 'check_agent_refs' Makefile package.json docs AGENTS.md CLAUDE.md .claude 2>/dev/null
+head -2 .claude/orchestration/check_agent_refs.py 2>/dev/null
 ```
 
-The `git ls-files` output drives Q4.4: a file other than the dev-skills checkers (`check_no_todo.py`, `check_monolith.py`, `check_no_stub.py`, `check_forbidden_chars.py`, `check_agent_refs.py`) means the project tracks its own checkers in `scripts/` (check script goes there); only dev-skills checkers there is a migration candidate (O7.4), not a convention; empty means `.claude/orchestration/`, even if `scripts/` exists on disk.
-
-The second command is the only admissible evidence for `wired: true`. Script on disk but absent from CI and pre-commit: `wired: false`, whatever the config claims (a claim without evidence is finding O7.2).
+The destination is fixed at `.claude/orchestration/`. Every copy found elsewhere (file name or marker) is a triage candidate: its moves and references are listed for sync (O7.4, SKILL.md Checker triage). The CI and pre-commit grep (second grep) is the only admissible evidence for `wired: true`; every other hit (Makefile, package.json, docs, config) is a reference to update, not wiring. Script on disk but absent from CI and pre-commit: `wired: false`, whatever the config claims (a claim without evidence is finding O7.2). The marker line (last command) gives the copy's version, compared with the canonical version in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json` (audit O7.5, O7.6).
 
 ## D11 - Model facts and built-in routing
 
@@ -125,7 +126,7 @@ agent_types: {global: [...], project: [...]}
 statusline: true|false
 language: {detected, stated_rule, conflict}
 isolation: {worktrees_ok, migrations}
-checks: {script_path, wired_evidence, tracked_checkers}
+checks: {script_path, wired_evidence, copies: [{path, marker_version}], canonical_version}
 models: {verified_at, stale, main_model, subagent_model_env, subagent_model_force, explore_override}
 usage: {window_days, by_type: [{type, runs, calls_per_run, cost_per_run, share}]}   # D12, null when no transcripts
 unknowns: []   # never empty on a real repository

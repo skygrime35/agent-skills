@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# dev-skills: orchestration __PLUGIN_VERSION__
 """Verify that a doc's orchestration section, the installed agent type files,
 and the orchestration config agree with each other.
 

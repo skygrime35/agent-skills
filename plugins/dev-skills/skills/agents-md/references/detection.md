@@ -10,11 +10,14 @@ Contents:
 - 7 Existing quality tooling
 - 8 Existing agentic documentation
 - 9 Size and history
+- 10 Script triage
+- 11 Canonical copies and project variants
+- 12 .gitignore
 - Profile handed to the writing phases
 
 Everything the skill must learn before it can write anything. The probes are independent: fan them out.
 
-**Output rule, absolute:** each probe yields either a verified fact or an explicit unknown. An unknown becomes a question to the human or an empty slot with a note. It never becomes a plausible-sounding sentence.
+**Output rule, absolute:** each probe yields either a verified fact or an explicit unknown. An unknown becomes an empty slot with a note, or a blind spot in the report; a question only when it blocks (production ref). It never becomes a plausible-sounding sentence.
 
 ## 1. Languages and manifests
 
@@ -81,7 +84,7 @@ Read the whole job: `runs-on`, `if:`, `concurrency.group`, the environment or co
 | Jenkins | `Jenkinsfile` | `when { branch }` |
 | Platform-side | `vercel.json`, `netlify.toml`, `render.yaml`, `fly.toml` | often nowhere in the repo |
 
-If the repository holds no evidence, **ask**. Guessing "main is production" is usually right and occasionally catastrophic, which is precisely the wrong trade.
+If the repository holds no evidence, **ask** (a real blocker). Guessing "main is production" is usually right and occasionally catastrophic, which is precisely the wrong trade.
 
 Also resolve the default branch, and confirm every branch cited anywhere in existing documentation still exists:
 
@@ -137,6 +140,42 @@ git log -1 --format='%cr'
 
 LOC and file count drive the tier. Author count drives whether concurrency rules matter (they always do where agents are involved, even solo).
 
+## 10. Script triage
+
+Scan `scripts/`, root-level `check_*` files and any script referenced by CI, pre-commit, Makefile or package.json. Classify each by who maintains it, from its source:
+
+- **agentic**: first lines carry `dev-skills: <skill> [version]`; or the file name is a dev-skills one (`check_no_todo.py`, `check_monolith.py`, `check_no_stub.py`, `check_forbidden_chars.py`, `check_agent_refs.py`); or the source reads only agentic files (`AGENTS.md`, `CLAUDE.md`, `AGENTS/`, `.claude/`, agent type files).
+- **project**: everything else, including code checks the project wrote even when motivated by an AGENTS.md rule. Never moved.
+- **ambiguous**: the source does not settle it. Leave it, list it as a blind spot, never ask.
+
+```bash
+ls scripts/ check_* 2>/dev/null
+grep -m1 -n 'dev-skills:' scripts/* check_* 2>/dev/null
+grep -rnE 'scripts/|check_' .github/workflows .pre-commit-config.yaml Makefile justfile package.json .claude/*.yml 2>/dev/null
+```
+
+Destinations and move procedure: guardrail-scripts.md (Script triage). Record, per script: path, class, evidence (marker line, file name, or the agentic paths it reads), references found.
+
+## 11. Canonical copies and project variants
+
+For each agentic dev-skills copy, compare with the canonical script ignoring the marker line (diff command and verdicts in guardrail-scripts.md, Canonical copies). For each project script whose purpose matches a canonical checker (file size, deferral markers, stubs, forbidden characters, agent references), whatever its name, record it as a candidate project variant (replacement procedure in guardrail-scripts.md, Project variants).
+
+## 12. .gitignore
+
+Only probe paths that exist or that this run will write; report the rest as not applicable.
+
+```bash
+git check-ignore -q --no-index <path> && echo ignored   # exit 0 = a pattern matches (--no-index: also for tracked files)
+git ls-files --error-unmatch <path> 2>/dev/null && echo tracked
+```
+
+| Class | Paths | Expected |
+|---|---|---|
+| Must be ignored | `.claude/settings.local.json`, `*.local.*` config files (e.g. `.claude/*.local.yml`), run journals (`.claude/*/journal.md`, `.claude/full-test/fix-loop-*/journal.md`), `.claude/worktrees/` | ignored and not tracked |
+| Must NOT be ignored | `.claude/settings.json`, `.claude/agents/`, `.claude/commands/`, `.claude/skills/`, `.claude/<skill>.yml`, `.claude/<skill>/` (scripts, dated reports), `AGENTS.md`, `CLAUDE.md`, `AGENTS/` | not ignored |
+
+Fix (init and sync, in the plan): minimal `.gitignore` edits. Append the missing ignore lines. A whole-directory `.claude/` pattern becomes `.claude/*` plus negations (`!.claude/settings.json`, `!.claude/agents/`, ...) for every must-not-be-ignored path that exists or will be written, because a negation under an ignored directory has no effect. Re-check every probed path with `git check-ignore`. A tracked file that must be ignored: propose `git rm --cached <path>` in the plan (never delete the working copy).
+
 ## Profile handed to the writing phases
 
 ```yaml
@@ -153,6 +192,8 @@ commit_convention: {enforced, scopes[]}
 language: {detected, conflict_with_repo_rule}
 existing_tooling: []
 existing_docs: []
+scripts: [{path, class: agentic|project|ambiguous, evidence, refs[]}]
+gitignore: [{path, expected: ignored|not_ignored, actual, tracked}]
 size: {files, loc, authors}
 unknowns: []                   # everything that becomes a question or an empty slot
 ```

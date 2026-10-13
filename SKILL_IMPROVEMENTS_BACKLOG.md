@@ -142,3 +142,16 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 | R2-8 | agents-md writes a one-line isolation stub (`agents-md:isolation-stub`, one worktree per parallel agent, points to `/orchestration`), which orchestration replaces | IN 1.4.0 |
 | R2-9 | Tracked-checkers exception ignores dev-skills' own checkers (they are a relocation candidate, not a project convention) | IN 1.4.0 |
 | R2-10 | Evals: audit flags volatile state, sync proposes checker relocation, orchestration init absorbs the stub | IN 1.4.0 |
+
+---
+
+## Round 3 (2026-10-13, owner goal: same result in every project, minimal choices) — all IN 1.5.0
+
+| # | Proposal | Status |
+|---|---|---|
+| R3-1 | Copied scripts carry `dev-skills: <skill> <version>` (stamped at copy from `__PLUGIN_VERSION__`) | IN 1.5.0 |
+| R3-2 | Fixed destination `.claude/<skill>/`, tracked-`scripts/` exception removed; orchestration Q4.4 retired | IN 1.5.0 |
+| R3-3 | Script triage by maintainer: agentic scripts (marker, dev-skills name, or reading only agentic files) move to `.claude/`, wired ones too with every reference updated and re-run; project scripts never moved | IN 1.5.0 |
+| R3-4 | `.gitignore` check: local files ignored (settings.local.json, *.local.*, journals, .claude/worktrees/), shared ones committed | IN 1.5.0 |
+| R3-5 | Outdated copies replaced on sync; edited copies and project variants compared by running both, replaced only with proof, else reported as upstream candidates | IN 1.5.0 |
+| R3-6 | Questions reduced to the single plan confirmation plus real blockers (undetectable production branch, true ties) | IN 1.5.0 |

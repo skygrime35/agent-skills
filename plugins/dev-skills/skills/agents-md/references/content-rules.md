@@ -54,7 +54,7 @@ Every command written into the documentation must have been **executed** in the 
 
 Field evidence: a documented `sudo docker compose` survived months in a file considered reliable, on a host where docker had long run unprivileged (the `sudo` triggered permission prompts and left root-owned files in the tree). A `gh run list --branch refactor/old-layout` pointed at a branch deleted long before. Both were in the project's most-trusted file.
 
-When a fact resists verification, the options are: ask the human, or write the slot empty with a one-line note. Never write the plausible version.
+When a fact resists verification, write the slot empty with a one-line note (ask only if it is a production or irreversible fact). Never write the plausible version.
 
 ## 4. Behaviour and guardrails are different species
 

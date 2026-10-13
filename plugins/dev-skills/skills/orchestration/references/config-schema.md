@@ -58,7 +58,7 @@ doctrine:
   prohibitions: 6                # non-regression baseline for sync
 
 checks:
-  - {name: check_agent_refs, path: .claude/orchestration/check_agent_refs.py, wired: false}
+  - {name: check_agent_refs, path: .claude/orchestration/check_agent_refs.py, wired: false, version: 1.5.0}   # version = marker version of the copy
 
 policy:                          # recorded interview answers. A recorded decision is never re-asked.
   cost_posture: cheapest-capable           # cheapest-capable | balanced | capability-first (Q1.2)
@@ -71,7 +71,7 @@ policy:                          # recorded interview answers. A recorded decisi
   report_style: high-density               # high-density | free (Q2.4)
   shared_tree_bans: ["git stash", "git add -A", "git checkout", "git reset"]   # Q3.3
   cite_incident: true                      # Q3.4
-  check_script_path: auto                  # auto | <path> (Q4.4); auto = .claude/orchestration/ unless git tracks scripts/check_*
+  check_script_path: auto                  # auto | <path>; auto = .claude/orchestration/ (fixed default, no question)
   parallelism: default-on                  # default-on | on-request | never
   isolation: escalating                    # escalating | worktrees-always | disjoint-only
   ask_before_dispatch: freely              # freely | minimal | omitted-redundant (base doc already has an ask-on-ambiguity rule: B4 omitted)
