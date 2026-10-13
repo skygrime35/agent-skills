@@ -223,5 +223,11 @@ class DeadPathsTest(unittest.TestCase):
         self.assertEqual(run_raw(SCRIPT, root, str(root / "AGENTS" / "errors"))[0], 1)
 
 
+    def test_annotated_former_path_is_conditional(self):
+        root = make_repo({"src/new.py": "", "AGENTS.md": "`src/new.py` (formerly `src/old.py`)\n`src/new.py` (anciennement `src/gone.py`)\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        _, lines = run_raw(SCRIPT, root)
+        self.assertFalse(any("\tdead" in l for l in lines), lines)
+
 if __name__ == "__main__":
     unittest.main()

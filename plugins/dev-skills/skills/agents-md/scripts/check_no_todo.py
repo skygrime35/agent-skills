@@ -77,7 +77,7 @@ def iter_files(roots: list[str], patterns: list[str], suffixes: set[str]):
                 yield f
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -94,7 +94,7 @@ def main() -> int:
         action="store_true",
         help="flag every occurrence, including prose citing the debt register",
     )
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     markers = [m.strip() for m in args.markers.split(",") if m.strip()]
     alt = "|".join(re.escape(m) for m in markers)
@@ -133,6 +133,11 @@ def main() -> int:
 
     print(f"OK: no deferral marker in {', '.join(args.paths)}")
     return 0
+
+
+def cli(argv: list[str] | None = None) -> int:
+    """Entry point for tests: parse argv (default: sys.argv[1:]) and return the exit code."""
+    return main(argv)
 
 
 if __name__ == "__main__":

@@ -213,7 +213,7 @@ LOCATOR_RE = re.compile(r"(?::\d+(?:-\d+)?|::\w+)$")
 CONDITIONAL_RE = re.compile(
     r"\b(?:delet\w*|remov\w*|no longer|does not exist|doesn't exist|do not exist|nor an?|neither|"
     r"if (?:it )?(?:is )?(?:present|exists?|any)|when present|impossible|dropped|"
-    r"supprim\w*|retir\w*|n'existe (?:pas|plus)|si (?:pr[ée]sent|existant)|inexistant\w*)\b",
+    r"formerly|previously|renamed|moved (?:to|from)|anciennement|renomm\w*|d[ée]plac\w*|supprim\w*|retir\w*|n'existe (?:pas|plus)|si (?:pr[ée]sent|existant)|inexistant\w*)\b",
     re.I,
 )
 # A negating word right before the span: "no `x/`", "aucun `x/`".

@@ -119,13 +119,13 @@ def python_stubs(path: Path, text: str) -> list[str]:
     return out
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument("paths", nargs="+")
     ap.add_argument("--exclude", action="append", default=[])
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     patterns = DEFAULT_EXCLUDES + args.exclude
     hits: list[str] = []
@@ -164,6 +164,11 @@ def main() -> int:
 
     print(f"OK: no stub in {', '.join(args.paths)}")
     return 0
+
+
+def cli(argv: list[str] | None = None) -> int:
+    """Entry point for tests: parse argv (default: sys.argv[1:]) and return the exit code."""
+    return main(argv)
 
 
 if __name__ == "__main__":

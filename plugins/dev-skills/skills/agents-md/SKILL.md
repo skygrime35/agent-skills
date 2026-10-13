@@ -100,7 +100,7 @@ Runs `audit`, **prints the audit findings first** (each with its `AM-NN` ID, P-r
 
 **Before any compression or externalisation, verify the target already carries the detail.** Probe the destination file for the specific facts about to be removed. If the probe fails, the operation is not compression, it is deletion: skip it and report why.
 
-**After every batch that touched guardrails**, run the non-regression check: the prohibition count before and after must not drop unless a merge was explicitly approved, and every prohibition marker must still be present. Report the line with additions explicit: `prohibitions 10 -> 11 (+1 added: "<short quote>")`. A drop aborts the batch.
+**After every batch that touched guardrails**, run the non-regression check: the prohibition count before and after must not drop unless a merge was explicitly approved (a prohibition removed from CLAUDE.md under P2.6 because it already exists in AGENTS.md is a merge by construction: print it as `-1 merged: "<quote>" (kept at AGENTS.md:<line>)`, no extra approval), and every prohibition marker must still be present. Report the line with additions explicit: `prohibitions 10 -> 11 (+1 added: "<short quote>")`. A drop aborts the batch.
 
 **At the end of any sync that wrote files**, run the final `.gitignore` probe (detection.md section 12): `git check-ignore -v` on every path that must be ignored and every written path that must be committed, print the table, fix any mismatch in the same run.
 

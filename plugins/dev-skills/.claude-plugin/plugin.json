@@ -1,6 +1,6 @@
 {
   "name": "dev-skills",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"

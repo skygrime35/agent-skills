@@ -211,3 +211,15 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 | R7-2 | Shipped scripts `ruff format`-ed; stamped copies excluded from project FORMAT only (lint kept) | IN 1.8.1 |
 | R7-3 | Test breakage patterns when a canonical script replaces a project copy | IN 1.8.1 |
 | R7-4 | check_ci_replay resolves shell wrapper functions; wrapper-script vs direct-tool detail; archives example = tolerate; "no scope found" recorded; final-message skeleton printed even for a parent agent | IN 1.8.1 |
+
+---
+
+## Round 8 (2026-10-13, fifth real-project run of 1.8.1, merged in both projects) — all IN 1.8.2
+
+| # | Fix | Status |
+|---|---|---|
+| R8-1 | Canonical scripts expose `cli(argv)` (parse, reset module state, return exit code) for project tests | IN 1.8.2 |
+| R8-2 | Stamped copies: a defaults-pinning `ruff.toml` in their dir when the CI formatter runs from another dir or with explicit paths | IN 1.8.2 |
+| R8-3 | check_dead_paths: "formerly / anciennement / renamed / moved" mentions are `conditional`, not dead | IN 1.8.2 |
+| R8-4 | A prohibition removed from CLAUDE.md under P2.6 because it exists in AGENTS.md is a merge by construction | IN 1.8.2 |
+| R8-5 | Open: check_ci_replay cannot see through a project wrapper script; usage stats include the current session | BACKLOG |

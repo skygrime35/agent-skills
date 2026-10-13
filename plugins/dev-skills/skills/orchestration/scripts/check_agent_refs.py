@@ -62,6 +62,14 @@ QUIRKS = (
 )
 
 
+def reset_state():
+    """Clear the module-level results so several runs in one process do not accumulate."""
+    global QUIRKS
+    findings.clear()
+    warnings.clear()
+    QUIRKS = ""
+
+
 def finding(path, line, message):
     findings.append(f"{path}:{line}: {message}")
 
@@ -386,7 +394,7 @@ def main():
     return 1 if findings else 0
 
 
-if __name__ == "__main__":
+def build_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--doc", required=True, help="base doc file (AGENTS.md / CLAUDE.md)"
@@ -431,7 +439,22 @@ if __name__ == "__main__":
         help="an absent --agents-dir (and every unresolved type) is an error, "
         "not a warning",
     )
-    ARGS = parser.parse_args()
+    return parser
+
+
+def cli(argv=None):
+    """Parse argv (default: sys.argv[1:]), reset module state, run the checks; return the exit code.
+
+    Tests should call cli([...]) rather than build an argparse.Namespace by hand.
+    """
+    global ARGS
+    parser = build_parser()
+    ARGS = parser.parse_args(argv)
     if ARGS.only_owned and not ARGS.config:
         parser.error("--only-owned requires --config")
-    sys.exit(main())
+    reset_state()
+    return main()
+
+
+if __name__ == "__main__":
+    sys.exit(cli())

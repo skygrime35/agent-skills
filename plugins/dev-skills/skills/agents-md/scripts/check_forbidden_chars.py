@@ -128,7 +128,7 @@ def describe(ch: str) -> str:
     return f"U+{ord(ch):04X} {name}"
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -150,7 +150,7 @@ def main() -> int:
     ap.add_argument(
         "--max-report", type=int, default=50, help="stop printing after N hits"
     )
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     matchers = (
         [build_matcher(tok) for tok in args.chars.split(",") if tok]
@@ -193,6 +193,11 @@ def main() -> int:
 
     print(f"OK: no forbidden character in {', '.join(args.paths)}")
     return 0
+
+
+def cli(argv: list[str] | None = None) -> int:
+    """Entry point for tests: parse argv (default: sys.argv[1:]) and return the exit code."""
+    return main(argv)
 
 
 if __name__ == "__main__":
