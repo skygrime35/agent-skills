@@ -11,7 +11,6 @@ detected_at:
 base_doc:
   file: {{BASE_DOC}}
   pointer: {{POINTER}}              # null if no pointer pattern
-  section_heading: "{{SECTION_HEADING}}"
   section_spans:
 {{SPANS_LIST}}                    # one {heading, start, end} per heading (D2)
   language: {{LANG}}
@@ -39,7 +38,7 @@ doctrine:
   prohibitions: {{PROHIBITION_COUNT}}
 
 checks:
-  - {name: check_agent_refs, path: {{CHECK_PATH}}, wired: false}
+  - {name: check_agent_refs, path: {{CHECK_PATH}}, wired: false, version: {{CHECK_VERSION}}}
 
 policy:
   cost_posture: {{COST_POSTURE}}

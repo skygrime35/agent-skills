@@ -1,6 +1,6 @@
 {
   "name": "dev-skills",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"
@@ -357,11 +357,8 @@
     "orchestration_report_style": {
       "type": "string",
       "title": "Subagent report style",
-      "description": "Style imposed on subagent reports.",
-      "options": [
-        "high-density",
-        "free"
-      ],
+      "description": "Style imposed on subagent reports; in-agents-md-section leaves reporting to the agents-md behaviour section.",
+      "options": ["high-density", "free", "in-agents-md-section"],
       "default": "high-density"
     },
     "orchestration_parallelism": {

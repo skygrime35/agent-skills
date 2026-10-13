@@ -21,7 +21,7 @@ version: 1                       # schema version; bump rules in Field rules
 policy:                          # run policies; command argument > this file > plugin option > recommended default
   language: en                   # doc language
   tier: auto                     # auto | 1 | 2 | 3
-  install_guardrail_scripts: true
+  install_guardrail_scripts: true  # install canonical checkers where no project variant exists (guardrail-scripts.md, Install or variant)
   guardrail_scripts_path: .claude/agents-md/   # this field > plugin option user_config.agents_md_guardrail_scripts_path > .claude/agents-md/
   commit_convention: detect      # detect | enforce | skip
 archives:                        # dated records exempt from dead-reference fixes
@@ -68,11 +68,11 @@ commit_convention:
   format: conventional
   scopes: [billing, users, ui, infra]
 
-guardrail_scripts:               # what was installed and whether it is wired
-  - {name: check_no_todo,        path: .claude/agents-md/check_no_todo.py,        wired: false, marker_version: "1.4.0"}   # version stamped at copy time
-  - {name: check_monolith,       path: .claude/agents-md/check_monolith.py,       wired: false,
-     thresholds: {file: 400, function: 75, class: 200, component: 150}}
-  - {name: check_forbidden_chars, path: .claude/agents-md/check_forbidden_chars.py, wired: false,
+guardrail_scripts:               # one entry per canonical checker (all four), whatever its status
+  - {name: check_no_todo,        status: installed, path: .claude/agents-md/check_no_todo.py,        wired: false, marker_version: "1.4.0"}   # version stamped at copy time
+  - {name: check_monolith,       status: variant,   path: scripts/check_file_size.py,                wired: true}    # project script with the same purpose: canonical not installed
+  - {name: check_no_stub,        status: absent,    path: null,                                      wired: false}   # policy.install_guardrail_scripts is false, or not applicable
+  - {name: check_forbidden_chars, status: installed, path: .claude/agents-md/check_forbidden_chars.py, wired: false,
      scope: [frontend/src], chars: ["—", "–"]}
 
 budget:                          # measured at last run
@@ -101,6 +101,10 @@ local:                           # machine-specific, gitignore candidate
 **`commands`**: an entry with `verified: false` must carry a `note` saying why. A command that failed is never written into the documentation as if it worked.
 
 **`language.conflict`**: populated whenever the repository states a documentation language rule that differs from the default. Never resolve it silently; `resolution` records the rule applied and when.
+
+**`guardrail_scripts[]`**: `name` is the canonical checker; `status` is `installed` (canonical copy at `path`, stamped), `variant` (a project script with the same purpose at `path`; the canonical checker is not installed, no duplicate) or `absent` (nothing installed, `path: null`). Rules: guardrail-scripts.md, Install or variant. `thresholds`, `scope` and `chars` are optional, measured values. A `variant` entry has no `marker_version`.
+
+**`policy.install_guardrail_scripts`**: `true` = install the canonical checkers where no project variant exists (a variant is never duplicated); `false` = install none. Resolves like every policy; the plugin option `user_config.agents_md_install_guardrail_scripts` sets the default.
 
 **`guardrail_scripts[].marker_version`**: plugin version in the copy's `dev-skills: agents-md <version>` marker, refreshed on every copy or replacement.
 

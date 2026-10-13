@@ -34,7 +34,7 @@ A rule anchored to a specific model, tool version, branch or person becomes a no
 grep -nE "(Opus|Sonnet|Haiku|Fable|GPT|Claude [0-9])" AGENTS.md
 ```
 
-A hit inside a normative sentence ("X is the orchestrator") is **P0**: rewrite as a role. Hits in an illustrative list are fine.
+A hit inside a normative sentence ("X is the orchestrator") is **P0**: rewrite as a role. Hits in an illustrative list are fine. **Exception, owned by `/orchestration`:** a hardcoded model lineup used for delegation (an ordered list of model names deciding who does what, orchestration check O3.7) takes the owner's rank **P2** and the tag `report-only`; never P0 here. Same rule for every finding the other skill owns: owner's rank, `report-only`, fix left to that skill.
 
 ### P0.3 Absolute with no workable exception
 
@@ -78,13 +78,13 @@ Every path cited anywhere in the documentation, resolved against the repository.
 2. **Resolve against every detected root**, not just the repository root: documentation legitimately writes paths relative to a domain (`shared/hooks/useMediaQuery.ts` under `frontend/src/`, `graph.json` under the artefact folder).
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok          # default scope: root docs, docs index, every tracked domain AGENTS.md
-python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok <file>…  # explicit files
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok          # default scope: root AGENTS.md, CLAUDE.md, docs index, every domain AGENTS.md, AGENTS/**/*.md (minus archives)
+python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok <file-or-dir>…  # explicit files; a directory recurses into its *.md
 ```
 
-The script covers backtick paths and markdown links (with `#anchors`). A backtick span counts as a path only with a known file extension, or a trailing `/` whose first segment is a repo directory; migration ids, dotted symbols, npm packages, routes, CSS classes, git refs, rates and `a/b` word pairs are ignored. Resolution: citing file, repo root, then suffix via `git ls-files`. Output `file:line<TAB>target<TAB>status`: `dead` is a finding, `ambiguous` (several suffix matches) is a P3 to disambiguate, `conditional` (mentioned as deleted or optional) is not a finding. Read-only; exit 1 when something is dead.
+The script covers backtick paths and markdown links (with `#anchors`). A backtick span counts as a path only with a known file extension, or a trailing `/` whose first segment is a repo directory; migration ids, dotted symbols, npm packages, routes, CSS classes, git refs, rates and `a/b` word pairs are ignored. Resolution: citing file, repo root, then suffix via `git ls-files`. Output `file:line<TAB>target<TAB>status`: The first line is a comment `# scope: N files (...)`: quote it in the report so the reader sees what was covered. `dead` is a finding, `ambiguous` (several suffix matches) is a P3 to disambiguate, `conditional` (mentioned as deleted or optional) is not a finding, `local` (target missing but git-ignored, for example a generated or per-machine file) is not dead: report as info only. A `dead` line may end with `hint: moved? <path>` (the stem exists as a directory, `x/services.py` -> `x/services/`, or one file of that name exists elsewhere): put it in the finding's `Fix:` line. Read-only; exit 1 when something is dead.
 
-**Archive paths.** Run the script a second time on the dated records (`archives.paths` from the project config, else `errors/`, `adr/`, `postmortems/`-style directories). Dead references there are not P1: report ONE P3 info finding with their count and the policy applied. Policy resolves as `--archives` > `archives.policy` > `${user_config.agents_md_archives_policy}` > `tolerate`. `tolerate`: leave them. `annotate` and `fix` act only in `sync`, see SKILL.md.
+**Archive paths.** The default scope excludes `archives.paths` of `.claude/agents-md.yml` (read by the script; `--archive <path>` adds more). Run the script a second time on the dated records (`archives.paths` from the project config, else `errors/`, `adr/`, `postmortems/`-style directories), passing them as arguments. Dead references there are not P1: report ONE P3 info finding with their count and the policy applied. Policy resolves as `--archives` > `archives.policy` > `${user_config.agents_md_archives_policy}` > `tolerate`. `tolerate`: leave them. `annotate` and `fix` act only in `sync`, see SKILL.md.
 
 A partial path that resolves under no root is a genuine finding, and a common one after a compression pass: shortening `backend/apps/orders/infrastructure/…` to `infrastructure/…` reads fine and points nowhere.
 
@@ -97,7 +97,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/check_sections.py --quiet-ok            # de
 python3 ${CLAUDE_SKILL_DIR}/scripts/check_sections.py --quiet-ok <file>…
 ```
 
-It checks `FILE § Section` (accent- and case-insensitive; `§ A / B` checks both; a bare `AGENTS.md` means the root one), `see FILE section X` and markdown anchor citations (`FILE#anchor`, `#anchor`) against the target's headings. A label found only as a bold bullet lead is `ok-bullet` (not a finding). Same output format and exit codes as P1.2; read-only.
+It checks `FILE § Section` (`§ A / B` checks both; a bare `AGENTS.md` means the root one), `see FILE section X` and markdown anchor citations (`FILE#anchor`, `#anchor`) against the target's headings. Matching is folded (case, accents, punctuation). `ok`: the label equals the heading text without its number prefix or subtitle, or its number/label token (`6bis`). `ok-bullet`: equals a bold bullet lead (not a finding). `partial`: the label is only part of a heading (`Guardrails` against `Absolute guardrails`); the line carries `suggest: <full heading>`. A `partial` is a **P2** finding (the citation is imprecise and may point at the wrong section), with the suggestion as the `Fix:`. Same output format as P1.2 (plus the optional fourth column); exit 1 only on `dead`; read-only.
 
 Field case: a guardrail announced a debt register "sectioned Backend/Frontend/Infra/Doc/Legal/Tests"; the `Doc` section had never existed. Any agent following the rule looks for a section that is not there.
 
@@ -178,10 +178,11 @@ grep -niE "phase [0-9]|migrated in|was split|historically|formerly|used to be" A
 
 Completed-refactor narrative in the root file is a permanent cost for archaeology.
 
-Volatile state (content-rules §7) is the same finding, in every agentic doc (root and domain AGENTS.md, CLAUDE.md, `AGENTS/`): a current branch name, a task in progress, open PRs, "as of" dates, drifting counts. Fix: replace it by the command that reads it, or delete it; keep it only under the content-rules §7 exception. Arbitrate per occurrence, do not ask.
+Volatile state (content-rules §7) is the same finding, in every agentic doc (root and domain AGENTS.md, CLAUDE.md, `AGENTS/`): a current branch name, a task in progress, open PRs, "as of" dates, drifting counts. Fix: replace it by the command that reads it, or delete it; keep it only under the content-rules §7 exception. Arbitrate per occurrence, do not ask. **Exclude the lines that state the rule itself** (a rule about volatile state naturally quotes the words it forbids): pipe the grep through `grep -viE "volatile|never (write|document)|do not (write|document)|must not|avoid"`, or count only lines outside the guardrail sections; flag only occurrences outside the rule statement.
 
 ```bash
-git ls-files 'AGENTS.md' 'CLAUDE.md' '*/AGENTS.md' 'AGENTS/**' | xargs grep -niE "current(ly)? (branch|task|work)|we are (on|working)|in progress|as of [0-9]|open PRs?|latest version"
+git ls-files 'AGENTS.md' 'CLAUDE.md' '*/AGENTS.md' 'AGENTS/**' | xargs grep -niE "current(ly)? (branch|task|work)|we are (on|working)|in progress|as of [0-9]|open PRs?|latest version" \
+  | grep -viE "volatile|never (write|document)|do not (write|document)|must not|avoid"
 ```
 
 ## P3 - hygiene
@@ -196,12 +197,14 @@ Every hit is a candidate for deletion: it spends budget to say what the model al
 
 ### P3.2 Stated rules the file itself breaks
 
-If the file forbids something, check the file:
+If the file forbids something, check the file, **outside the lines that state the rule itself** (the anti-TODO rule necessarily contains `TODO`; the no-emoji rule may quote one). Count only lines outside guardrail sections, and drop rule-stating lines:
 
 ```bash
-grep -c "TODO\|FIXME" AGENTS.md              # against its own anti-TODO rule
-grep -oP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' AGENTS.md | wc -l   # against its own no-emoji rule
+awk '/^#+ /{g = tolower($0) ~ /guardrail/} !g' AGENTS.md | grep -viE "anti-todo|no \`?(TODO|FIXME)|never .*(TODO|FIXME)|forbidden" | grep -c "TODO\|FIXME"   # against its own anti-TODO rule
+awk '/^#+ /{g = tolower($0) ~ /guardrail/} !g' AGENTS.md | grep -oP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' | wc -l   # against its own no-emoji rule
 ```
+
+Only an occurrence outside the rule statement is a finding; quote it with its `file:line`.
 
 ### P3.3 Missing mechanical enforcement
 
@@ -223,7 +226,7 @@ ls .github/workflows/*.yml | while read w; do
 done
 ```
 
-When the doc has a "CI-equivalent / replay locally" list, compare it with the workflows' real steps: extract every `jobs.<id>.steps[].run` command from `.github/workflows/*.yml` (python3 with `yaml`, else grep of `run:`) and match each job against the list. A job whose commands appear nowhere in the list = **P2** (name the job). Jobs the project deliberately leaves out are listed in `ci_replay_excludes` of `.claude/agents-md.yml` and skipped.
+When the doc has a "CI-equivalent / replay locally" list, compare it with the workflows' real steps: extract every `jobs.<id>.steps[].run` command from `.github/workflows/*.yml` (python3 with `yaml`, else grep of `run:`). **Map by command, never by job name.** When the replay is a script (for example `scripts/ci_local.sh` with its own step names), read the script's commands and match each CI command against them (normalise whitespace, drop `cd`/env prefixes and flags that only select the runner). A CI job none of whose commands appears in any replay step or listed command = **P2** (name the job and its unmatched commands); a job whose commands are all found is covered even when no step carries its name. Jobs the project deliberately leaves out are listed in `ci_replay_excludes` of `.claude/agents-md.yml` and skipped.
 
 ### P3.5 Misplaced agentic script (migration candidate)
 
@@ -250,4 +253,4 @@ for t in <each distinctive term from each guardrail>; do
 done
 ```
 
-Also run `count_rules.py` on the touched files before and after and compare `prohibitions`. Report both counts explicitly. A `sync` that cannot show this check has not finished.
+Also run `count_rules.py` on the touched files before and after and compare `prohibitions`. Report the line explicitly, additions included: `prohibitions 10 -> 11 (+1 added: "<short quote>")`; an unchanged count reads `prohibitions 10 -> 10`. A drop aborts the batch unless the human approved that specific merge; a drop never hides behind an addition (compare the quoted sets, not only the numbers). A `sync` that cannot show this check has not finished.

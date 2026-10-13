@@ -173,3 +173,16 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 | R4-9 | orchestration: partial-layer sync completes missing scopes; `local:` in gitignored `orchestration.local.yml`; usage stats scoped to the repo (all worktrees) and to the install window; hardcoded lineup check; absent agents dir warns unless `--strict` | IN 1.6.0 |
 | R4-10 | Per-mode reference loading tables (context cost) | IN 1.6.0 |
 | R4-11 | Unit tests in `tests/` for the audit scripts and check_agent_refs.py | IN 1.6.0 |
+
+---
+
+## Round 5 (2026-10-13, second real-project run of 1.6.0) — all IN 1.7.0
+
+| # | Fix | Status |
+|---|---|---|
+| R5-1 | check_sections.py: exact label match, substring = `partial` with suggestion | IN 1.7.0 |
+| R5-2 | check_dead_paths.py: scope includes `AGENTS/**/*.md` minus archives (default archives when no config, matched at any depth), directory args, scope header, `local`, `external` (declared dependency), abbreviated unique paths ok, name templates skipped, `moved?` hint | IN 1.7.0 |
+| R5-3 | count_rules.py: every list item/table row in normative sections counts; `totals`, `selected_totals` | IN 1.7.0 |
+| R5-4 | Canonical checkers not installed next to a project variant; `guardrail_scripts` status in config; template = schema | IN 1.7.0 |
+| R5-5 | Owner's rank for cross-skill findings; non-regression reports additions; final `git check-ignore` probe; rule-stating lines excluded from greps; CI replay mapped by command | IN 1.7.0 |
+| R5-6 | orchestration: template = schema, verbatim model fields, `in-agents-md-section` report style, spend checks need a 7-day window | IN 1.7.0 |

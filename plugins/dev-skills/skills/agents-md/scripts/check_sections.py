@@ -9,21 +9,24 @@ Recognised citations (outside fenced code blocks):
   `FILE.md` § Section name        FILE.md §3.2        see FILE.md section "Name"
   [text](FILE.md#anchor)          [text](#anchor)     (anchor checked against headings)
 
-Matching is accent-insensitive and case-insensitive. A label matches a heading
-when the heading starts with the cited number or label token (`6bis` matches
-`## 6bis. Client scopes`; `3c` checks section 3) or contains the cited words (the
-longest leading run of at least MIN_WORDS words, so prose after the name does not
-break the match; a one-word label is matched whole). `§ A / B` (also `&`) cites two
-sections, each checked on its own line. A label that matches no heading but the
-bold lead of a list item (`- **Label** ...`) is reported `ok-bullet`.
+Matching is folded (case, accents, punctuation). A label is `ok` when it equals
+the heading text after its number prefix is stripped (`6bis. Client scopes` ->
+`Client scopes`) or before its subtitle (` (note)`, ` - sub`, ` : sub`), or the heading's number/label token (`6bis`; `3c` checks
+section 3), or the heading with prose running on after it. A label equal to the
+bold lead of a list item (`- **Label** ...`) is `ok-bullet`. A label that is only
+a part of a heading ("Guardrails" against "Absolute guardrails") is `partial`:
+reported with the full heading as suggestion, never `ok`. `§ A / B` (also `&`)
+cites two sections, each checked on its own line.
 A bare `AGENTS.md` resolves to the root AGENTS.md; a path citation is resolved
 relative to the repo root, then to the citing file, then by suffix via `git ls-files`
 (a bare name other than AGENTS.md: citing file first).
 
 Output, one line per citation: file:line<TAB>target<TAB>status
-status: ok | ok-bullet (found as a bold bullet lead only) | dead (file or section
+status: ok | ok-bullet (found as a bold bullet lead only) | partial (only a part of
+a heading; a fourth column gives `suggest: <full heading>`) | dead (file or section
 missing) | ambiguous (several files match).
-Exit 0 when nothing is dead, 1 when something is dead, 2 on usage error.
+Exit 0 when nothing is dead, 1 when something is dead (partial is not dead), 2 on
+usage error.
 """
 
 from __future__ import annotations
@@ -115,32 +118,75 @@ def bullet_leads_of(path: Path) -> list[str]:
     return cache
 
 
-def label_matches(titles: list[str], cited: str) -> bool:
+def norm(text: str) -> str:
+    """Folded comparison key: words joined by single spaces."""
+    return " ".join(words(text))
+
+
+SUBTITLE_RE = re.compile(r"\s+[(\u2014\u2013-]|\s*:\s")  # " (note)", " - sub", " : sub"
+
+
+def title_forms(heading: str) -> list[list[str]]:
+    """Word lists a label may equal: full, number-stripped, and each without its subtitle."""
+    forms = []
+    for text in (heading, SUBTITLE_RE.split(heading, 1)[0]):
+        hw = words(text)
+        forms += [hw, strip_number(hw)]
+    return [f for f in forms if f]
+
+
+def strip_number(heading_words: list[str]) -> list[str]:
+    """Drop a leading number/label token (digit-bearing: 6bis, 3.2, W4)."""
+    if len(heading_words) > 1 and re.search(r"\d", heading_words[0]):
+        return heading_words[1:]
+    return heading_words
+
+
+def label_match(titles: list[str], cited: str) -> tuple[str, str]:
+    """('ok'|'partial'|'dead', matching title) for a cited label against heading titles."""
     cited_words = words(cited)
     if not cited_words:
-        return True  # nothing checkable was captured
+        return "ok", ""  # nothing checkable was captured
     # "3c" cites lettered item (c) of section 3: check that section 3 exists.
     m = re.fullmatch(r"(\d+(?:\.\d+)*)[a-z]?\.?", cited_words[0])
     number = m.group(1) if m else None
+    partial = ""
     for h in titles:
         hw = words(h)
-        if number and hw and hw[0].rstrip(".") == number.rstrip("."):
-            return True
-        # label token as prefix of the heading: "6bis" -> "6bis. Client scopes"
-        if hw and len(cited_words) == 1 and hw[0].rstrip(".:") == cited_words[0].rstrip(".:"):
-            return True
-        for n in range(len(cited_words), min(MIN_WORDS, len(cited_words)) - 1, -1):
+        if not hw:
+            continue
+        if number and hw[0].rstrip(".") == number.rstrip("."):
+            return "ok", h
+        # label token: "6bis" -> "6bis. Client scopes"
+        if len(cited_words) == 1 and re.search(r"\d", hw[0]) and hw[0].rstrip(".:") == cited_words[0].rstrip(".:"):
+            return "ok", h
+        for full in title_forms(h):
+            if cited_words == full:
+                return "ok", h
+            # heading followed by prose that ran into the capture ("Setup steps - then run")
+            if len(full) >= MIN_WORDS and cited_words[:len(full)] == full:
+                return "ok", h
+        # a contiguous run of the cited words (or its leading run) inside the heading
+        for n in range(len(cited_words), 0, -1):
             run = cited_words[:n]
-            if any(hw[i:i + n] == run for i in range(len(hw) - n + 1)):
-                return True
-    return False
+            if (n >= MIN_WORDS or len(cited_words) == 1) and any(
+                    hw[i:i + n] == run for i in range(len(hw) - n + 1)):
+                partial = partial or h
+                break
+    return ("partial", partial) if partial else ("dead", "")
 
 
-def section_status(path: Path, cited: str) -> str:
-    """ok | ok-bullet | dead for one section label."""
-    if label_matches(headings_of(path), cited):
-        return "ok"
-    return "ok-bullet" if label_matches(bullet_leads_of(path), cited) else "dead"
+def section_status(path: Path, cited: str) -> tuple[str, str]:
+    """(status, suggestion): ok | ok-bullet | partial | dead for one section label."""
+    status, title = label_match(headings_of(path), cited)
+    if status == "ok":
+        return "ok", ""
+    b_status, b_title = label_match(bullet_leads_of(path), cited)
+    if b_status == "ok":
+        return "ok-bullet", ""
+    if status == "partial":
+        return "partial", title
+    return ("partial", b_title) if b_status == "partial" else ("dead", "")
 
 
 def anchor_exists(path: Path, anchor: str) -> bool:
@@ -180,7 +226,7 @@ def main() -> int:
                                         "Exit 0 none dead, 1 dead found, 2 usage error.")
     ap.add_argument("files", nargs="*", help="markdown files to scan (default: agent docs found in the repo)")
     ap.add_argument("--root", default=".", help="repository root (default: current directory)")
-    ap.add_argument("--quiet-ok", action="store_true", help="print only dead and ambiguous lines (hides ok and ok-bullet)")
+    ap.add_argument("--quiet-ok", action="store_true", help="print only dead and ambiguous lines (hides ok and ok-bullet; partial stays)")
     try:
         args = ap.parse_args()
     except SystemExit as e:
@@ -210,14 +256,16 @@ def main() -> int:
                     found.append((f"{m.group(1)} § {label}", m.group(1), label.strip()))
             for label, target, sec in found:
                 status, path = ("ok", f) if not target else resolve(target, f, root, tracked)
+                suggestion = ""
                 if status == "ok" and path is not None:
                     if sec.startswith("#"):
                         status = "ok" if anchor_exists(path, sec[1:]) else "dead"
                     else:
-                        status = section_status(path, sec)
+                        status, suggestion = section_status(path, sec)
                 dead += status == "dead"
                 if status not in ("ok", "ok-bullet") or not args.quiet_ok:
-                    print(f"{rel}:{no}\t{label}\t{status}")
+                    extra = f"\tsuggest: {suggestion}" if suggestion else ""
+                    print(f"{rel}:{no}\t{label}\t{status}{extra}")
     return EXIT_DEAD if dead else EXIT_OK
 
 

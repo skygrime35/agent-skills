@@ -118,7 +118,7 @@ Canonical text:
 
 > Dispatched agents report **findings, not execution narratives**: result first, no restatement of the task, no play-by-play. Density applies to the prose, never to the work: no shortcut on tests, verification, or flagged risks.
 
-Cost: 2 instructions. Omit per Q2.4, or when the base doc already imposes a high-density output style globally (then this is redundancy, audit O4.2).
+Cost: 2 instructions. Omit per Q2.4 (`in-agents-md-section`), or when the base doc already imposes a high-density output style globally (then this is redundancy, audit O4.2).
 
 ## B8 - Briefing
 

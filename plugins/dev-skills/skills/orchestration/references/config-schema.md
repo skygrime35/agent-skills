@@ -68,7 +68,7 @@ policy:                          # recorded interview answers. A recorded decisi
   delegation_threshold: exploration-iteration-or-multi-file
   delegation_rationale: true               # Q2.2
   delegation_fallback: do-it-yourself-and-say-so
-  report_style: high-density               # high-density | free (Q2.4)
+  report_style: high-density               # high-density | free | in-agents-md-section (Q2.4; B6 section is omitted, reporting lives in an agents-md section)
   shared_tree_bans: ["git stash", "git add -A", "git checkout", "git reset"]   # Q3.3
   cite_incident: true                      # Q3.4
   check_script_path: auto                  # auto | <path>; auto = .claude/orchestration/ (fixed default, no question)
@@ -104,11 +104,15 @@ local:                           # machine-specific, this file is gitignored
 
 **`base_doc.section_spans`**: the only lines this skill may ever edit, one `{heading, start, end}` per heading. Refreshed on every run; if a heading moved or vanished, that is a finding, not a silent re-anchor. Readers accept an older config that has only `section_span` (read it as a one-entry list). Writers write `section_spans`, and `section_span` only when there is exactly one span. Sync never writes outside the recorded spans.
 
+**`agents.types[].model`, `effort`, `maxTurns`**: copied verbatim from the type file, whatever it says (an alias such as `haiku`, or a pinned full model id). The config never normalises them, and `check_agent_refs` compares them exactly against the file.
+
 **`agents.types[].verified`**: `true` only when the file was stat'd and its frontmatter parsed during this run. An entry with `verified: false` must carry a `note` saying why. A type that failed to parse is never cited by the doctrine as if it worked.
 
-**`doctrine.prohibitions`** and **`prohibition_markers`**: the non-regression baseline. Any sync batch touching the doctrine recounts and re-greps against these; a drop without an explicitly approved merge aborts the batch.
+**`doctrine.prohibitions`** and **`prohibition_markers`**: the non-regression baseline. Any sync batch touching the doctrine recounts and re-greps against these; a drop without an explicitly approved merge aborts the batch. An increase is reported as an addition with its quote, in the form `prohibitions 10 -> 11 (+1 added: "<short quote>")`.
 
 **`checks[].wired`**: `false` until the human confirms the CI or pre-commit block was added. The skill proposes, it never wires. The proposed block runs the script with `--only-owned` (add `--strict` to make an absent agents dir an error): errors only for the types in `agents.types` / `agents.overrides`, warnings for other agent files and for global types when `agents.location: global` and the agents dir is absent (CI).
+
+**`policy.report_style`**: `high-density` and `free` keep the B6 reporting block in the owned section. `in-agents-md-section` omits B6 because the base doc's agents-md-owned section already governs subagent reporting. Any other value is invalid.
 
 **`policy`**: interview answers become fields here. On the next run they are facts, not questions. Changing a policy is done by answering differently in a `sync` run, which shows the old value first.
 

@@ -1,6 +1,6 @@
 # Guardrail scripts: generating and wiring
 
-Contents: The four checkers - Copy and stamp - Canonical copies - Project variants - Script triage - Wiring: propose, never do - Wire after clearing, never before - Choosing thresholds - Allowlists
+Contents: The four checkers - Install or variant (init and sync) - Copy and stamp - Canonical copies - Project variants - Script triage - Wiring: propose, never do - Wire after clearing, never before - Choosing thresholds - Allowlists
 
 A rule nobody checks decays. These scripts turn written prohibitions into mechanical ones.
 
@@ -26,6 +26,18 @@ This is not a detail. The first field run of the naive version produced four hit
 `check_no_stub.py` exempts `Protocol` bodies, `ABC` subclasses, `@abstractmethod` and `@overload`, and skips `.d.ts`. A `...` in a Protocol is a declaration, not a stub.
 
 `check_monolith.py` uses the Python AST for function and class limits (exact), and file-level line counts elsewhere. It deliberately does **not** brace-count other languages: the false positives are worse than the missed hits. Blank lines and comment-only lines are not counted.
+
+## Install or variant (init and sync)
+
+Decide per canonical checker, before copying anything, using the script triage (detection.md sections 10-11):
+
+| Project state for that purpose | Status recorded | Action |
+|---|---|---|
+| A project variant with the same purpose exists (any name, no marker, not identical) | `variant` | Do not install the canonical checker: no duplicate. Record the variant's path. Replacement stays the proof-based procedure in Project variants |
+| No variant, `install_guardrail_scripts` is true | `installed` | Copy and stamp it; the copy is part of the plan |
+| No variant, `install_guardrail_scripts` is false | `absent` | Install nothing; record it |
+
+`install_guardrail_scripts` means exactly "install where no variant exists". The plan lists, per checker, its status and the reason (variant path, or the copy to be made). Both runs and their statuses go to `guardrail_scripts` in `.claude/agents-md.yml` (config-schema.md). On a later `sync`, an `installed` checker is refreshed by Canonical copies, a `variant` is only re-compared, an `absent` one is re-evaluated against the current detection.
 
 ## Copy and stamp
 

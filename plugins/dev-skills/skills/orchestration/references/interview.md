@@ -39,7 +39,7 @@ Every question states its effect on the output. That effect is the reason the qu
 ## S0 - Placement (init only)
 
 - **Q0.1 Where do the agent type files live?** [Global `~/.claude/agents/`, shared across this machine's projects; the doctrine will carry the documented fallback for other machines (Recommended when probe D5 already found global types) | Project `.claude/agents/`, versioned, travels with the repo]. Effect: `agents.location`, the location note and fallback wording in doctrine block B1, where Phase 3 writes the files.
-- **Q0.2 Confirm the base doc and section placement.** Only if D1/D2 were ambiguous (several candidate files, several candidate headings). Effect: `base_doc.file`, `base_doc.section_heading`.
+- **Q0.2 Confirm the base doc and section placement.** Only if D1/D2 were ambiguous (several candidate files, several candidate headings). Effect: `base_doc.file`, `base_doc.section_spans`.
 
 ## S1 - Cost posture and models
 
@@ -56,7 +56,7 @@ Five questions, so two salvos: Q1.1 to Q1.3, then Q1.4 and Q1.5. Present alongsi
 - **Q2.1 Delegation threshold?** [Mandatory as soon as a task needs exploration, iteration, or several files; below that the main agent does it itself (Recommended) | Mandatory only for large multi-file work | Advisory, never mandatory]. Effect: B2's threshold sentence and vocabulary ("mandatory" vs "preferred"), `policy.delegation_threshold`.
 - **Q2.2 Include the context-economy rationale?** [One sentence: a file read by the main agent is re-billed every following turn, read by a subagent it is paid once (Recommended, it is why the rule exists) | Omit, imperative only]. Effect: B2 length, one instruction of budget.
 - **Q2.3 Fallback when delegation is unavailable?** [The main agent does it itself and says so; an optimization rule never blocks the task (Recommended) | Stop and ask]. Effect: B2's fallback clause. "Stop and ask" is written if chosen, with a stated warning: it converts an optimization into a blocker, which audit O3.2 will keep flagging.
-- **Q2.4 Subagent report style?** [High-density findings, no execution narrative (Recommended) | Free form]. Effect: B6 present or absent.
+- **Q2.4 Subagent report style?** [High-density findings, no execution narrative (Recommended) | Free form | Reporting already governed by an agents-md section (`in-agents-md-section`, B6 omitted)]. Effect: B6 present for the first two answers, absent for the third.
 
 ## S3 - Parallelism and isolation
 

@@ -25,7 +25,10 @@ date. Start date, first match wins: `--since YYYY-MM-DD`; `--days N`; the oldest
 mtime of the installed agent type files (~/.claude/agents/*.md and
 ./.claude/agents/*.md), i.e. the install date of the current types, since older
 sessions could not use them; 30 days when no type file exists. The date used is
-always printed.
+always printed. The header line also prints `window_days` (whole days from the
+start date to now) and `too_short: true|false` (true below MIN_WINDOW_DAYS = 7):
+audit reports spend and run-share findings from a too-short window as P3
+observations only.
 
 Model ids. Models are grouped by exact id: `claude-opus-5` and `claude-opus-5-5`
 are different models and are reported separately, never merged.
@@ -95,6 +98,7 @@ def assistant_messages(path):
 
 
 DEFAULT_DAYS = 30  # window when neither --since/--days nor an installed type file gives a start
+MIN_WINDOW_DAYS = 7  # a shorter window is too short to judge spend or run shares (audit O8 rule)
 
 
 def encode_cwd(path):
@@ -181,7 +185,10 @@ def main():
     cutoff, cutoff_label = window_start()
     scope = "all projects" if ARGS.all_projects else (
         f"projects matching {ARGS.project!r}" if ARGS.project else f"current repo ({os.getcwd()})")
-    print(f"Scope: {scope}; since {datetime.datetime.fromtimestamp(cutoff):%Y-%m-%d} ({cutoff_label})\n")
+    window_days = (time.time() - cutoff) / 86400
+    too_short = window_days < MIN_WINDOW_DAYS
+    print(f"Scope: {scope}; since {datetime.datetime.fromtimestamp(cutoff):%Y-%m-%d} ({cutoff_label}); "
+          f"window_days {int(window_days)}; too_short: {'true' if too_short else 'false'}\n")
 
     by_type = collections.defaultdict(lambda: {"runs": 0, "calls": 0, "ctx": 0, "cost": 0.0,
                                                "models": collections.Counter(),

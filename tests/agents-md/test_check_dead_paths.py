@@ -1,10 +1,11 @@
 import shutil
+import subprocess
 import sys
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _helpers import make_repo, run_script  # noqa: E402
+from _helpers import make_repo, run_raw, run_script  # noqa: E402
 
 SCRIPT = "check_dead_paths.py"
 
@@ -104,6 +105,88 @@ class DeadPathsTest(unittest.TestCase):
         code, _ = run_script(SCRIPT, make_repo({}), "/nonexistent/missing.md")
         self.assertEqual(code, 2)
 
+    def test_scope_includes_agents_dir_and_prints_header(self):
+        root = make_repo({**BASE, "AGENTS.md": "x\n", "CLAUDE.md": "x\n", "AGENTS/INDEX.md": "x\n",
+                          "AGENTS/deep/NOTE.md": "See `docs/gone.md`.\n", "other/AGENTS.md": "x\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root)
+        self.assertEqual(code, 1)
+        self.assertTrue(lines[0].startswith("# scope: 5 files ("), lines[0])
+        self.assertIn("AGENTS/deep/NOTE.md:1\tdocs/gone.md\tdead", lines)
+
+    def test_archive_paths_from_config_and_flag_are_excluded(self):
+        files = {**BASE, "AGENTS.md": "x\n", "AGENTS/adr/0001.md": "`docs/gone.md`\n",
+                 "AGENTS/errors/e1.md": "`docs/gone.md`\n",
+                 ".claude/agents-md.yml": "version: 1\narchives:\n  paths: [AGENTS/adr/, notes/]\n  policy: tolerate\n"}
+        root = make_repo(files)
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root)
+        self.assertTrue(lines[0].startswith("# scope: 2 files"), lines[0])  # AGENTS.md + errors/e1.md
+        self.assertEqual(code, 1)
+        code, lines = run_raw(SCRIPT, root, "--archive", "AGENTS/errors")
+        self.assertTrue(lines[0].startswith("# scope: 1 files"), lines[0])
+        self.assertEqual(code, 0)
+
+    def test_directory_argument_recurses(self):
+        root = make_repo({**BASE, "notes/a.md": "`docs/gone.md`\n", "notes/sub/b.md": "`docs/guide.md`\n",
+                          "notes/skip.txt": "`docs/gone.md`\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root, str(root / "notes"))
+        self.assertTrue(lines[0].startswith("# scope: 2 files"), lines[0])
+        self.assertEqual(code, 1)
+
+    def test_gitignored_missing_target_is_local_not_dead(self):
+        root = make_repo({**BASE, "AGENTS.md": "`config/secrets.local.yml` and `docs/gone.md`\n",
+                          ".gitignore": "*.local.yml\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        code, rows = run_script(SCRIPT, root)
+        self.assertEqual(dict(rows), {"config/secrets.local.yml": "local", "docs/gone.md": "dead"})
+        self.assertEqual(code, 1)
+
+    def test_only_local_targets_exit_zero(self):
+        root = make_repo({"AGENTS.md": "`config/secrets.local.yml`\n", ".gitignore": "*.local.yml\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+        code, rows = run_script(SCRIPT, root)
+        self.assertEqual((code, rows), (0, {("config/secrets.local.yml", "local")}))
+
+    def test_moved_hint_stem_became_directory(self):
+        root = make_repo({"x/services/a.py": "", "AGENTS.md": "`x/services.py`\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root)
+        self.assertEqual(code, 1)
+        self.assertIn("AGENTS.md:1\tx/services.py\tdead\thint: moved? x/services/", lines)
+
+    def test_moved_hint_same_name_elsewhere_only_when_single(self):
+        root = make_repo({"src/app/unique_mod.py": "", "AGENTS.md": "`old/unique_mod.py` `old/models.py`\n",
+                          "a/models.py": "", "b/models.py": ""})
+        self.addCleanup(shutil.rmtree, root, True)
+        _, lines = run_raw(SCRIPT, root)
+        self.assertIn("AGENTS.md:1\told/unique_mod.py\tdead\thint: moved? src/app/unique_mod.py", lines)
+        self.assertIn("AGENTS.md:1\told/models.py\tdead", lines)  # two candidates: no hint
+
+
+    def test_dependency_paths_are_external_not_dead(self):
+        root = make_repo({"requirements.txt": "somelib==1.2\n", "src/app/views.py": "",
+                          "AGENTS.md": "`somelib/views.py` `gone/views.py`\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        _, lines = run_raw(SCRIPT, root)
+        self.assertIn("AGENTS.md:1\tsomelib/views.py\texternal", lines)
+        self.assertTrue(any(l.startswith("AGENTS.md:1\tgone/views.py\tdead") for l in lines), lines)
+
+    def test_abbreviated_unique_path_is_ok(self):
+        root = make_repo({"backend/apps/users/migrations/0040_add_reason.py": "",
+                          "AGENTS.md": "`users/0040_add_reason.py`\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        _, lines = run_raw(SCRIPT, root)
+        self.assertIn("AGENTS.md:1\tusers/0040_add_reason.py\tok", lines)
+
+    def test_name_templates_are_skipped(self):
+        root = make_repo({"AGENTS.md": "`docs/postmortems/YYYY-MM-DD-short-title.md`\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        _, lines = run_raw(SCRIPT, root)
+        self.assertFalse(any("YYYY" in l for l in lines), lines)
 
 if __name__ == "__main__":
     unittest.main()

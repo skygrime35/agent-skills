@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _helpers import make_repo, run_script  # noqa: E402
+from _helpers import make_repo, run_raw, run_script  # noqa: E402
 
 SCRIPT = "check_sections.py"
 
@@ -65,9 +65,33 @@ class SectionsTest(unittest.TestCase):
         code, rows = self.check("AGENTS.md § Absolute guardrails\n", extra, citing_path="docs/x.md")
         self.assertEqual((code, rows["AGENTS.md § Absolute guardrails"]), (0, "ok"))
 
-    def test_one_word_label_matches_whole_word_in_heading(self):
-        self.assertEqual(self.status("AGENTS.md § Guardrails\n", "AGENTS.md § Guardrails",
+    def test_substring_of_heading_is_partial_with_suggestion(self):
+        root = make_repo({"AGENTS.md": ROOT_DOC, "docs/x.md": "AGENTS.md § Guardrails\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        code, lines = run_raw(SCRIPT, root, str(root / "docs/x.md"))
+        self.assertEqual(code, 0)  # partial is reported, not dead
+        self.assertEqual(lines, ["docs/x.md:1\tAGENTS.md § Guardrails\tpartial\tsuggest: Absolute guardrails"])
+
+    def test_full_heading_text_is_ok_even_with_number_prefix(self):
+        self.assertEqual(self.status("AGENTS.md § Absolute guardrails\n", "AGENTS.md § Absolute guardrails",
                                      citing_path="docs/x.md"), "ok")
+        self.assertEqual(self.status("AGENTS.md § Client message scopes\n", "AGENTS.md § Client message scopes",
+                                     citing_path="docs/x.md"), "ok")
+
+    def test_partial_multiword_run_inside_heading(self):
+        self.assertEqual(self.status("AGENTS.md § message scopes\n", "AGENTS.md § message scopes",
+                                     citing_path="docs/x.md"), "partial")
+
+    def test_partial_is_shown_by_quiet_ok(self):
+        root = make_repo({"AGENTS.md": ROOT_DOC, "docs/x.md": "AGENTS.md § Guardrails\n"})
+        self.addCleanup(shutil.rmtree, root, True)
+        _, rows = run_script(SCRIPT, root, "--quiet-ok", str(root / "docs/x.md"))
+        self.assertEqual(rows, {("AGENTS.md § Guardrails", "partial")})
+
+    def test_label_token_needs_a_digit(self):
+        # "Absolute" is the first word of a heading, not a number/label token.
+        self.assertEqual(self.status("AGENTS.md § Absolute\n", "AGENTS.md § Absolute",
+                                     citing_path="docs/x.md"), "partial")
 
     def test_real_missing_section_and_missing_file(self):
         code, rows = self.check("AGENTS.md § Nonexistent chapter\ndocs/GONE.md § Setup steps\n",

@@ -1,25 +1,55 @@
-# .claude/agents-md.yml - written by `/agents-md sync` when absent (schema: references/config-schema.md).
-# Committed. Never store secret values; machine-specific values go in a gitignored *.local.yml.
+# .claude/agents-md.yml - written by `/agents-md` init and sync (schema: references/config-schema.md).
+# Committed. Never store secret values; machine-specific values go under `local:` or a gitignored *.local.yml.
+# Fill every {{PLACEHOLDER}} with a measured value; write `null` or `[]` for what does not apply. Never leave a placeholder.
 version: 1
 policy:
   language: {{DOC_LANGUAGE}}           # doc language
-  tier: {{TIER}}                       # auto | 1 | 2 | 3
-  install_guardrail_scripts: true
+  tier: {{TIER_POLICY}}                # auto | 1 | 2 | 3
+  install_guardrail_scripts: {{INSTALL_SCRIPTS}}   # true = install canonical checkers where no project variant exists
   guardrail_scripts_path: {{SCRIPTS_PATH}}
-  commit_convention: detect            # detect | enforce | skip
+  commit_convention: {{COMMIT_POLICY}} # detect | enforce | skip
 archives:
   paths: [{{ARCHIVE_PATHS}}]           # measured dated-record folders, empty list if none
-  policy: tolerate                     # tolerate | annotate | fix
+  policy: {{ARCHIVES_POLICY}}          # tolerate | annotate | fix
+ci_replay_excludes: []                 # HUMAN-AUTHORED job ids deliberately absent from the doc's CI-replay list
 detected_at:
   sha: {{HEAD_SHA}}
   date: {{ISO_DATE}}
+tier: {{TIER}}                         # 1 | 2 | 3, confirmed by the human
+language:
+  written: {{DOC_LANGUAGE}}
+  detected: {{DETECTED_LANGUAGE}}
+  conflict: null                       # the repository's language rule when it differs from the default
+  resolution: null                     # the rule applied and when; null if no conflict
 structure:
   root: AGENTS.md
   pointer: {{POINTER_FILE_OR_NULL}}
   index: {{INDEX_FILE_OR_NULL}}
   domains: []                          # {path, file, manifest} per detected domain
-commands: {}                           # only commands executed during a run: {cmd, verified, source}
-guardrail_scripts: []                  # {name, path, wired, marker_version} per installed checker
+  knowledge: []                        # on-demand files under AGENTS/
+  adr: {{ADR_DIR_OR_NULL}}
+  debt_register: {{DEBT_REGISTER_OR_NULL}}
+commands: {}                           # only commands executed during a run: {cmd, verified, source}; unverified ones carry a note
+environments:
+  prod_branch: {{PROD_BRANCH}}
+  preprod_rule: {{PREPROD_RULE}}
+  platform: {{CI_PLATFORM}}
+  evidence: {{ENVIRONMENT_EVIDENCE}}
+commit_convention:
+  enforced: {{COMMIT_ENFORCED}}
+  format: {{COMMIT_FORMAT}}
+  scopes: []
+guardrail_scripts: []                  # one entry per canonical checker: {name, status: installed|variant|absent, path, wired, marker_version}
 budget:
-  instructions: {{INSTRUCTION_COUNT}}  # from scripts/count_rules.py
+  instructions: {{INSTRUCTION_COUNT}}  # `totals.statements` from scripts/count_rules.py
+  threshold: "{{BUDGET_FIGURE}}"       # copied from structure.md, Instruction budget
+  always_loaded_chars: {{ALWAYS_LOADED_CHARS}}
+knowledge_graph:
+  present: false
+  path: null
+  built_at_commit: null
+  drift_commits: null
+  usable: false
 quirks: []                             # HUMAN-AUTHORED, never rewritten by detection
+local:
+  env_var_names: []                    # names only, never values
