@@ -1,6 +1,6 @@
 # claude-skills
 
-Private Claude Code plugin marketplace holding personal skills.
+Claude Code plugin marketplace holding personal skills.
 
 ## Install
 
