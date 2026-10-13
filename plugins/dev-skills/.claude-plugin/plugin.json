@@ -1,6 +1,6 @@
 {
   "name": "dev-skills",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"
@@ -29,6 +29,12 @@
       "title": "Install guardrail scripts",
       "description": "Copy the check_*.py guardrail scripts into the target project by default (opt-out).",
       "default": true
+    },
+    "agents_md_guardrail_scripts_path": {
+      "type": "string",
+      "title": "Guardrail scripts path",
+      "description": "Project-relative folder where the check_*.py guardrail scripts are copied (unless the project already tracks check_* scripts in scripts/).",
+      "default": ".claude/agents-md/"
     },
     "agents_md_commit_convention_policy": {
       "type": "string",
@@ -416,7 +422,7 @@
     "orchestration_check_script_path": {
       "type": "string",
       "title": "Check script path",
-      "description": "Where check_agent_refs.py is copied: auto (scripts/ if it exists, else .claude/orchestration/) or a path.",
+      "description": "Where check_agent_refs.py is copied: auto (.claude/orchestration/, or scripts/ when git already tracks scripts/check_* files) or a path.",
       "default": "auto"
     },
     "orchestration_report_language": {

@@ -70,6 +70,7 @@ For every file in both D5 inventories:
 - **O7.1 P1** A check script recorded in the config but missing on disk. Evidence: config entry + `ls` output.
 - **O7.2 P1** `wired: true` with no CI or pre-commit evidence (probe D10's grep empty). A false fact about enforcement is worse than no enforcement. Evidence: the config line + the empty grep.
 - **O7.3 P2** The script exists but scans a location that is not the current `agents.location` (moved agents dir, renamed doc). Evidence: the script's arguments in CI vs the config.
+- **O7.4 P3** The check script sits in `scripts/` although git tracks no other `scripts/check_*` file and nothing wires it: migration candidate to `.claude/orchestration/` (sync proposes it). Evidence: `git ls-files 'scripts/check_*'` + D10 grep.
 
 ## O8 - Model economy
 

@@ -29,6 +29,8 @@ Builds, grades or repairs the file set that tells an AI agent how a repository w
 
 With `--help`/`-h` and nothing else, print the Usage block verbatim and stop.
 
+Guardrail scripts destination: `${user_config.agents_md_guardrail_scripts_path}` (default `.claude/agents-md/`), written `<scripts_path>` below. Resolution: `guardrail_scripts_path` in `.claude/agents-md.yml` > plugin option > exception rule (git already tracks `scripts/check_*`: `git ls-files 'scripts/check_*'` non-empty, then use `scripts/`; announced in the plan, no question; an untracked or just-created `scripts/` never counts) > `.claude/agents-md/`. If git ignores the destination (`git check-ignore -q <scripts_path>/check_no_todo.py`), the scripts would never be committed: the plan says so and adds a `.gitignore` negation for that folder (`!<scripts_path>`; a whole-directory pattern such as `.claude/` must first become `.claude/*`, or the negation has no effect; re-check with `git check-ignore`), never a silent uncommitted copy.
+
 Resolution order for every policy: argument > `.claude/agents-md.yml` > plugin option `${user_config.<KEY>}` > recommended default. The archives policy (dead references inside dated records such as `errors/`, `adr/`, `postmortems/`) resolves as `--archives` > `archives.policy` in the project config > `${user_config.agents_md_archives_policy}` > `tolerate`; see P1.2 and `sync` below. An argument never overrides a **guardrail**: `init` on a repository that already has an AGENTS.md still refuses (switch to `audit`).
 
 ## Scope
@@ -40,7 +42,7 @@ Resolution order for every policy: argument > `.claude/agents-md.yml` > plugin o
 These override convenience, in all three modes.
 
 1. **Verified or absent, unknown is a finding.** Every written command has been executed here; every cited path stat'd; every branch resolved. A fact that cannot be established becomes a question, an explicitly empty slot, or (in `audit`) a reported blind spot, never a plausible guess or a green check. A confidently wrong AGENTS.md is worse than a short one: agents follow it.
-2. **Generic content harms.** Never write "follow best practices" or "handle errors properly". Document the counter-intuitive convention an agent would get wrong from the code alone. See `${CLAUDE_SKILL_DIR}/references/content-rules.md`.
+2. **Generic content harms.** Never write "follow best practices" or "handle errors properly". Document the counter-intuitive convention an agent would get wrong from the code alone. Avoid volatile state (current branch, task in progress, open PRs, drifting counts): write the command that reads it; you arbitrate the rare exception (content-rules §7). See `${CLAUDE_SKILL_DIR}/references/content-rules.md`.
 3. **The instruction budget is finite.** Count, report, refuse to pad; a rule added displaces one already there. Canonical figure: `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget).
 4. **Behaviour stays, guardrails travel.** Behaviour rules live in the root AGENTS.md, never externalised. Domain guardrails keep the prohibition in the root and the detail in the domain file. See `${CLAUDE_SKILL_DIR}/references/structure.md`.
 5. **Never drop a prohibition.** Compression rewrites a justification, never an imperative. Any `sync` touching guardrails ends with a mechanical non-regression check: count before and after, grep every prohibition marker.
@@ -55,11 +57,11 @@ Builds the system from scratch. **Refuses and switches to `audit` if a root AGEN
 
 **Phase 2 - resolve policies, ask nothing by default.** Resolve each policy in the same order (argument > project config > plugin option > recommended default): doc language (`${user_config.agents_md_doc_language}`), guardrail scripts (`${user_config.agents_md_install_guardrail_scripts}`, opt-out), commit convention (`${user_config.agents_md_commit_convention_policy}`: detect, enforce or skip). Ask only a blocking question: the production ref when it is undetectable, or a documentation-language rule found in the repository that conflicts with the resolved language. The prohibitions no code can reveal are never invented: unknown ones stay an explicitly empty slot, listed in the report. Then present ONE plan confirmation (tier, file set, scripts, language) before the first write, and list every empty prohibition slot explicitly by name and location in that same confirmation, inviting the human to fill them in their reply to it. No extra question round: the reply either fills a slot (written verbatim, as an imperative) or leaves it empty, and an unfilled slot is reported as empty.
 
-**Phase 3 - write.** After the plan is confirmed, generate the tier's file set from `${CLAUDE_SKILL_DIR}/templates/`, filled with measured facts. Copy the guardrail scripts if enabled: `cp ${CLAUDE_SKILL_DIR}/scripts/check_{no_todo,monolith,no_stub,forbidden_chars}.py <target>/scripts/` (`check_dead_paths.py` and `check_sections.py` are audit tools, not copied). Write `.claude/agents-md.yml`. With `--dry-run`, print the plan and stop: zero writes. Dry-run also applies when the user asks for "plan only", "show what you would generate" or "write nothing" without the flag. In dry-run: (a) the plan lists a command only if it was executed here with a safe check and succeeded; a command that could not be run (e.g. `npm` absent) is listed under "Not verified - will not be written" or as an explicitly empty slot, never as a command to document; (b) the plan states the tier with its justification, the file list, the scripts, the language and every empty slot, and no more than one question; (c) before answering, run `ls` / `git status --short` on the target for `AGENTS.md`, `CLAUDE.md`, `AGENTS/`, `scripts/check_*.py` and `.claude/agents-md.yml`, and state in the answer that none of them exists (proof of zero writes).
+**Phase 3 - write.** After the plan is confirmed, generate the tier's file set from `${CLAUDE_SKILL_DIR}/templates/`, filled with measured facts. Copy the guardrail scripts if enabled: `cp ${CLAUDE_SKILL_DIR}/scripts/check_{no_todo,monolith,no_stub,forbidden_chars}.py <target>/<scripts_path>` (`check_dead_paths.py` and `check_sections.py` are audit tools, not copied). Write `.claude/agents-md.yml`. With `--dry-run`, print the plan and stop: zero writes. Dry-run also applies when the user asks for "plan only", "show what you would generate" or "write nothing" without the flag. In dry-run: (a) the plan lists a command only if it was executed here with a safe check and succeeded; a command that could not be run (e.g. `npm` absent) is listed under "Not verified - will not be written" or as an explicitly empty slot, never as a command to document; (b) the plan states the tier with its justification, the file list, the scripts and their destination (stating the tracked-checkers exception when it applies), the language and every empty slot, and no more than one question; (c) before answering, run `ls` / `git status --short` on the target for `AGENTS.md`, `CLAUDE.md`, `AGENTS/`, `<scripts_path>/check_*.py` and `.claude/agents-md.yml`, and state in the answer that none of them exists (proof of zero writes).
 
 **Phase 4 - verify your own output.** Stat every path cited. Execute every command written. Confirm every cross-reference resolves to a file that exists and actually contains the section named. Fix or remove whatever fails. **This phase is not optional**: it is the difference between this skill and a template generator.
 
-**Phase 5 - report.** What was written, what was deliberately left empty and why, what the human must fill in, and the measured instruction count against the budget.
+**Phase 5 - report.** What was written, what was deliberately left empty and why, what the human must fill in, and the measured instruction count against the budget. When multiple agents are possible (several authors, agent tooling, worktrees), recommend running `/orchestration`, which owns parallelism and isolation; this skill writes no concurrency rules.
 
 ## Mode: audit
 
@@ -88,11 +90,12 @@ Audit report format, mandatory:
 
 ## Mode: sync
 
-Runs `audit`, then presents ONE plan confirmation listing the batches (each finding under its `AM-NN` ID from the audit, unchanged), and applies fixes batch by batch, most valuable first (`--dry-run`: print the batches, zero writes). Three operations, never mixed within a batch:
+Runs `audit`, then presents ONE plan confirmation listing the batches (each finding under its `AM-NN` ID from the audit, unchanged), and applies fixes batch by batch, most valuable first (`--dry-run`: print the batches, zero writes). Four operations, never mixed within a batch:
 
 - **Correct.** False facts and dead references. Lowest risk, highest value, always offered first. Dead references inside archive paths follow the archives policy: `tolerate` leaves them, `annotate` rewrites only the reference as "`new` (formerly `old`)" and never the record body, `fix` replaces the reference.
 - **Compress.** Keep the imperative and the numeric threshold; move the justification, the history and the procedure out. A guardrail works by its imperative form, not by its explanation.
 - **Externalise.** Move single-domain detail into that domain's file, leaving one imperative line plus a pointer.
+- **Relocate scripts.** When the installed checkers sit in `scripts/`, that folder holds only this skill's `check_*.py` files, and none is wired (`wired: false`, absent from CI, pre-commit and Makefile), propose `git mv` to `<scripts_path>` and update the config paths. Otherwise propose nothing.
 
 **Before any compression or externalisation, verify the target already carries the detail.** Probe the destination file for the specific facts about to be removed. If the probe fails, the operation is not compression, it is deletion: skip it and report why.
 
@@ -111,7 +114,7 @@ Load on demand, not upfront:
 | `${CLAUDE_SKILL_DIR}/references/guardrail-scripts.md` | Generating or wiring the scripts |
 | `${CLAUDE_SKILL_DIR}/references/config-schema.md` | Reading or writing `.claude/agents-md.yml` |
 
-`${CLAUDE_SKILL_DIR}/templates/` holds the file skeletons; `${CLAUDE_SKILL_DIR}/scripts/` holds the guardrail checkers (copied into the target project) and the read-only audit scripts `check_dead_paths.py` and `check_sections.py` (run from the skill directory). In `templates/adr-0001.md.tmpl`, fill `{{BUDGET_FIGURE}}` from the canonical budget in `structure.md`.
+`${CLAUDE_SKILL_DIR}/templates/` holds the file skeletons; `${CLAUDE_SKILL_DIR}/scripts/` holds the guardrail checkers (copied into the target project at `<scripts_path>`) and the read-only audit scripts `check_dead_paths.py` and `check_sections.py` (run from the skill directory). In `templates/adr-0001.md.tmpl`, fill `{{BUDGET_FIGURE}}` from the canonical budget in `structure.md`.
 
 ## Language
 

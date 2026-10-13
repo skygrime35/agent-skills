@@ -4,7 +4,7 @@ Contents: B1 Model ladder | B7 Escalation | B2 Delegation | B3 Parallelism and i
 
 The menu of orchestration rules this skill can write into the base doc's owned section. Eight blocks, B1 to B8, generalized from a field-proven production system and from the practices summarized in `references/models.md`. For each: purpose, canonical text (English render source), variation points keyed to interview answers, instruction cost, and when to omit it. Block IDs are stable identifiers, not reading order: the written section follows the order of `templates/doctrine-section.md.tmpl` (B1, B7, B2, B8, B3, B4, B5, B6).
 
-**Boundary note.** Branch discipline (check the branch and cohabitation before any modification), general output style, and knowledge-graph usage belong to the base doc's behaviour section, owned by `/agents-md`. This skill never writes them; its audit only reports overlap when the owned section restates them.
+**Boundary note.** A legacy "Concurrency isolation" subsection from older agents-md versions is absorbed into B3 (moved, every ban and rule kept; where it adds a rule B3 lacks, that rule stays in the section); the non-regression count applies. Branch discipline (check the branch and cohabitation before any modification), general output style, and knowledge-graph usage belong to the base doc's behaviour section, owned by `/agents-md`. This skill never writes them; its audit only reports overlap when the owned section restates them.
 
 **Rendering.** The canonical text below is the SOURCE, in English. At write time it is rendered into the output language decided in Phase 0 (a French base doc gets French prose), with the interview's variation points applied. Rendered, not copied: sentence order and idiom may adapt, imperatives and thresholds may not. Sync rewrites the doctrine only inside the recorded `section_spans` (config-schema.md), never elsewhere in the base doc.
 
@@ -96,7 +96,7 @@ Canonical text:
 
 > Before decomposing a request and distributing it to agents, the orchestrator asks the user questions without restraint, as many as needed, whenever doubt remains about the real intent. Better to clear the ambiguity upstream than to hand subagents a misread instruction they would execute faithfully but beside the need.
 
-Cost: 2 instructions. Omit per Q4.1 (bias-to-action posture).
+Cost: 2 instructions. Omit per Q4.1 (bias-to-action posture), and omit automatically when the base doc already contains an equivalent ask-on-ambiguity / think-before-coding rule, whoever wrote it (config `policy.ask_before_dispatch: omitted-redundant`, stated in the plan).
 
 ## B5 - Session naming
 

@@ -64,7 +64,7 @@ Two questions, in order.
 
 **1. Does it apply on every turn, or only when a domain is touched?**
 
-Every turn means behaviour: task decomposition, when to ask, delegation, reporting, git and branch discipline, concurrency isolation. **Root file, never externalised.** An on-demand behaviour rule is read too late or never.
+Every turn means behaviour: task decomposition, when to ask, delegation, reporting, git and branch discipline. **Root file, never externalised.** An on-demand behaviour rule is read too late or never.
 
 Domain-scoped means guardrail: this ORM constraint, that billing invariant, this deployment rule. **Prohibition in the root file, detail in the domain file.**
 
@@ -94,9 +94,9 @@ Generate these in every tier, adapted to the project. They encode failures obser
 - **Simplicity first.** Minimum code that solves the stated problem. No anticipated flexibility.
 - **Surgical changes.** Touch only what the request implies. Every modified line must trace to the request.
 - **Verifiable objectives.** Turn tasks into checkable success criteria.
-- **Concurrency isolation** (whenever multiple agents are possible). Disjoint enumerated file sets, or isolated worktrees. Absolute prohibitions on a shared tree: `stash`, `add -A`, `checkout`, `reset`. **This one is not optional**: the failure mode is silent and destroys work.
 - **Branch discipline.** Establish the current branch before the first modification. Never modify the production branch without an explicit request. Never switch branches without approval: it changes what every session sharing the directory sees.
-- **Staging discipline.** Stage only files you modified yourself. This is the rule that prevents the most common concurrency accident: one session committing another's in-flight work into an unrelated commit.
+- **Staging discipline.** Stage only files you modified yourself: it prevents one session committing another's in-flight work into an unrelated commit.
+- **Not written here: concurrency isolation.** Parallelism and isolation (worktrees, disjoint file sets, shared-tree bans) belong to `/orchestration`; this skill never writes that subsection. When multiple agents are possible, the init report recommends running `/orchestration`.
 - **Output density** (optional, ask). Engineering-report prose: result first, no preamble, no closing summary. If generated, it must carry the bound: density applies to prose, never to the work, and never licenses skipping clarifying questions or hiding a risk.
 - **Delegation** (only where subagents exist). With a threshold: below the cost of a delegation round trip, do it inline.
 

@@ -24,7 +24,7 @@ grep -nE '^#{2,4} .*([Oo]rchestrat|[Mm]ulti.agent)' BASE_DOC
 grep -niE 'worktree|sous-agent|subagent|deleg|délég|parallel|parallél|effort' BASE_DOC
 ```
 
-The heading probe finds the owned section; record its span (start line, end line of the heading's content, bounded by the next same-level heading). Doctrine may spread over several **consecutive sibling headings** (same level, no higher-level heading between them) that all cover the same topic: accept the run as one owned doctrine and record one span per heading in `section_spans`. Siblings count only when the topic is shown by the heading or its body (the same keywords as the heading probe); an unrelated sibling ends the run. The semantic probe finds orchestration rules living OUTSIDE that span: each such hit is recorded as **scattered doctrine** and feeds audit family O3. No heading but semantic hits: there is doctrine with no owned section, `init` on the doctrine scope still switches to `audit` (the artifact exists, dispersed).
+The heading probe finds the owned section; record its span (start line, end line of the heading's content, bounded by the next same-level heading). Doctrine may spread over several **consecutive sibling headings** (same level, no higher-level heading between them) that all cover the same topic: accept the run as one owned doctrine and record one span per heading in `section_spans`. Siblings count only when the topic is shown by the heading or its body (the same keywords as the heading probe); an unrelated sibling ends the run. The semantic probe finds orchestration rules living OUTSIDE that span: each such hit is recorded as **scattered doctrine** and feeds audit family O3. A legacy agents-md subsection titled "Concurrency isolation" (written by older agents-md versions, usually under Agent behaviour) is not scattered doctrine: record it as `legacy_isolation: {line, excerpt}`; init and sync absorb it into the owned section (moved, every rule kept) and it never flips init to audit by itself. No heading but other semantic hits: there is doctrine with no owned section, `init` on the doctrine scope still switches to `audit` (the artifact exists, dispersed).
 
 ## D3 - agents-md config
 
@@ -84,7 +84,10 @@ Worktrees usable: B3 may name them as the strong isolation form. A migration fra
 ```bash
 ls scripts/check_agent_refs.py .claude/orchestration/check_agent_refs.py 2>/dev/null
 grep -rn 'check_agent_refs' .github/workflows/ .pre-commit-config.yaml 2>/dev/null
+git ls-files 'scripts/check_*' 2>/dev/null
 ```
+
+The `git ls-files` output drives Q4.4: non-empty means the project tracks checkers in `scripts/` (check script goes there); empty means `.claude/orchestration/`, even if `scripts/` exists on disk.
 
 The second command is the only admissible evidence for `wired: true`. Script on disk but absent from CI and pre-commit: `wired: false`, whatever the config claims (a claim without evidence is finding O7.2).
 
@@ -116,12 +119,13 @@ Runs in every mode when transcripts exist: in init it informs Q1.2, Q1.3 and the
 ```yaml
 base_doc: {file, pointer, section_spans, language, evidence}
 scattered_doctrine: [{line, excerpt}]
+legacy_isolation: {line, excerpt}|null   # agents-md "Concurrency isolation" subsection, absorbed not scattered
 agents_md: {config, budget}
 agent_types: {global: [...], project: [...]}
 statusline: true|false
 language: {detected, stated_rule, conflict}
 isolation: {worktrees_ok, migrations}
-checks: {script_path, wired_evidence}
+checks: {script_path, wired_evidence, tracked_checkers}
 models: {verified_at, stale, main_model, subagent_model_env, subagent_model_force, explore_override}
 usage: {window_days, by_type: [{type, runs, calls_per_run, cost_per_run, share}]}   # D12, null when no transcripts
 unknowns: []   # never empty on a real repository

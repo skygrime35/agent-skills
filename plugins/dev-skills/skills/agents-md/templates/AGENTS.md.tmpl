@@ -35,22 +35,8 @@ Before the first modification of a task: `git branch --show-current`, then `git 
 
 **Never switch branches without approval.** `checkout`, `switch`, `reset`, `pull --rebase`, `stash` change what every session sharing this directory sees.
 
-### 6. Concurrency isolation
-
-<!-- Generate this whenever more than one agent can run. The failure mode is
-     silent: two agents in one tree destroy each other's work with no error. -->
-
-Parallel agents are welcome on independent work, **under isolation**. Before launching concurrent agents, impose one of:
-
-- **disjoint file sets**, enumerated in each agent's prompt, with no straying outside them (sufficient when no agent commits);
-- **isolated git worktrees**, one per agent (required as soon as scopes may overlap, an agent commits or stashes, or a schema migration is involved).
-
-Absolute prohibitions on a shared tree: `git stash`, `git add -A`, `git checkout`, `git reset`.
-
-**Stage only files you modified yourself.** Telling agents about each other is coordination, not protection: it does not replace isolation.
-
 {{#OUTPUT_DENSITY}}
-### 7. Output mode
+### 6. Output mode
 
 Engineering-report prose: result first, no pleasantries, no restatement of the request, no closing summary. Every proposed code change carries a **one-sentence** technical rationale naming the criterion (SOLID, DRY, performance, type safety, layer boundary), except mechanical edits. Critical peer review: state flaws plainly, including in existing code and in the request itself.
 
@@ -63,10 +49,11 @@ Bounds: density applies to **prose**, never to the **work**. It never licenses s
 
 **Stack**: {{STACK_WITH_VERSIONS}}
 
-**Architecture**: {{CURRENT_STATE_NOT_HISTORY}}
+**Architecture**: {{STABLE_ARCHITECTURE_FACTS}}
 
-<!-- Current state only. Completed migrations, why decisions were taken and what
-     was split belong in ARCHITECTURE.md, not in a file loaded every session. -->
+<!-- Stable facts only. No history (completed migrations, why decisions were taken:
+     ARCHITECTURE.md) and no volatile state (current branch, work in progress,
+     open PRs, drifting counts): it is stale within days. -->
 
 ---
 

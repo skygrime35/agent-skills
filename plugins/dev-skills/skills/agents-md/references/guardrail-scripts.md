@@ -4,7 +4,7 @@ Contents: The four checkers - Wiring: propose, never do - Wire after clearing, n
 
 A rule nobody checks decays. These scripts turn written prohibitions into mechanical ones.
 
-They live in `${CLAUDE_SKILL_DIR}/scripts/` and are **copied into the target project** (default `scripts/`, or wherever that project keeps its tooling), e.g. `cp ${CLAUDE_SKILL_DIR}/scripts/check_{no_todo,monolith,no_stub,forbidden_chars}.py <target>/scripts/` (not `check_dead_paths.py` / `check_sections.py`, which are audit-only). Pure standard library, no dependency, exit 1 on violation.
+They live in `${CLAUDE_SKILL_DIR}/scripts/` and are **copied into the target project** at `<scripts_path>` (resolution in SKILL.md: argument > `guardrail_scripts_path` in config > `user_config.agents_md_guardrail_scripts_path` > tracked-checkers exception > `.claude/agents-md/`), e.g. `cp ${CLAUDE_SKILL_DIR}/scripts/check_{no_todo,monolith,no_stub,forbidden_chars}.py <target>/<scripts_path>` (not `check_dead_paths.py` / `check_sections.py`, which are audit-only). Pure standard library, no dependency, exit 1 on violation.
 
 ## The four checkers
 
@@ -29,7 +29,7 @@ This is not a detail. The first field run of the naive version produced four hit
 
 ## Wiring: propose, never do
 
-Hand the human the block for their detected platform. Do not edit the pipeline.
+Hand the human the block for their detected platform, with `<scripts_path>` replaced by the resolved path. Do not edit the pipeline.
 
 The blocks below go in the target project (its CI config), never in this skill.
 
@@ -43,10 +43,10 @@ The blocks below go in the target project (its CI config), never in this skill.
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: python scripts/check_no_todo.py backend/ frontend/src
-      - run: python scripts/check_no_stub.py backend/ frontend/src
-      - run: python scripts/check_monolith.py --file 400 --function 75 backend/
-      - run: python scripts/check_forbidden_chars.py --chars dashes frontend/src
+      - run: python <scripts_path>/check_no_todo.py backend/ frontend/src
+      - run: python <scripts_path>/check_no_stub.py backend/ frontend/src
+      - run: python <scripts_path>/check_monolith.py --file 400 --function 75 backend/
+      - run: python <scripts_path>/check_forbidden_chars.py --chars dashes frontend/src
 ```
 
 **GitLab CI** (in the target project)
@@ -55,8 +55,8 @@ The blocks below go in the target project (its CI config), never in this skill.
 guardrails:
   image: python:3.12-slim
   script:
-    - python scripts/check_no_todo.py backend/ frontend/src
-    - python scripts/check_monolith.py --file 400 backend/
+    - python <scripts_path>/check_no_todo.py backend/ frontend/src
+    - python <scripts_path>/check_monolith.py --file 400 backend/
 ```
 
 **pre-commit** (in the target project)
@@ -66,7 +66,7 @@ guardrails:
     hooks:
       - id: no-todo
         name: no deferral markers
-        entry: python scripts/check_no_todo.py
+        entry: python <scripts_path>/check_no_todo.py
         language: system
         pass_filenames: true
 ```
@@ -75,8 +75,8 @@ guardrails:
 
 ```make
 guardrails:
-	python scripts/check_no_todo.py backend/ frontend/src
-	python scripts/check_monolith.py --file 400 backend/
+	python <scripts_path>/check_no_todo.py backend/ frontend/src
+	python <scripts_path>/check_monolith.py --file 400 backend/
 ```
 
 ## Wire after clearing, never before

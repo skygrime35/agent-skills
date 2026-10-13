@@ -58,7 +58,7 @@ doctrine:
   prohibitions: 6                # non-regression baseline for sync
 
 checks:
-  - {name: check_agent_refs, path: scripts/check_agent_refs.py, wired: false}
+  - {name: check_agent_refs, path: .claude/orchestration/check_agent_refs.py, wired: false}
 
 policy:                          # recorded interview answers. A recorded decision is never re-asked.
   cost_posture: cheapest-capable           # cheapest-capable | balanced | capability-first (Q1.2)
@@ -71,10 +71,10 @@ policy:                          # recorded interview answers. A recorded decisi
   report_style: high-density               # high-density | free (Q2.4)
   shared_tree_bans: ["git stash", "git add -A", "git checkout", "git reset"]   # Q3.3
   cite_incident: true                      # Q3.4
-  check_script_path: auto                  # auto | <path> (Q4.4)
+  check_script_path: auto                  # auto | <path> (Q4.4); auto = .claude/orchestration/ unless git tracks scripts/check_*
   parallelism: default-on                  # default-on | on-request | never
   isolation: escalating                    # escalating | worktrees-always | disjoint-only
-  ask_before_dispatch: freely
+  ask_before_dispatch: freely              # freely | minimal | omitted-redundant (base doc already has an ask-on-ambiguity rule: B4 omitted)
   session_naming: badge-with-fallback      # badge-with-fallback | prefix | auto (decided by probe D6)
   language_resolution: null                # populated only on conflict, with date
 
@@ -102,7 +102,7 @@ local:                           # machine-specific, gitignore candidate
 
 **`doctrine.prohibitions`** and **`prohibition_markers`**: the non-regression baseline. Any sync batch touching the doctrine recounts and re-greps against these; a drop without an explicitly approved merge aborts the batch.
 
-**`checks[].wired`**: `false` until the human confirms the CI or pre-commit block was added. The skill proposes, it never wires.
+**`checks[].wired`**: `false` until the human confirms the CI or pre-commit block was added. The skill proposes, it never wires. The proposed block runs the script with `--only-owned`: errors only for the types in `agents.types` / `agents.overrides`, warnings for other agent files and for global types when `agents.location: global` and the agents dir is absent (CI).
 
 **`policy`**: interview answers become fields here. On the next run they are facts, not questions. Changing a policy is done by answering differently in a `sync` run, which shows the old value first.
 

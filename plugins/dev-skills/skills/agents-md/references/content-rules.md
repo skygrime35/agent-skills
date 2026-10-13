@@ -7,12 +7,12 @@ Contents:
 - 4 Behaviour vs guardrails
 - 5 Imperative over justification
 - 6 Probe before externalising
-- 7 History
+- 7 History and volatile state
 - 8 Redundancy
 - 9 Mechanical checks
 - 10 CLAUDE.md pointer
 - 11 Prose density
-- 12 Concurrency rules
+- 12 Concurrency isolation is not written here
 
 The rules in this file decide the quality of everything the skill produces. They are ordered by how much damage ignoring them causes.
 
@@ -82,11 +82,13 @@ Before removing detail from the root file, grep the destination for the specific
 
 The operation that made this safe in the field: fifteen probes across seven destination files, every one confirming the detail was already present, before a single character was removed.
 
-## 7. History is not agent documentation
+## 7. History and volatile state are not agent documentation
 
 Completed refactor phases, the reasoning behind settled decisions, what was split and why: this is archaeology. An agent needs the current state, not how it was reached. Move it to an architecture file or a history folder.
 
 A root file that opens with the project's refactor narrative is paying, on every session forever, for a story that changes nothing about what the agent should do now.
+
+Avoid volatile state in every agentic doc: the current branch, the task in progress, open PRs or issues, last run dates, current versions, counts that drift (tests, files, endpoints). It is stale within days and nobody maintains it. Arbitrate each case yourself, without asking: by default write the command that reads it instead (`git branch --show-current`, `gh pr list`); keep the fact only when an agent would act wrongly without it and no command can read it, and then write how to refresh it. Stable facts are not volatile: production and integration branch names, the branch naming convention.
 
 ## 8. Redundancy announces itself
 
@@ -108,8 +110,6 @@ Write the way an engineering report is written: result first, no preamble, no re
 
 Every line is paid for on every session, in every subagent. A paragraph that could be a table row should be a table row.
 
-## 12. Concurrency rules belong in every generated file set
+## 12. Concurrency isolation is not written here
 
-Any project where more than one agent may run must state the isolation rule, because the failure mode is silent and destructive: two agents writing to one working tree destroy each other's work, and a `git stash` from one carries away the other's changes with no error message anywhere.
-
-The generated behaviour section must therefore always include: disjoint file sets enumerated per agent, or isolated git worktrees; and the absolute prohibitions on a shared tree (`stash`, `add -A`, `checkout`, `reset`). Plus the staging rule that prevents the most common version of the accident: **stage only files you modified yourself.**
+Parallelism and isolation rules are owned by `/orchestration`. Never generate a "Concurrency isolation" subsection in the behaviour section. When more than one agent may run, the init report recommends `/orchestration`. Audit check P0.1 still flags documentation that encourages parallel agents with no isolation mechanism anywhere (the orchestration section counts).

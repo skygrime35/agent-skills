@@ -6,7 +6,7 @@ line counts only, because brace-counting heuristics produce false positives
 that erode trust in the check.
 
     check_monolith.py --file 400 --function 75 --class 200 backend/
-    check_monolith.py --file 150 --allowlist scripts/monolith_allowlist.txt frontend/src
+    check_monolith.py --file 150 --allowlist .claude/agents-md/monolith_allowlist.txt frontend/src
 
 Exit code 1 on any violation, 0 when clean.
 """

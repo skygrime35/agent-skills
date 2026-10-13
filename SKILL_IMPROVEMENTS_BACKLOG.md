@@ -125,3 +125,17 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 
 - Statusline: OR-09, the machine-local `subagent-statusline.sh` showed "Opus 5" for Opus 5.5 and "Haiku 5 5". Check first whether the skill ships a statusline template (not seen in `templates/`) before proposing anything.
 - `maxTurns`: OR-10, caps far above measured usage (e.g. haiku-quick 130 for 5 calls/run). O8.7 only flags caps that are too low; a P3 signal when cap > 3x measured p95 would be cosmetic. The owner kept the current caps in DebriefLab.
+
+---
+
+## Round 2 (2026-10-13, field report from a fresh Go repo, plugin 1.3.0) — all IN 1.4.0
+
+| # | Proposal | Status |
+|---|---|---|
+| R2-1 | agents-md checkers go to `.claude/agents-md/` (option `agents_md_guardrail_scripts_path`), `scripts/` only when git already tracks `scripts/check_*`; sync proposes relocation | IN 1.4.0 |
+| R2-2 | orchestration checker goes to `.claude/orchestration/` with the same tracked-checkers exception | IN 1.4.0 |
+| R2-3 | agents-md no longer writes "Concurrency isolation" (owned by orchestration); its report recommends `/orchestration`; orchestration absorbs a legacy subsection | IN 1.4.0 |
+| R2-4 | Phase 4: new agent types visible only after harness reload; verify the resolved model from the transcript | IN 1.4.0 |
+| R2-5 | B4 omitted when the base doc already has an ask-on-ambiguity rule (`omitted-redundant`) | IN 1.4.0 |
+| R2-6 | `check_agent_refs.py --only-owned` for CI (non-owned files and absent global dirs are warnings) | IN 1.4.0 |
+| R2-7 | agents-md avoids volatile state (current branch, task in progress, open PRs, drifting counts) in every agentic doc, arbitrating exceptions itself; audit flags it under P2.5 | IN 1.4.0 |

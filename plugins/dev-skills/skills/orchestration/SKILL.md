@@ -53,7 +53,7 @@ Plugin options (change them with `/config`; each maps to the `policy:` field of 
 | `orchestration_cite_incident` | `${user_config.orchestration_cite_incident}` | cite the field incident in doctrine B3 |
 | `orchestration_ask_before_dispatch` | `${user_config.orchestration_ask_before_dispatch}` | ask-before-dispatch posture |
 | `orchestration_session_naming` | `${user_config.orchestration_session_naming}` | session naming variant |
-| `orchestration_check_script_path` | `${user_config.orchestration_check_script_path}` | where the check script goes |
+| `orchestration_check_script_path` | `${user_config.orchestration_check_script_path}` | where the check script goes (`auto`: see interview Q4.4) |
 | `orchestration_report_language` | `${user_config.orchestration_report_language}` | language of reports to the user |
 
 ## Scope and non-goals
@@ -64,7 +64,7 @@ Plugin options (change them with `/config`; each maps to the `policy:` field of 
 - the rest of the base doc (behaviour, commands, architecture, guardrails): that is `/agents-md`, whose config this skill reads and never contradicts;
 - wave or workstream tables of feature plans (per-task planning);
 - creating the base doc itself: with no AGENTS.md or CLAUDE.md the doctrine scope stops and points at `/agents-md init`;
-- wiring CI or hooks: the check script is written and the block to paste is handed over, `wired: false` until the human confirms. The same holds for `settings.json`: the `CLAUDE_CODE_SUBAGENT_MODEL` block is listed in the plan and written only once confirmed.
+- wiring CI or hooks: the check script is written and the block to paste is handed over (it calls the script with `--only-owned`, so machine-local agent files and an absent global agents dir in CI never fail the build), `wired: false` until the human confirms. The same holds for `settings.json`: the `CLAUDE_CODE_SUBAGENT_MODEL` block is listed in the plan and written only once confirmed.
 
 ## Governing principles
 
@@ -95,13 +95,13 @@ Phases 0, 1 and 2 run, then stop. Print, in this order: (1) `Mode: <init|audit|s
 
 ## Mode: init
 
-Builds the layer from scratch. **Refuses per scope where the artifact already exists** (doctrine section, agent types, check script) and switches that scope to `audit`; remaining scopes proceed. Say so plainly, never overwrite.
+Builds the layer from scratch. **Refuses per scope where the artifact already exists** (doctrine section, agent types, check script) and switches that scope to `audit`; remaining scopes proceed. Say so plainly, never overwrite. A legacy agents-md "Concurrency isolation" subsection (D2) is not an existing orchestration section: it is absorbed into the new one and does not switch the doctrine scope to audit.
 
-**Phase 2 - propose.** Assemble the doctrine blocks (`${CLAUDE_SKILL_DIR}/references/doctrine-content.md`), the agent matrix and built-in overrides (`${CLAUDE_SKILL_DIR}/references/agent-types.md`, priced with `models.md`) and the check, each block with its instruction cost against the margin from probe D4. Every block justified or dropped. Present **one plan**: files to write (doctrine section, agent types incl. global ones, `Explore` override, `settings.json` block, check script, config), each decision with its source (argument, project, plugin option, recommended), the budget. **One confirmation for the whole plan**: the run's only stop in autopilot.
+**Phase 2 - propose.** Assemble the doctrine blocks (`${CLAUDE_SKILL_DIR}/references/doctrine-content.md`), the agent matrix and built-in overrides (`${CLAUDE_SKILL_DIR}/references/agent-types.md`, priced with `models.md`) and the check, each block with its instruction cost against the margin from probe D4. Every block justified or dropped. Say in the plan when a legacy "Concurrency isolation" subsection is absorbed (D2) and when B4 is omitted as redundant (interview Q4.1). Present **one plan**: files to write (doctrine section, agent types incl. global ones, `Explore` override, `settings.json` block, check script, config), each decision with its source (argument, project, plugin option, recommended), the budget. **One confirmation for the whole plan**: the run's only stop in autopilot.
 
-**Phase 3 - write.** Exactly what the confirmed plan lists: the doctrine section rendered in the output language; the agent `.md` files (and the `Explore` override) at the chosen location, skipping identical installed global types; the `settings.json` block; `check_agent_refs.py` copied from `${CLAUDE_SKILL_DIR}/scripts/` into the project (as part of the confirmed plan); `.claude/orchestration.yml`. Never write outside the plan.
+**Phase 3 - write.** Exactly what the confirmed plan lists: the doctrine section rendered in the output language; the agent `.md` files (and the `Explore` override) at the chosen location, skipping identical installed global types; the `settings.json` block; `check_agent_refs.py` copied from `${CLAUDE_SKILL_DIR}/scripts/` into the location resolved by interview Q4.4 (`.claude/orchestration/` unless git tracks `scripts/check_*`; as part of the confirmed plan); `.claude/orchestration.yml`. Never write outside the plan.
 
-**Phase 4 - verify your own output** (not optional). Stat every cited path. Parse every frontmatter written. Run the check script against what was written. For each new type, dispatch one minimal read-only task and confirm from its transcript's `model` field that the alias resolved as expected. Recount the budget. Fix or remove whatever fails.
+**Phase 4 - verify your own output** (not optional). Stat every cited path. Parse every frontmatter written. Run the check script against what was written. Newly written agent type files (and overrides such as `Explore`) are visible to the Agent tool only after the harness reloads them (a "new agent types available" notice). Before that, dispatch fails with "Agent type not found", and a built-in such as `Explore` silently runs on its built-in definition (the parent model), not on the override. So: wait for the reload notice and then dispatch one minimal read-only task per new type, or defer this verification to the next session and report it as a blind spot. **Never validate a type or override from the mere fact that it answered**: confirm the resolved model from the transcript (`python3 ${CLAUDE_SKILL_DIR}/scripts/usage_by_agent_type.py`, "Resolved models"). Recount the budget. Fix or remove whatever fails.
 
 **Phase 5 - report.** What was written, what was left out and why, what stays `wired: false`, the plugin options that drove the choices (change them with `/config`), budget before and after.
 
@@ -115,7 +115,7 @@ No finding without evidence. Every check that could not run is reported as a bli
 
 ## Mode: sync
 
-Runs `audit`, then applies fixes in **batches**, most valuable first. Autopilot shows all batches as one plan with one confirmation, then applies them in order with checks between; `--interactive` confirms each batch. Three operations, never mixed within a batch:
+Runs `audit`, then applies fixes in **batches**, most valuable first. Autopilot shows all batches as one plan with one confirmation, then applies them in order with checks between; `--interactive` confirms each batch. Three operations, never mixed within a batch. A legacy agents-md "Concurrency isolation" subsection (D2) is absorbed in Align: moved into the owned section, every rule kept, the non-regression count below applies, and the plan says so.
 
 - **Correct.** Dead references and false facts. Always first.
 - **Align.** Doctrine, config and agent files back to agreement. The plan names the side taken as source of truth per finding (autopilot: plugin options and the canonical matrix for agent types; installed files for facts about this machine); never pick a side silently.
@@ -127,7 +127,9 @@ Sync writes to the base doc only inside the recorded `section_spans` (`${CLAUDE_
 
 **Prohibition count.** Count each distinct banned command or imperative "never/do not" clause separately (a line banning four commands is four prohibitions). Rewording must keep every one.
 
-**After every batch that touched the doctrine**, run the non-regression check: prohibition count before and after must match unless a merge was explicitly approved, and every marker in `doctrine.prohibition_markers` (default: `git stash`, `git add -A`, `git checkout`, `git reset`) must still be greppable. Report both numbers and the marker grep result in a closing block, e.g. `Non-regression: prohibitions 4 -> 4; markers git stash OK, git add -A OK, git checkout OK, git reset OK`. A sync that cannot show this check has not finished; this holds even for a tiny base doc, and even when the only batch is a rewrite meant to shorten the section. **After every batch that wrote agent files**, run the Phase 4 agent checks (parse, check script, one resolution dispatch per new or re-modeled type).
+**After every batch that touched the doctrine**, run the non-regression check: prohibition count before and after must match unless a merge was explicitly approved, and every marker in `doctrine.prohibition_markers` (default: `git stash`, `git add -A`, `git checkout`, `git reset`) must still be greppable. Report both numbers and the marker grep result in a closing block, e.g. `Non-regression: prohibitions 4 -> 4; markers git stash OK, git add -A OK, git checkout OK, git reset OK`. A sync that cannot show this check has not finished; this holds even for a tiny base doc, and even when the only batch is a rewrite meant to shorten the section. **After every batch that wrote agent files**, run the Phase 4 agent checks (parse, check script, resolved-model confirmation per new or re-modeled type, or deferred as a blind spot per Phase 4).
+
+**Checker migration (sync).** When this skill's check script sits in `scripts/` and that `scripts/` is not a tracked convention (`git ls-files 'scripts/check_*'` lists only this skill's checkers, none of them wired in CI or pre-commit), the plan proposes moving it to `.claude/orchestration/` (`git mv`, update `checks[].path` and `policy.check_script_path` in the config, report the new path for any pasted CI block). Otherwise propose nothing.
 
 ## Reference files
 
@@ -143,7 +145,7 @@ Load on demand, not upfront:
 | `${CLAUDE_SKILL_DIR}/references/audit-checks.md` | Modes audit and sync |
 | `${CLAUDE_SKILL_DIR}/references/config-schema.md` | Reading or writing `.claude/orchestration.yml` |
 
-`${CLAUDE_SKILL_DIR}/templates/` holds the skeletons. `${CLAUDE_SKILL_DIR}/scripts/check_agent_refs.py` is copied into the project only as part of the confirmed plan; `${CLAUDE_SKILL_DIR}/scripts/usage_by_agent_type.py` (probe D12) is run in place, never copied.
+`${CLAUDE_SKILL_DIR}/templates/` holds the skeletons. `${CLAUDE_SKILL_DIR}/scripts/check_agent_refs.py` is copied into the project only as part of the confirmed plan (`--only-owned` flag: see its docstring); `${CLAUDE_SKILL_DIR}/scripts/usage_by_agent_type.py` (probe D12) is run in place, never copied.
 
 ## Language
 

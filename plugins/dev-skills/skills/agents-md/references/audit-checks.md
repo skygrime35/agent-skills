@@ -15,7 +15,7 @@ Report most severe first. Every check that could not run is itself reported, as 
 
 ### P0.1 Concurrency without isolation
 
-Does the documentation encourage parallel agents while specifying no isolation mechanism?
+Does the documentation encourage parallel agents while specifying no isolation mechanism? Isolation normally lives in the orchestration section (owned by `/orchestration`); search all agent docs, and when none is found recommend `/orchestration` as the fix.
 
 ```bash
 grep -ril "parallel\|concurrent\|simultan" AGENTS.md AGENTS/*.md 2>/dev/null
@@ -171,6 +171,12 @@ grep -niE "phase [0-9]|migrated in|was split|historically|formerly|used to be" A
 
 Completed-refactor narrative in the root file is a permanent cost for archaeology.
 
+Volatile state (content-rules §7) is the same finding, in every agentic doc (root and domain AGENTS.md, CLAUDE.md, `AGENTS/`): a current branch name, a task in progress, open PRs, "as of" dates, drifting counts. Fix: replace it by the command that reads it, or delete it; keep it only under the content-rules §7 exception. Arbitrate per occurrence, do not ask.
+
+```bash
+git ls-files 'AGENTS.md' 'CLAUDE.md' '*/AGENTS.md' 'AGENTS/**' | xargs grep -niE "current(ly)? (branch|task|work)|we are (on|working)|in progress|as of [0-9]|open PRs?|latest version"
+```
+
 ## P3 - hygiene
 
 ### P3.1 Generic filler
@@ -195,7 +201,7 @@ grep -oP '[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]' AGENTS.md | wc -l   # against 
 For each rule that a script could check (size limits, forbidden markers, forbidden characters, naming), verify a checker exists:
 
 ```bash
-ls scripts/ tools/ bin/ 2>/dev/null; grep -rl "check_\|lint" .github/workflows/ 2>/dev/null
+ls scripts/ tools/ bin/ .claude/*/ 2>/dev/null; grep -rl "check_\|lint" .github/workflows/ 2>/dev/null
 ```
 
 No checker means the rule rests entirely on discipline. Report it and offer the generator.

@@ -22,6 +22,7 @@ policy:                          # run policies; command argument > this file > 
   language: en                   # doc language
   tier: auto                     # auto | 1 | 2 | 3
   install_guardrail_scripts: true
+  guardrail_scripts_path: .claude/agents-md/   # argument > this field > plugin option user_config.agents_md_guardrail_scripts_path > scripts/ if git tracks scripts/check_* > .claude/agents-md/
   commit_convention: detect      # detect | enforce | skip
 archives:                        # dated records exempt from dead-reference fixes
   paths: [errors/, adr/, postmortems/]
@@ -68,10 +69,10 @@ commit_convention:
   scopes: [billing, users, ui, infra]
 
 guardrail_scripts:               # what was installed and whether it is wired
-  - {name: check_no_todo,        path: scripts/check_no_todo.py,        wired: false}
-  - {name: check_monolith,       path: scripts/check_monolith.py,       wired: false,
+  - {name: check_no_todo,        path: .claude/agents-md/check_no_todo.py,        wired: false}
+  - {name: check_monolith,       path: .claude/agents-md/check_monolith.py,       wired: false,
      thresholds: {file: 400, function: 75, class: 200, component: 150}}
-  - {name: check_forbidden_chars, path: scripts/check_forbidden_chars.py, wired: false,
+  - {name: check_forbidden_chars, path: .claude/agents-md/check_forbidden_chars.py, wired: false,
      scope: [frontend/src], chars: ["—", "–"]}
 
 budget:                          # measured at last run
