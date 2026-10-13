@@ -8,19 +8,27 @@ Mechanizes checks O1.1 (cited agent type installed nowhere), O6.1/O6.2/O6.4
 and O1.4/O2.1 (config vs reality) of the /orchestration skill. Stdlib only. Exit 1 on any finding, findings printed as
 `file:line: message`.
 
+Absent --agents-dir: a directory that does not exist is reported as a
+`warning:` line and leaves the exit code alone (nothing can be verified against
+it, e.g. a CI runner without the global agents dir); when every given dir is
+absent, a cited or listed type that cannot be found is a warning too. With
+`--strict` an absent dir is an error, and so is every unresolved type. In 1.5.0
+an absent dir failed the check (exit 1); since 1.6.0 it only warns. Pass
+`--strict` where a missing dir must fail the build.
+
 --only-owned (CI / pre-commit mode, needs --config): frontmatter checks are
 errors only for the types the project owns (listed in `agents.types` or
 `agents.overrides` of the config). Frontmatter issues of any other installed
 file (hand-written, machine-local agents) are printed as `warning:` lines and
 leave the exit code alone. When the config says `agents.location: global` and
 an --agents-dir does not exist (CI runner), a cited or listed type that cannot
-be found is also a `warning:`, not an error. Without the flag, behaviour is
-unchanged.
+be found is also a `warning:`, not an error (unless `--strict`). Without the
+flag, frontmatter checks cover every installed file.
 
 Usage:
   check_agent_refs.py --doc AGENTS.md [--section-heading "..."]...
                       --agents-dir ~/.claude/agents [--agents-dir .claude/agents]
-                      [--config .claude/orchestration.yml] [--only-owned]
+                      [--config .claude/orchestration.yml] [--only-owned] [--strict]
 """
 
 import argparse
@@ -198,7 +206,14 @@ def main():
             degraded = True
             warning(ARGS.config, 1, "agents.location is global and agents dir missing ("
                     + ", ".join(missing_dirs) + "): global types cannot be verified here")
-    miss = warning if degraded else finding  # sink for "type not found" findings
+    missing_dirs = [d for d in ARGS.agents_dir if not Path(d).expanduser().is_dir()]
+    for d in missing_dirs:
+        (finding if ARGS.strict else warning)(d, 1, "agents dir does not exist")
+    if ARGS.strict:
+        degraded = False
+    # Sink for "type not found": nothing to verify against when every dir is absent.
+    all_absent = len(missing_dirs) == len(ARGS.agents_dir)
+    miss = warning if (degraded or (all_absent and not ARGS.strict)) else finding
 
     # Step 2: frontmatter hygiene on every installed type (O6.1 / O6.2)
     parsed = {}
@@ -259,6 +274,9 @@ if __name__ == "__main__":
     parser.add_argument("--only-owned", action="store_true",
                         help="errors only for types listed in the config's agents.types / "
                              "agents.overrides; other files and missing global dirs only warn")
+    parser.add_argument("--strict", action="store_true",
+                        help="an absent --agents-dir (and every unresolved type) is an error, "
+                             "not a warning")
     ARGS = parser.parse_args()
     if ARGS.only_owned and not ARGS.config:
         parser.error("--only-owned requires --config")

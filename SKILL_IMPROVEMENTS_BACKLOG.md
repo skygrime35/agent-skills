@@ -155,3 +155,21 @@ Status legend: **IN 1.2.0** / **IN 1.3.0** = shipped in that release; **BACKLOG*
 | R3-4 | `.gitignore` check: local files ignored (settings.local.json, *.local.*, journals, .claude/worktrees/), shared ones committed | IN 1.5.0 |
 | R3-5 | Outdated copies replaced on sync; edited copies and project variants compared by running both, replaced only with proof, else reported as upstream candidates | IN 1.5.0 |
 | R3-6 | Questions reduced to the single plan confirmation plus real blockers (undetectable production branch, true ties) | IN 1.5.0 |
+
+---
+
+## Round 4 (2026-10-13, first real-project run of 1.5.0 on two large repos) — all IN 1.6.0
+
+| # | Fix | Status |
+|---|---|---|
+| R4-1 | check_dead_paths.py heuristics: ~90% false positives -> near zero (npm packages, migrations, symbols, routes, git refs, `conditional` status) | IN 1.6.0 |
+| R4-2 | check_sections.py: root AGENTS.md resolution, label prefix, accent/case folding, `§ A / B`, `ok-bullet` | IN 1.6.0 |
+| R4-3 | Triage never classifies by file name alone (marker, identical content or agentic-only reads) | IN 1.6.0 |
+| R4-4 | Safe moves/replacements: whole-tree `git grep`, referencing tests run and fixed, root-depth check, default changes adapted | IN 1.6.0 |
+| R4-5 | Ownership: each skill moves only its own scripts; agents-md owns the `.gitignore` pass | IN 1.6.0 |
+| R4-6 | sync prints AM-NN / OR-NN findings before the plan; `report-only` tag | IN 1.6.0 |
+| R4-7 | agents-md sync writes a minimal `.claude/agents-md.yml` when absent | IN 1.6.0 |
+| R4-8 | `count_rules.py` (EN+FR markers) shared by both skills for budget and non-regression | IN 1.6.0 |
+| R4-9 | orchestration: partial-layer sync completes missing scopes; `local:` in gitignored `orchestration.local.yml`; usage stats scoped to the repo (all worktrees) and to the install window; hardcoded lineup check; absent agents dir warns unless `--strict` | IN 1.6.0 |
+| R4-10 | Per-mode reference loading tables (context cost) | IN 1.6.0 |
+| R4-11 | Unit tests in `tests/` for the audit scripts and check_agent_refs.py | IN 1.6.0 |

@@ -57,19 +57,23 @@ diff <(sed 2d <project copy>) <(sed 2d ${CLAUDE_SKILL_DIR}/scripts/check_X.py)
 
 ## Project variants
 
-A project script with the same purpose as a canonical checker (file size / monolith, deferral markers, stubs, forbidden characters, agent references), whatever its name (`check_file_size.py`, `check_no_todos.py`, ...), and each locally edited copy. Run both on the project with equivalent options, compare the findings:
+A project script with the same purpose as a canonical checker (file size / monolith, deferral markers, stubs, forbidden characters, agent references), whatever its name, including a name equal or close to a canonical one (`check_forbidden_chars.py`, `check_no_todos.py`, `check_file_size.py`, ...) when it has no `dev-skills:` marker and is not identical to the canonical script (a file name alone never makes a script agentic), and each locally edited copy. A variant stays where it is and is compared as below. Run both on the project with equivalent options, compare the findings:
 
-- The canonical script finds everything the variant finds, and its thresholds and allowlists are expressible as canonical options or config: propose replacing the variant by the canonical copy in `<scripts_path>`, wiring updated to the equivalent options. Put both runs' outputs in the plan as proof.
+- The canonical script finds everything the variant finds, and its thresholds and allowlists are expressible as canonical options or config: propose replacing the variant by the canonical copy in `<scripts_path>`, wiring updated to the equivalent options. Put both runs' outputs in the plan as proof. Output on the current repo is not enough: also compare behaviour (read the canonical script's header and defaults) and note every difference in defaults, for example the exit code when an input directory is absent, options with another meaning, other skipped paths. Adapt the wiring to the canonical defaults in the same plan.
 - The variant checks more: keep it, and report each extra capability as an "upstream candidate" (what it checks, `file:line`) so the canonical script can absorb it in the skill repo.
 - Never delete a project check without that proof that the replacement covers it. No proof, no replacement.
 
 ## Script triage
 
-Classification: detection.md section 10. Destination of agentic scripts: dev-skills scripts go to `.claude/<their skill>/` (agents-md checkers to `<scripts_path>`); project-written scripts that read only agentic files go to `.claude/agents-md/`, or `.claude/orchestration/` when they only check agent types or orchestration config. Project scripts are never moved.
+Classification: detection.md section 10. Ownership: this skill moves or replaces only its four checkers (and their canonical copies) and project-written scripts that read only agentic docs; `check_agent_refs.py` and scripts that only check agent types or orchestration config belong to `/orchestration`, which this skill only reports. Destination: agents-md checkers and project scripts reading only agentic docs go to `<scripts_path>`. Project variants are never moved by classification (see Project variants).
 
 - **audit**: each misplaced agentic script is a P3 finding (migration candidate) with its classification evidence. Zero writes.
-- **init / sync**: the moves are part of the single plan confirmation, no separate question. Use `git mv`.
-- Wired scripts move too: update every reference (CI workflows, pre-commit config, Makefile, package.json scripts, docs, `.claude/<skill>.yml` paths), then run each moved script from its new location and every updated hook or target that can run locally, to prove nothing broke. A failure stops the batch and is reported.
+- **init / sync**: the moves are part of the single plan confirmation, no separate question. Use `git mv`. Order the batches so that moves come last: a move of a WIRED project-written agentic script is allowed (owner decision) only when every check below passes, otherwise it is reported as a P3 candidate.
+- **Before any move or replacement, in this order:**
+  1. `git grep -n <script name>` over the WHOLE tracked tree (tests, docs, CI workflows, hooks, pre-commit config, Makefile, package.json, templates, archives; not a fixed file list). Archive and history files follow the archives policy.
+  2. Find every test that references the script (for example `scripts/tests_unit/test_<name>.py`).
+  3. Moving changes the depth: check how the script computes the repository root (`Path(__file__).parent.parent`, `parents[N]`, relative paths) and adapt it.
+- **After**: update every reference found, fix the tests in the same batch, then run every test that references the script, run each moved script from its new location and every updated hook or target that can run locally. A failure stops the batch and is reported.
 - Ambiguous script: leave it, list it as a blind spot.
 
 ## Wiring: propose, never do

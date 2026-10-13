@@ -1,0 +1,25 @@
+# .claude/agents-md.yml - written by `/agents-md sync` when absent (schema: references/config-schema.md).
+# Committed. Never store secret values; machine-specific values go in a gitignored *.local.yml.
+version: 1
+policy:
+  language: {{DOC_LANGUAGE}}           # doc language
+  tier: {{TIER}}                       # auto | 1 | 2 | 3
+  install_guardrail_scripts: true
+  guardrail_scripts_path: {{SCRIPTS_PATH}}
+  commit_convention: detect            # detect | enforce | skip
+archives:
+  paths: [{{ARCHIVE_PATHS}}]           # measured dated-record folders, empty list if none
+  policy: tolerate                     # tolerate | annotate | fix
+detected_at:
+  sha: {{HEAD_SHA}}
+  date: {{ISO_DATE}}
+structure:
+  root: AGENTS.md
+  pointer: {{POINTER_FILE_OR_NULL}}
+  index: {{INDEX_FILE_OR_NULL}}
+  domains: []                          # {path, file, manifest} per detected domain
+commands: {}                           # only commands executed during a run: {cmd, verified, source}
+guardrail_scripts: []                  # {name, path, wired, marker_version} per installed checker
+budget:
+  instructions: {{INSTRUCTION_COUNT}}  # from scripts/count_rules.py
+quirks: []                             # HUMAN-AUTHORED, never rewritten by detection

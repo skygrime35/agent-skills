@@ -1,6 +1,6 @@
 # `.claude/orchestration.yml` schema
 
-Contents: Plugin options | Secrets policy | Layout | Field rules
+Contents: Plugin options | Secrets policy | Layout | Local file | Field rules
 
 Per-project config, owned by this skill alone (it never writes another skill's config; it *reads* `.claude/agents-md.yml` when present). **Detection refreshes the structural fields on every run; human-authored `quirks` and recorded `policy` decisions are never silently overwritten** (keep them, show the drift diff in the report).
 
@@ -12,7 +12,7 @@ Machine-wide defaults are plugin options, changed with `/config`, not a file. Ea
 
 - **Never store secret values.** Environment variable **names** only.
 - No tokens, passwords, private keys, or `.env` contents.
-- Machine-specific facts (installed agent types, available models, statusline presence) go under `local:` (or a gitignored `orchestration.local.yml`); the rest is committed.
+- Machine-specific facts (installed agent types, available models, statusline presence) go in `.claude/orchestration.local.yml` (gitignored), never in the committed `.claude/orchestration.yml`; the rest is committed.
 - Before writing, lint the committed portion and reject anything shaped like a credential.
 
 ## Layout
@@ -84,8 +84,14 @@ quirks: []                       # HUMAN-AUTHORED. Never rewritten by detection.
 # type = agent type; alias = what the type file says; resolves_to = what transcripts showed
 # (O8.10); min_cli = first CLI version where the alias resolves as intended; pin = full model id
 # written in the type file instead of the alias (null when not pinned). Free-text entries stay valid.
+```
 
-local:                           # machine-specific, gitignore candidate
+## Local file
+
+`.claude/orchestration.local.yml`, gitignored (`/agents-md` owns the `.gitignore` procedure; audit O7.7), refreshed by detection on every run. Readers merge it over the committed file; a `local:` block found in the committed file is finding O7.8 and is moved here.
+
+```yaml
+local:                           # machine-specific, this file is gitignored
   models_available: [fable, opus, sonnet, haiku]
   models_verified_at: 2026-10-07 # date references/models.md was last checked against the official pages (D11)
   subagent_model_env: sonnet     # CLAUDE_CODE_SUBAGENT_MODEL as found in settings.json; null if unset
@@ -102,7 +108,7 @@ local:                           # machine-specific, gitignore candidate
 
 **`doctrine.prohibitions`** and **`prohibition_markers`**: the non-regression baseline. Any sync batch touching the doctrine recounts and re-greps against these; a drop without an explicitly approved merge aborts the batch.
 
-**`checks[].wired`**: `false` until the human confirms the CI or pre-commit block was added. The skill proposes, it never wires. The proposed block runs the script with `--only-owned`: errors only for the types in `agents.types` / `agents.overrides`, warnings for other agent files and for global types when `agents.location: global` and the agents dir is absent (CI).
+**`checks[].wired`**: `false` until the human confirms the CI or pre-commit block was added. The skill proposes, it never wires. The proposed block runs the script with `--only-owned` (add `--strict` to make an absent agents dir an error): errors only for the types in `agents.types` / `agents.overrides`, warnings for other agent files and for global types when `agents.location: global` and the agents dir is absent (CI).
 
 **`policy`**: interview answers become fields here. On the next run they are facts, not questions. Changing a policy is done by answering differently in a `sync` run, which shows the old value first.
 
@@ -116,4 +122,4 @@ local:                           # machine-specific, gitignore candidate
 
 **`quirks`**: the only human-authored block; alias-drift entries use the `{type, alias, resolves_to, min_cli, pin}` shape (check O8.10), other entries stay free text. On drift, keep it and report the diff. Overwriting it destroys exactly the knowledge that is hardest to reacquire.
 
-**`local`**: everything in it describes THIS machine, not the project. A repo cloned elsewhere gets a fresh `local:` from detection, which is precisely why the doctrine must carry its fallbacks (`fallback_documented: true`).
+**`local`** (in `.claude/orchestration.local.yml`): everything in it describes THIS machine, not the project. A repo cloned elsewhere gets a fresh `local:` from detection, which is precisely why the doctrine must carry its fallbacks (`fallback_documented: true`).

@@ -24,19 +24,22 @@ grep -nE '^#{2,4} .*([Oo]rchestrat|[Mm]ulti.agent)' BASE_DOC
 grep -niE 'worktree|sous-agent|subagent|deleg|délég|parallel|parallél|effort' BASE_DOC
 ```
 
-The heading probe finds the owned section; record its span (start line, end line of the heading's content, bounded by the next same-level heading). Doctrine may spread over several **consecutive sibling headings** (same level, no higher-level heading between them) that all cover the same topic: accept the run as one owned doctrine and record one span per heading in `section_spans`. Siblings count only when the topic is shown by the heading or its body (the same keywords as the heading probe); an unrelated sibling ends the run. The semantic probe finds orchestration rules living OUTSIDE that span: each such hit is recorded as **scattered doctrine** and feeds audit family O3. A legacy agents-md subsection titled "Concurrency isolation" (written by older agents-md versions, usually under Agent behaviour), or the one-line stub marked `agents-md:isolation-stub` (current agents-md), is not scattered doctrine: record it as `legacy_isolation: {line, excerpt}`; init and sync absorb it into the owned section (moved, every rule kept) and it never flips init to audit by itself. No heading but other semantic hits: there is doctrine with no owned section, `init` on the doctrine scope still switches to `audit` (the artifact exists, dispersed).
+The heading probe finds the owned section; record its span (start line, end line of the heading's content, bounded by the next same-level heading). Doctrine may spread over several **consecutive sibling headings** (same level, no higher-level heading between them) that all cover the same topic: accept the run as one owned doctrine and record one span per heading in `section_spans`. This probe is the only source of spans when no config exists yet (partial layer, first run): sync never waits for a `section_spans` that a config would provide. Siblings count only when the topic is shown by the heading or its body (the same keywords as the heading probe); an unrelated sibling ends the run. The semantic probe finds orchestration rules living OUTSIDE that span: each such hit is recorded as **scattered doctrine** and feeds audit family O3. A legacy agents-md subsection titled "Concurrency isolation" (written by older agents-md versions, usually under Agent behaviour), or the one-line stub marked `agents-md:isolation-stub` (current agents-md), is not scattered doctrine: record it as `legacy_isolation: {line, excerpt}`; init and sync absorb it into the owned section (moved, every rule kept) and it never flips init to audit by itself. No heading but other semantic hits: there is doctrine with no owned section, `init` on the doctrine scope still switches to `audit` (the artifact exists, dispersed).
 
 ## D3 - agents-md config
 
 ```bash
 cat .claude/agents-md.yml 2>/dev/null
+cat .claude/orchestration.local.yml 2>/dev/null
 ```
+
+The second file holds this machine's `local:` facts (gitignored); an old committed config that still carries a `local:` block is a finding (O7.8).
 
 Read `language.written`, `budget.instructions`, `structure.root`, `guardrail_scripts` (is `check_forbidden_chars` installed, with which chars?). Absent: blind spot, budget computed locally by D4, and `structure.root` falls back to D1's answer.
 
 ## D4 - Instruction budget
 
-Use the counting method defined once in `${CLAUDE_SKILL_DIR}/../agents-md/references/structure.md` (Instruction budget, "Counting method"; same as agents-md check P2.1). When an agents-md audit figure for the same commit is available in this session or in `.claude/agents-md.yml` (`budget.instructions`), reuse it instead of recounting. Then isolate the orchestration section's own share using D2's span. Report both numbers, with the method's +/- margin; the threshold and the harness share are owned by the agents-md skill (`references/structure.md`).
+Run `python3 ${CLAUDE_SKILL_DIR}/../agents-md/scripts/count_rules.py FILE... --section-heading "<owned heading>"` (one flag per span heading; JSON output; markers of the doc language via `--lang auto`) on every always-loaded file; the method it implements is defined once in `${CLAUDE_SKILL_DIR}/../agents-md/references/structure.md` (Instruction budget, "Counting method"; same as agents-md check P2.1). No manual counting. When an agents-md audit figure for the same commit is available in this session or in `.claude/agents-md.yml` (`budget.instructions`), reuse it instead of recounting. Then read the orchestration section's own share from the `selected` entries, using D2's span headings. Report both numbers, with the method's +/- margin; the threshold and the harness share are owned by the agents-md skill (`references/structure.md`).
 
 ## D5 - Installed agent types
 
@@ -86,11 +89,12 @@ ls .claude/orchestration/check_agent_refs.py 2>/dev/null
 find . -name check_agent_refs.py -not -path '*/node_modules/*' -not -path './.git/*' 2>/dev/null
 grep -rl 'dev-skills: orchestration' . --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null
 grep -rn 'check_agent_refs' .github/workflows/ .pre-commit-config.yaml 2>/dev/null
+git grep -n 'check_agent_refs' 2>/dev/null
 grep -rn 'check_agent_refs' Makefile package.json docs AGENTS.md CLAUDE.md .claude 2>/dev/null
 head -2 .claude/orchestration/check_agent_refs.py 2>/dev/null
 ```
 
-The destination is fixed at `.claude/orchestration/`. Every copy found elsewhere (file name or marker) is a triage candidate: its moves and references are listed for sync (O7.4, SKILL.md Checker triage). The CI and pre-commit grep (second grep) is the only admissible evidence for `wired: true`; every other hit (Makefile, package.json, docs, config) is a reference to update, not wiring. Script on disk but absent from CI and pre-commit: `wired: false`, whatever the config claims (a claim without evidence is finding O7.2). The marker line (last command) gives the copy's version, compared with the canonical version in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json` (audit O7.5, O7.6).
+The `git grep` covers the WHOLE tracked tree (tests, docs, CI, hooks, templates, archives): the reference list for any move or replacement comes from it, never from a fixed file list (`grep -r` covers untracked files). Also list the tests that reference the script. The destination is fixed at `.claude/orchestration/`. Every copy found elsewhere (file name or marker) is a triage candidate: its moves and references are listed for sync (O7.4, SKILL.md Checker triage). The CI and pre-commit grep (second grep) is the only admissible evidence for `wired: true`; every other hit (Makefile, package.json, docs, config) is a reference to update, not wiring. Script on disk but absent from CI and pre-commit: `wired: false`, whatever the config claims (a claim without evidence is finding O7.2). The marker line (last command) gives the copy's version, compared with the canonical version in `${CLAUDE_SKILL_DIR}/../../.claude-plugin/plugin.json` (audit O7.5, O7.6).
 
 ## D11 - Model facts and built-in routing
 
@@ -108,10 +112,10 @@ Record the main model, `CLAUDE_CODE_SUBAGENT_MODEL` (and whether `_FORCE` is set
 ## D12 - Measured usage
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/usage_by_agent_type.py --days 30
+python3 ${CLAUDE_SKILL_DIR}/scripts/usage_by_agent_type.py
 ```
 
-Reads the local Claude Code transcripts (`~/.claude/projects/*/*/subagents/*.jsonl` with their `.meta.json`) and prints, per agent type: runs, calls per run, context per call, estimated cost per run at API prices, and share of subagent spend; plus main-session spend per model. Read-only, local, nothing leaves the machine. Prices come from the script's table, which mirrors models.md: when D11 updates models.md, update the script's `PRICES` in the same batch.
+Reads the local Claude Code transcripts (`~/.claude/projects/<cwd with non-alphanumerics replaced by ->/*/subagents/*.jsonl` with their `.meta.json`). Default scope: the current repo's transcripts only, including its Claude Code worktree folders (`<repo>--claude-worktrees-*`); sibling checkouts with another path count as other repos (`--all-projects` widens, `--project SUBSTR` filters). Default window: sessions started on or after the oldest mtime of the installed type files (the install date of the current types; `--since YYYY-MM-DD` or `--days N` override); scope and start date are printed and are the "window start" of O8.6/O8.9/O8.10. Models are grouped by exact id (`claude-opus-5` and `claude-opus-5-5` are different models, reported separately). It prints, per agent type: runs, calls per run, context per call, estimated cost per run at API prices, and share of subagent spend; plus main-session spend per model. Read-only, local, nothing leaves the machine. Prices come from the script's table, which mirrors models.md: when D11 updates models.md, update the script's `PRICES` in the same batch.
 
 Runs in every mode when transcripts exist: in init it informs Q1.2, Q1.3 and the `maxTurns` defaults; in audit and sync it feeds family O8 and the `maxTurns` recalibration. No transcripts (another harness, cleared history, a fresh machine): blind spot, and the reference figures of models.md stand in, labeled as such.
 
@@ -128,6 +132,6 @@ language: {detected, stated_rule, conflict}
 isolation: {worktrees_ok, migrations}
 checks: {script_path, wired_evidence, copies: [{path, marker_version}], canonical_version}
 models: {verified_at, stale, main_model, subagent_model_env, subagent_model_force, explore_override}
-usage: {window_days, by_type: [{type, runs, calls_per_run, cost_per_run, share}]}   # D12, null when no transcripts
+usage: {scope, since, by_type: [{type, runs, calls_per_run, cost_per_run, share}]}   # D12, null when no transcripts
 unknowns: []   # never empty on a real repository
 ```

@@ -1,6 +1,6 @@
 # .claude/orchestration.yml - owned by the /orchestration skill.
 # Secrets policy: never store secret values here. Env-var NAMES only.
-# Machine-specific facts live under `local:` (gitignore candidate).
+# Machine-specific facts live in .claude/orchestration.local.yml (gitignored), never here.
 # `quirks:` is human-authored: detection never rewrites it.
 
 version: 1
@@ -60,11 +60,3 @@ policy:
   language_resolution: {{LANGUAGE_RESOLUTION}}
 
 quirks: []                          # HUMAN-AUTHORED. Never rewritten by detection.
-
-local:                              # machine-specific, gitignore candidate
-  models_available: [{{MODELS_AVAILABLE}}]
-  models_verified_at: {{MODELS_VERIFIED_AT}}
-  subagent_model_env: {{SUBAGENT_MODEL_ENV}}
-  statusline: {{STATUSLINE}}
-  global_types_present: [{{GLOBAL_TYPES}}]
-  delegation_capable: {{DELEGATION_CAPABLE}}

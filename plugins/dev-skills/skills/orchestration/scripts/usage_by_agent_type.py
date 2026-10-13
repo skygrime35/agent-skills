@@ -12,15 +12,37 @@ references/models.md: update both in the same batch). On a subscription, read
 them as relative quota consumption. Assistant messages are de-duplicated by
 message id, since a transcript writes one line per content block.
 
+Scope. By default only the current repository's transcripts are read: Claude
+Code stores them in ~/.claude/projects/<cwd with every non-alphanumeric
+character replaced by "-">/. The repository is the git repo of the cwd: its main
+checkout, every listed worktree, and any folder named after the main checkout
+followed by "-" (sibling worktrees `<repo>-<task>`, including removed ones, and
+Claude Code's `<repo>--claude-worktrees-<name>`). Outside a git repo, the cwd alone. `--all-projects` widens to every project, `--project SUBSTR`
+keeps the folders whose name contains SUBSTR.
+
+Window. A transcript counts when its session started on or after the start
+date. Start date, first match wins: `--since YYYY-MM-DD`; `--days N`; the oldest
+mtime of the installed agent type files (~/.claude/agents/*.md and
+./.claude/agents/*.md), i.e. the install date of the current types, since older
+sessions could not use them; 30 days when no type file exists. The date used is
+always printed.
+
+Model ids. Models are grouped by exact id: `claude-opus-5` and `claude-opus-5-5`
+are different models and are reported separately, never merged.
+
 Usage:
-  usage_by_agent_type.py [--days 30] [--project SUBSTR] [--projects-dir ~/.claude/projects]
+  usage_by_agent_type.py [--since YYYY-MM-DD | --days N] [--all-projects]
+                         [--project SUBSTR] [--projects-dir ~/.claude/projects]
 """
 
 import argparse
 import collections
+import datetime
 import glob
 import json
 import os
+import re
+import subprocess
 import sys
 import time
 
@@ -72,17 +94,102 @@ def assistant_messages(path):
             yield msg.get("model", ""), msg.get("usage") or {}, entry.get("version", "")
 
 
+DEFAULT_DAYS = 30  # window when neither --since/--days nor an installed type file gives a start
+
+
+def encode_cwd(path):
+    """Claude Code's project folder name for a working directory."""
+    return re.sub(r"[^A-Za-z0-9]", "-", path)
+
+
+def in_scope(folder):
+    """Whether a project folder name belongs to the selected scope."""
+    if ARGS.project and ARGS.project not in folder:
+        return False
+    if ARGS.all_projects or ARGS.project:
+        return True
+    return any(folder == root or folder.startswith(root + "-") for root in repo_roots())
+
+
+_ROOTS = None
+
+
+def repo_roots():
+    """Encoded folder names of the current repository: its main checkout and every worktree.
+
+    Sibling worktrees are usually named `<repo>-<task>` and removed once merged, so a
+    prefix match on the main checkout name (`<main>-...`) also keeps the sessions of
+    worktrees that no longer exist; this covers Claude Code's own
+    `<repo>--claude-worktrees-<name>` folders too.
+    """
+    global _ROOTS
+    if _ROOTS is None:
+        paths = {os.getcwd()}
+        try:
+            common = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+                                    capture_output=True, text=True, check=True).stdout.strip()
+            paths.add(os.path.dirname(common.rstrip("/")))
+            listing = subprocess.run(["git", "worktree", "list", "--porcelain"],
+                                     capture_output=True, text=True, check=True).stdout
+            paths.update(line[len("worktree "):] for line in listing.splitlines() if line.startswith("worktree "))
+        except (OSError, subprocess.CalledProcessError):
+            pass  # not a git repo: the cwd alone
+        _ROOTS = {encode_cwd(p) for p in paths}
+    return _ROOTS
+
+
+def installed_type_files():
+    dirs = [os.path.expanduser("~/.claude/agents"), os.path.join(os.getcwd(), ".claude", "agents")]
+    return [f for d in dirs for f in glob.glob(os.path.join(d, "*.md"))]
+
+
+def window_start():
+    """Return (epoch seconds, human label of where the start came from)."""
+    if ARGS.since:
+        try:
+            day = datetime.datetime.strptime(ARGS.since, "%Y-%m-%d")
+        except ValueError:
+            sys.exit(f"error: --since expects YYYY-MM-DD, got {ARGS.since!r}")
+        return day.timestamp(), "--since"
+    if ARGS.days is not None:
+        return time.time() - ARGS.days * 86400, f"--days {ARGS.days}"
+    files = installed_type_files()
+    if files:
+        return min(os.path.getmtime(f) for f in files), "oldest installed agent type file"
+    return time.time() - DEFAULT_DAYS * 86400, f"no installed type file: last {DEFAULT_DAYS} days"
+
+
+def started_at(path):
+    """Session start: first timestamp in the transcript, else the file mtime."""
+    try:
+        with open(path, errors="ignore") as fh:
+            for line in fh:
+                try:
+                    stamp = json.loads(line).get("timestamp")
+                except ValueError:
+                    continue
+                if stamp:
+                    return datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
+                break
+    except (OSError, ValueError):
+        pass
+    return os.path.getmtime(path)
+
+
 def main():
     root = os.path.expanduser(ARGS.projects_dir)
-    cutoff = time.time() - ARGS.days * 86400
+    cutoff, cutoff_label = window_start()
+    scope = "all projects" if ARGS.all_projects else (
+        f"projects matching {ARGS.project!r}" if ARGS.project else f"current repo ({os.getcwd()})")
+    print(f"Scope: {scope}; since {datetime.datetime.fromtimestamp(cutoff):%Y-%m-%d} ({cutoff_label})\n")
 
     by_type = collections.defaultdict(lambda: {"runs": 0, "calls": 0, "ctx": 0, "cost": 0.0,
                                                "models": collections.Counter(),
                                                "versions": collections.Counter()})
     for path in glob.glob(os.path.join(root, "*", "*", "subagents", "*.jsonl")):
-        if ARGS.project and ARGS.project not in os.path.relpath(path, root).split(os.sep)[0]:
+        if not in_scope(os.path.relpath(path, root).split(os.sep)[0]):
             continue
-        if os.path.getmtime(path) < cutoff:
+        if started_at(path) < cutoff:
             continue
         try:
             with open(path[:-len(".jsonl")] + ".meta.json") as fh:
@@ -104,9 +211,9 @@ def main():
 
     main_by_model = collections.Counter()
     for path in glob.glob(os.path.join(root, "*", "*.jsonl")):
-        if ARGS.project and ARGS.project not in os.path.relpath(path, root).split(os.sep)[0]:
+        if not in_scope(os.path.relpath(path, root).split(os.sep)[0]):
             continue
-        if os.path.getmtime(path) < cutoff:
+        if started_at(path) < cutoff:
             continue
         for model, usage, _version in assistant_messages(path):
             price = price_for(model)
@@ -115,15 +222,15 @@ def main():
 
     sub_total = sum(r["cost"] for r in by_type.values())
     if not by_type:
-        print(f"no subagent transcripts in the last {ARGS.days} days under {root}")
+        print(f"no subagent transcripts in scope since that date under {root}")
         return 1
 
-    print(f"Subagents, last {ARGS.days} days (estimated, API list prices)")
-    print(f"{'type':20} {'runs':>5} {'calls/run':>9} {'ctx/call':>9} {'$/run':>7} {'$ total':>8} {'share':>6}  main model")
+    print("Subagents (estimated, API list prices)")
+    print(f"{'type':20} {'runs':>5} {'calls/run':>9} {'ctx/call':>9} {'$/run':>7} {'$ total':>8} {'share':>6}  model ids (exact)")
     for agent_type, r in sorted(by_type.items(), key=lambda kv: -kv[1]["cost"]):
         runs = max(r["runs"], 1)
         calls = max(r["calls"], 1)
-        top_model = r["models"].most_common(1)[0][0] if r["models"] else "-"
+        top_model = ",".join(m for m, _ in r["models"].most_common()) or "-"
         share = 100 * r["cost"] / sub_total if sub_total else 0
         print(f"{agent_type:20} {r['runs']:5} {r['calls'] / runs:9.0f} {r['ctx'] / calls / 1e3:8.0f}k "
               f"{r['cost'] / runs:7.2f} {r['cost']:8.0f} {share:5.1f}%  {top_model}")
@@ -134,7 +241,7 @@ def main():
         print(f"  {model:24} ${cost:8.0f}")
 
     # Appended after the legacy output (existing consumers keep parsing the table above).
-    print("\nResolved models and CLI versions per type (probe O8.10)")
+    print("\nResolved models and CLI versions per type (probe O8.10; different ids = different models)")
     for agent_type, r in sorted(by_type.items()):
         models = ", ".join(f"{m} x{n}" for m, n in r["models"].most_common()) or "-"
         versions = ", ".join(f"{v} x{n}" for v, n in r["versions"].most_common()) or "-"
@@ -145,10 +252,17 @@ def main():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--days", type=int, default=30, help="window in days (default 30)")
+    parser.add_argument("--since", default=None, metavar="YYYY-MM-DD",
+                        help="only sessions started on or after this date "
+                             "(default: oldest mtime of the installed agent type files)")
+    parser.add_argument("--days", type=int, default=None, help="window in days instead of --since")
+    parser.add_argument("--all-projects", action="store_true",
+                        help="read the transcripts of every project, not only the current repo")
     parser.add_argument("--project", default=None,
                         help="only transcript folders whose name contains this substring")
     parser.add_argument("--projects-dir", default="~/.claude/projects",
                         help="Claude Code transcripts root")
     ARGS = parser.parse_args()
+    if ARGS.since and ARGS.days is not None:
+        parser.error("--since and --days are exclusive")
     sys.exit(main())

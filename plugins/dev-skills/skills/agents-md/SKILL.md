@@ -45,7 +45,7 @@ These override convenience, in all three modes.
 2. **Generic content harms.** Never write "follow best practices" or "handle errors properly". Document the counter-intuitive convention an agent would get wrong from the code alone. Avoid volatile state (current branch, task in progress, open PRs, drifting counts): write the command that reads it; you arbitrate the rare exception (content-rules §7). See `${CLAUDE_SKILL_DIR}/references/content-rules.md`.
 3. **The instruction budget is finite.** Count, report, refuse to pad; a rule added displaces one already there. Canonical figure: `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget).
 4. **Behaviour stays, guardrails travel.** Behaviour rules live in the root AGENTS.md, never externalised. Domain guardrails keep the prohibition in the root and the detail in the domain file. See `${CLAUDE_SKILL_DIR}/references/structure.md`.
-5. **Never drop a prohibition.** Compression rewrites a justification, never an imperative. Any `sync` touching guardrails ends with a mechanical non-regression check: count before and after, grep every prohibition marker.
+5. **Never drop a prohibition.** Compression rewrites a justification, never an imperative. Any `sync` touching guardrails ends with a mechanical non-regression check: prohibition count before and after (`count_rules.py`), grep every prohibition marker.
 
 ## Mode: init
 
@@ -73,7 +73,7 @@ The seven families, plus script triage, canonical-copy and `.gitignore` checks (
 - **False facts.** Commands are *executed*, not read. A documented `sudo docker` on a host where docker runs unprivileged is a finding. A CI command pinned to a branch that no longer exists is a finding. A file said to contain a section that it does not is a finding.
 - **Internal contradictions.** Rules that cancel each other, absolutes with no workable exception, a rule keyed to a named model where a role is meant, a rule whose enforcement mechanism is missing.
 - **Redundancy.** Passages repeated across sections, and the reliable tell: a "see above" or "cf. section X" that follows a restatement of section X.
-- **Instruction budget.** Count normative statements across every always-loaded file, compare against the instruction budget in `${CLAUDE_SKILL_DIR}/references/structure.md`, report the margin.
+- **Instruction budget.** Count normative statements with `${CLAUDE_SKILL_DIR}/scripts/count_rules.py` across every always-loaded file, compare against the instruction budget in `${CLAUDE_SKILL_DIR}/references/structure.md`, report the margin.
 - **Balance.** Characters per section. A section that outweighs the project's own commands by several times is misallocated, whatever its merit.
 - **Coverage gaps.** What the repository does that the documentation never mentions: test suites, CI guardrails, deployment paths, environment quirks.
 
@@ -83,6 +83,7 @@ Audit report format, mandatory:
 
 - **Group the report under explicit `P0`, `P1`, `P2`, `P3` headings** (omit an empty level or write "none"); every finding sits under one and states its check and observed value. Rubric: P0 = an agent following the doc breaks things or is misled on a safety rule; P1 = dead reference or false fact (missing file, command that cannot work); P2 = contradiction, redundancy, budget or balance problem; P3 = coverage gap, missing pointer, cosmetic. An unranked prose list is a failed audit.
 - **Stable finding IDs, a fix line.** Number every finding `AM-NN` (`AM-01`, `AM-02`, ...): unique, in report order (most severe first), never renumbered afterwards. Each finding carries a `Fix:` line (the concrete correction, or the question to settle) and, when the fix is a real choice between alternatives, an `Options:` line with 2-3 options, the recommended one first. A later `sync` plan reuses the same `AM-NN` IDs unchanged.
+- **`report-only` tag.** A finding that `sync` cannot fix (needs a human decision the doc cannot settle, or belongs to `/orchestration`) carries the tag `report-only` after its rank.
 - **Read-only means read-only.** Create no file (no `.claude/agents-md.yml`, no report or scratch file in the repository), edit no documentation file; the report goes in the reply only.
 - **Never run `sudo` or any privileged or state-changing command to verify a documented command.** Use safe checks (`command -v`, `--version`, a stat). If it cannot be established (docker absent, daemon unreachable, sandbox restriction), list it under "Not checked" as an unverified command with its P-rank. A `sudo` prefix that cannot be justified is itself a finding: report the documented command (with its `sudo`) as a P1 false-or-unverified fact, stating plainly whether it is false or unverified and why.
 - **End the report with a "Prohibitions preserved" line** stating the prohibition count and quoting each one verbatim; also state that no file was modified (verify with `git status --short` and a checksum taken before and after, and say so).
@@ -90,12 +91,12 @@ Audit report format, mandatory:
 
 ## Mode: sync
 
-Runs `audit`, then presents ONE plan confirmation listing the batches (each finding under its `AM-NN` ID from the audit, unchanged), and applies fixes batch by batch, most valuable first (`--dry-run`: print the batches, zero writes). Four operations, never mixed within a batch:
+Runs `audit`, **prints the audit findings first** (each with its `AM-NN` ID, P-rank, evidence and `Fix:` line), then presents ONE plan confirmation listing the batches, each referencing those IDs unchanged, and applies fixes batch by batch, most valuable first (`--dry-run`: print findings and batches, zero writes). A finding sync cannot fix (for example a P2 balance problem when behaviour rules must stay in the root, or a script owned by `/orchestration`) is tagged `report-only` in the audit and left out of the plan. When `.claude/agents-md.yml` is absent, the plan includes writing it from `${CLAUDE_SKILL_DIR}/templates/agents-md.yml.tmpl`, filled with measured values (schema: `config-schema.md`). Four operations, never mixed within a batch:
 
 - **Correct.** False facts and dead references. Lowest risk, highest value, always offered first. Dead references inside archive paths follow the archives policy: `tolerate` leaves them, `annotate` rewrites only the reference as "`new` (formerly `old`)" and never the record body, `fix` replaces the reference.
 - **Compress.** Keep the imperative and the numeric threshold; move the justification, the history and the procedure out. A guardrail works by its imperative form, not by its explanation.
 - **Externalise.** Move single-domain detail into that domain's file, leaving one imperative line plus a pointer.
-- **Triage scripts.** Move misplaced agentic scripts, refresh outdated canonical copies, replace project variants only with proof, fix `.gitignore`. Procedures: `${CLAUDE_SKILL_DIR}/references/guardrail-scripts.md` (Script triage) and `${CLAUDE_SKILL_DIR}/references/detection.md` (sections 10-12). All moves and replacements sit in the single plan confirmation, no separate question.
+- **Triage scripts.** Move misplaced agentic scripts, refresh outdated canonical copies, replace project variants only with proof, fix `.gitignore`. Procedures: `${CLAUDE_SKILL_DIR}/references/guardrail-scripts.md` (Script triage) and `${CLAUDE_SKILL_DIR}/references/detection.md` (sections 10-12). All moves and replacements sit in the single plan confirmation, no separate question. Ownership: this skill moves or replaces only its four checkers and project-written scripts that read only agentic docs; scripts owned by `/orchestration` are reported, never touched. The `.gitignore` procedure is entirely this skill's, applied in one pass for every dev-skills path present or planned (detection.md section 12).
 
 **Before any compression or externalisation, verify the target already carries the detail.** Probe the destination file for the specific facts about to be removed. If the probe fails, the operation is not compression, it is deletion: skip it and report why.
 
@@ -103,18 +104,17 @@ Runs `audit`, then presents ONE plan confirmation listing the batches (each find
 
 ## Reference files
 
-Load on demand, not upfront:
+Load per mode, read nothing else (open a section by its heading, not the whole file when only a section is listed):
 
-| File | When |
+| Mode | Load |
 |---|---|
-| `${CLAUDE_SKILL_DIR}/references/detection.md` | Phase 0 of any mode (probes: script triage, canonical copies, `.gitignore`) |
-| `${CLAUDE_SKILL_DIR}/references/structure.md` | Choosing a tier, deciding where a rule belongs |
-| `${CLAUDE_SKILL_DIR}/references/content-rules.md` | Writing any documentation content |
-| `${CLAUDE_SKILL_DIR}/references/audit-checks.md` | Modes audit and sync |
-| `${CLAUDE_SKILL_DIR}/references/guardrail-scripts.md` | Generating, stamping, wiring, triaging or replacing scripts |
-| `${CLAUDE_SKILL_DIR}/references/config-schema.md` | Reading or writing `.claude/agents-md.yml` |
+| audit | `audit-checks.md`; `detection.md` sections 2, 4, 8, 10-12; `structure.md` (Instruction budget) |
+| sync | the audit set, plus `guardrail-scripts.md`, `content-rules.md` sections 5-6, `config-schema.md` |
+| init | `detection.md` (all), `structure.md`, `content-rules.md`, `guardrail-scripts.md`, `config-schema.md`, `templates/` |
 
-`${CLAUDE_SKILL_DIR}/templates/` holds the file skeletons; `${CLAUDE_SKILL_DIR}/scripts/` holds the guardrail checkers (copied into the target project at `<scripts_path>`) and the read-only audit scripts `check_dead_paths.py` and `check_sections.py` (run from the skill directory). In `templates/adr-0001.md.tmpl`, fill `{{BUDGET_FIGURE}}` from the canonical budget in `structure.md`.
+All under `${CLAUDE_SKILL_DIR}/references/`. `detection.md`: probes (script triage, canonical copies, `.gitignore`). `structure.md`: tiers, where a rule belongs, instruction budget and counting method. `content-rules.md`: what to write. `audit-checks.md`: the check grid. `guardrail-scripts.md`: copy, stamp, triage, replace, wire. `config-schema.md`: `.claude/agents-md.yml`.
+
+`${CLAUDE_SKILL_DIR}/templates/` holds the file skeletons (including `agents-md.yml.tmpl`). `${CLAUDE_SKILL_DIR}/scripts/` holds the guardrail checkers (copied into the target project at `<scripts_path>`) and the read-only audit scripts, run in place: `check_dead_paths.py`, `check_sections.py`, and `count_rules.py` (canonical counter of normative statements and prohibitions, JSON output; method in `structure.md`; `/orchestration` reuses it). In `templates/adr-0001.md.tmpl`, fill `{{BUDGET_FIGURE}}` from the canonical budget in `structure.md`.
 
 ## Language
 

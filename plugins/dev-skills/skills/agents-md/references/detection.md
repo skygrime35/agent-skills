@@ -142,10 +142,10 @@ LOC and file count drive the tier. Author count drives whether concurrency rules
 
 ## 10. Script triage
 
-Scan `scripts/`, root-level `check_*` files and any script referenced by CI, pre-commit, Makefile or package.json. Classify each by who maintains it, from its source:
+Scan `scripts/`, root-level `check_*` files and any script referenced by CI, pre-commit, Makefile or package.json. Classify each by who maintains it, from its content, **never from its file name alone**:
 
-- **agentic**: first lines carry `dev-skills: <skill> [version]`; or the file name is a dev-skills one (`check_no_todo.py`, `check_monolith.py`, `check_no_stub.py`, `check_forbidden_chars.py`, `check_agent_refs.py`); or the source reads only agentic files (`AGENTS.md`, `CLAUDE.md`, `AGENTS/`, `.claude/`, agent type files).
-- **project**: everything else, including code checks the project wrote even when motivated by an AGENTS.md rule. Never moved.
+- **agentic**: (a) first lines carry the marker `dev-skills: <skill> [version]`; or (b) content identical to a canonical script, marker line excluded; or (c) the source reads only agentic files (`AGENTS.md`, `CLAUDE.md`, `AGENTS/`, `.claude/`, agent type files).
+- **project**: everything else, including code checks the project wrote even when motivated by an AGENTS.md rule, and any script that shares or resembles a canonical name (`check_forbidden_chars.py`, `check_no_todos.py`, `check_no_stubs.py`, `check_file_size.py`) without marker or identical content. Such a script is a **project variant**: it stays in place and is compared per section 11. Never moved by this skill.
 - **ambiguous**: the source does not settle it. Leave it, list it as a blind spot, never ask.
 
 ```bash
@@ -158,7 +158,7 @@ Destinations and move procedure: guardrail-scripts.md (Script triage). Record, p
 
 ## 11. Canonical copies and project variants
 
-For each agentic dev-skills copy, compare with the canonical script ignoring the marker line (diff command and verdicts in guardrail-scripts.md, Canonical copies). For each project script whose purpose matches a canonical checker (file size, deferral markers, stubs, forbidden characters, agent references), whatever its name, record it as a candidate project variant (replacement procedure in guardrail-scripts.md, Project variants).
+For each agentic dev-skills copy (rules a and b of section 10), compare with the canonical script ignoring the marker line (diff command and verdicts in guardrail-scripts.md, Canonical copies). For each project script whose purpose matches a canonical checker (file size, deferral markers, stubs, forbidden characters, agent references), whatever its name, record it as a candidate project variant (replacement procedure in guardrail-scripts.md, Project variants).
 
 ## 12. .gitignore
 
@@ -173,6 +173,8 @@ git ls-files --error-unmatch <path> 2>/dev/null && echo tracked
 |---|---|---|
 | Must be ignored | `.claude/settings.local.json`, `*.local.*` config files (e.g. `.claude/*.local.yml`), run journals (`.claude/*/journal.md`, `.claude/full-test/fix-loop-*/journal.md`), `.claude/worktrees/` | ignored and not tracked |
 | Must NOT be ignored | `.claude/settings.json`, `.claude/agents/`, `.claude/commands/`, `.claude/skills/`, `.claude/<skill>.yml`, `.claude/<skill>/` (scripts, dated reports), `AGENTS.md`, `CLAUDE.md`, `AGENTS/` | not ignored |
+
+Ownership: this skill owns the whole `.gitignore` procedure and applies it in ONE pass for every dev-skills path present or planned: negations for `.claude/agents-md/`, `.claude/agents-md.yml`, `.claude/orchestration/`, `.claude/orchestration.yml` and any other `.claude/<skill>.yml`; ignore `.claude/*.local.yml` and the journals. `/orchestration` only verifies its own paths with `git check-ignore` and applies the same fix when `.claude/agents-md.yml` does not exist (this skill has not run).
 
 Fix (init and sync, in the plan): minimal `.gitignore` edits. Append the missing ignore lines. A whole-directory `.claude/` pattern becomes `.claude/*` plus negations (`!.claude/settings.json`, `!.claude/agents/`, ...) for every must-not-be-ignored path that exists or will be written, because a negation under an ignored directory has no effect. Re-check every probed path with `git check-ignore`. A tracked file that must be ignored: propose `git rm --cached <path>` in the plan (never delete the working copy).
 

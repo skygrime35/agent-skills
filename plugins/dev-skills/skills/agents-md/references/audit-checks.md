@@ -7,6 +7,8 @@ Contents:
 - P3 - hygiene (P3.1-P3.7)
 - Non-regression check
 
+Tag a finding `report-only` when sync cannot fix it or another skill owns it (SKILL.md, audit report format).
+
 Each check states what it looks for, the command that runs it, and the severity of a hit. **No finding without the evidence that produced it.**
 
 Report most severe first. Every check that could not run is itself reported, as a blind spot.
@@ -80,7 +82,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok          # de
 python3 ${CLAUDE_SKILL_DIR}/scripts/check_dead_paths.py --quiet-ok <file>…  # explicit files
 ```
 
-The script covers backtick paths and markdown links (with `#anchors`), resolves relative to the citing file, the repo root, then by suffix via `git ls-files`, and skips URLs, placeholders, globs and fenced code. Output `file:line<TAB>target<TAB>status`: `dead` is a finding, `ambiguous` (several suffix matches) is a P3 to disambiguate. Read-only; exit 1 when something is dead.
+The script covers backtick paths and markdown links (with `#anchors`). A backtick span counts as a path only with a known file extension, or a trailing `/` whose first segment is a repo directory; migration ids, dotted symbols, npm packages, routes, CSS classes, git refs, rates and `a/b` word pairs are ignored. Resolution: citing file, repo root, then suffix via `git ls-files`. Output `file:line<TAB>target<TAB>status`: `dead` is a finding, `ambiguous` (several suffix matches) is a P3 to disambiguate, `conditional` (mentioned as deleted or optional) is not a finding. Read-only; exit 1 when something is dead.
 
 **Archive paths.** Run the script a second time on the dated records (`archives.paths` from the project config, else `errors/`, `adr/`, `postmortems/`-style directories). Dead references there are not P1: report ONE P3 info finding with their count and the policy applied. Policy resolves as `--archives` > `archives.policy` > `${user_config.agents_md_archives_policy}` > `tolerate`. `tolerate`: leave them. `annotate` and `fix` act only in `sync`, see SKILL.md.
 
@@ -95,7 +97,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/check_sections.py --quiet-ok            # de
 python3 ${CLAUDE_SKILL_DIR}/scripts/check_sections.py --quiet-ok <file>…
 ```
 
-It checks `FILE § Section`, `see FILE section X` and markdown anchor citations (`FILE#anchor`, `#anchor`) against the target's headings. Same output format and exit codes as P1.2; read-only.
+It checks `FILE § Section` (accent- and case-insensitive; `§ A / B` checks both; a bare `AGENTS.md` means the root one), `see FILE section X` and markdown anchor citations (`FILE#anchor`, `#anchor`) against the target's headings. A label found only as a bold bullet lead is `ok-bullet` (not a finding). Same output format and exit codes as P1.2; read-only.
 
 Field case: a guardrail announced a debt register "sectioned Backend/Frontend/Infra/Doc/Legal/Tests"; the `Doc` section had never existed. Any agent following the rule looks for a section that is not there.
 
@@ -130,12 +132,13 @@ Probes and expected state: detection.md section 12. Finding **P1** (evidence: th
 
 ### P2.1 Instruction budget
 
-Count with the method defined once in `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget, "Counting method"): normative statements, a bullet with a modal counted once, always-loaded files plus followed `@imports`, harness share separate, with its margin. These greps give the raw inputs, to be deduplicated per that method:
+Count with the method defined once in `${CLAUDE_SKILL_DIR}/references/structure.md` (Instruction budget, "Counting method"): normative statements, a bullet with a modal counted once, always-loaded files plus followed `@imports`, harness share separate, with its margin. Run the canonical counter on every always-loaded file (markers of the document's language, EN and FR lists defined there):
 
 ```bash
-grep -c '^- ' AGENTS.md
-grep -oiE '\b(must|never|always|required|forbidden|shall|do not)\b' AGENTS.md | wc -l
+python3 ${CLAUDE_SKILL_DIR}/scripts/count_rules.py AGENTS.md CLAUDE.md --section-heading <heading> ...
 ```
+
+The JSON gives statements and prohibitions per file and per section; a marker grep (`grep -oiE '\b(must|never|always|required|forbidden|shall|do not)\b' AGENTS.md | wc -l`) is only a cross-check.
 
 Report the count (with its +/- margin), the margin to the budget, and name the sections that would be cut first.
 
@@ -145,7 +148,7 @@ Report the count (with its +/- margin), the margin to the budget, and name the s
 awk '/^## /{if(s)printf "%6d  %s\n",c,s; s=$0; c=0; next} {c+=length($0)+1} END{if(s)printf "%6d  %s\n",c,s}' AGENTS.md
 ```
 
-Flag any section several times larger than the project's own vital commands. Field case: the knowledge-graph section outweighed the vital commands by 6.5x, and most of its bulk duplicated a README the file itself pointed to.
+Flag any section several times larger than the project's own vital commands. Tag it `report-only` when the bulk is behaviour rules, which must stay in the root. Field case: the knowledge-graph section outweighed the vital commands by 6.5x, and most of its bulk duplicated a README the file itself pointed to.
 
 ### P2.3 Self-declared redundancy
 
@@ -224,15 +227,15 @@ When the doc has a "CI-equivalent / replay locally" list, compare it with the wo
 
 ### P3.5 Misplaced agentic script (migration candidate)
 
-Classification and evidence: detection.md section 10; destinations: guardrail-scripts.md (Script triage). One P3 per agentic script outside `.claude/<skill>/`, stating the evidence (marker line, file name, or the agentic paths it reads) and the references that would be updated. Ambiguous scripts are listed as blind spots.
+Classification and evidence: detection.md section 10; destinations: guardrail-scripts.md (Script triage). One P3 per agentic script (marker, identical content, or reads only agentic files; never by file name alone) outside `.claude/<skill>/`, stating the evidence (marker line, file name, or the agentic paths it reads) and the references that would be updated. Ambiguous scripts are listed as blind spots.
 
 ### P3.6 Outdated or edited checker copy
 
-Compare per guardrail-scripts.md (Canonical copies). Content differs and marker version older: P3 "outdated copy" (sync replaces it). Edited locally (marker version current, or no marker): P3 with the diff, handled as a project variant.
+Compare per guardrail-scripts.md (Canonical copies); only scripts classified agentic (detection.md section 10) are copies. Content differs and marker version older: P3 "outdated copy" (sync replaces it). Edited locally (marker version current, or no marker): P3 with the diff, handled as a project variant.
 
 ### P3.7 Project variant of a canonical checker
 
-Run both per guardrail-scripts.md (Project variants). P3 "replaceable variant" when the canonical script covers every finding (cite both outputs); P3 "upstream candidate" for each extra capability the variant has (what, `file:line`).
+A script that shares or resembles a canonical name but has no marker and no identical content is a variant, not a copy. Run both per guardrail-scripts.md (Project variants), comparing defaults as well as output. P3 "replaceable variant" when the canonical script covers every finding (cite both outputs); P3 "upstream candidate" for each extra capability the variant has (what, `file:line`).
 
 ## Non-regression check (mandatory after any sync batch touching guardrails)
 
@@ -247,4 +250,4 @@ for t in <each distinctive term from each guardrail>; do
 done
 ```
 
-Report both counts explicitly. A `sync` that cannot show this check has not finished.
+Also run `count_rules.py` on the touched files before and after and compare `prohibitions`. Report both counts explicitly. A `sync` that cannot show this check has not finished.

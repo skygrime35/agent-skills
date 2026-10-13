@@ -1,0 +1,10 @@
+# .claude/orchestration.local.yml - owned by the /orchestration skill. GITIGNORED.
+# Machine-specific facts only; refreshed by detection on every run. Env-var NAMES only, no secrets.
+
+local:                              # machine-specific
+  models_available: [{{MODELS_AVAILABLE}}]
+  models_verified_at: {{MODELS_VERIFIED_AT}}
+  subagent_model_env: {{SUBAGENT_MODEL_ENV}}
+  statusline: {{STATUSLINE}}
+  global_types_present: [{{GLOBAL_TYPES}}]
+  delegation_capable: {{DELEGATION_CAPABLE}}
