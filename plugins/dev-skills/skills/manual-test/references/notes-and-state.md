@@ -21,9 +21,21 @@ Below the table, a **Decisions** section: dated lines (`YYYY-MM-DD HH:MM - N-03:
 
 Then a **Results** section lists every step with `passed`, `passed (verified by agent)`, `failed`, `skipped by tester`, `blocked`, `not answered`, `not tested (reason)`, `validated as a side effect of step <n>`.
 
+## Autonomous run files
+
+```
+.claude/manual-test/<run-id>/
+  state.json  notes.md
+  report.md                  # final report (references/autonomous.md)
+  screenshots/<step>-<slug>-<attempt>.png   # step zero-padded, e.g. 007-login-error-1.png
+  driver/                    # throwaway scripts, never in the project
+```
+
+Same exclusion and archive rules as guided mode. `notes.md` rows come from FAIL steps and agent suggestions; the Results section uses `PASS`, `FAIL`, `BLOCKED`, `NOT TESTABLE (reason)`.
+
 ## `state.json`
 
-Rewritten after every step (atomic write). Contains no secrets. Step ids are the single global numbering (`step-format.md`); `plan[].verified` records that the group passed the per-group code verification (`analysis.md`); `values` records the form value set submitted per step.
+Rewritten after every step (atomic write). Contains no secrets. Autonomous runs add per step `attempts` (result and artefact paths for each) and `artefacts`. Step ids are the single global numbering (`step-format.md`); `plan[].verified` records that the group passed the per-group code verification (`analysis.md`); `values` records the form value set submitted per step.
 
 ```json
 {
@@ -33,6 +45,8 @@ Rewritten after every step (atomic write). Contains no secrets. Step ids are the
   "scope": {"form": "develop..main", "from": "<sha>", "to": "<sha>"},
   "target": {"kind": "preprod", "url": "...", "served_sha": "..."},
   "devices": ["desktop", "android"],
+  "mode": "guided",
+  "driver": {"kind": "project-e2e|mcp|none", "ref": "...", "viewports": ["desktop"]},
   "plan": [{"feature": "...", "risk": "high", "device": "desktop", "verified": true, "verified_sha": "<sha>", "steps": [{"id": "3", "title": "...", "result": "pending"}]}],
   "current": "3",
   "results": {"1": {"result": "passed", "at": "..."}, "2": {"result": "validated as a side effect of step 1"}, "4": {"result": "skipped by tester", "reason": "no second device"}},
@@ -46,4 +60,4 @@ Rewritten after every step (atomic write). Contains no secrets. Step ids are the
 
 ## Resume
 
-On launch, look for `.claude/manual-test/*/state.json` with `phase < 6` and `updated_at` under 7 days: offer to resume (or resume directly with `--resume`). Resume checklist: reread `notes.md`; re-check the served SHA (changed => say so, affected results are suspect); verify `prepared[]` objects still exist, re-prepare if gone; announce "Resuming at step <current>"; continue. Older runs: report them and start fresh; never delete without asking.
+Autonomous runs resume at the first step without a final result (`autonomous.md`). On launch, look for `.claude/manual-test/*/state.json` with `phase < 6` and `updated_at` under 7 days: offer to resume (or resume directly with `--resume`). Resume checklist: reread `notes.md`; re-check the served SHA (changed => say so, affected results are suspect); verify `prepared[]` objects still exist, re-prepare if gone; announce "Resuming at step <current>"; continue. Older runs: report them and start fresh; never delete without asking.

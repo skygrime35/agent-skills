@@ -21,7 +21,7 @@ Skills are then available as `/dev-skills:<skill>` (and by their short name when
 | orchestration | Create, audit or sync the agent-orchestration layer: model ladder, delegation, parallelism under isolation, subagent types |
 | test-coverage | Grow a test suite toward full-scenario coverage; speed it up without losing a test |
 | full-test | Run the full test battery against preprod, with an optional autonomous fix loop |
-| manual-test | Guided manual acceptance test (recette) of new features with a human in the loop: notes, fixes, re-test, archive |
+| manual-test | Manual acceptance test (recette) of new features, guided with a human or autonomous in a browser with a screenshot report: notes, fixes, re-test, archive |
 | safe-merge | Gate a merge into the production branch: backups, migration rehearsal, tests, changelog, go/no-go |
 | legal | Audit, build or verify French/EU legal texts (CGU, CGV, legal notices, privacy, cookies, giveaways) |
 | new-project | Take an idea to a finished, deployed, pushed project |

@@ -46,6 +46,7 @@ environments:
   local:
     url: http://localhost:3000
   prod_urls: [https://example.com]   # forbidden as a target, kept to recognise it
+mode: guided                        # guided | autonomous (see autonomous.md)
 devices: [desktop, android]          # defaults for the device question
 accounts:                            # hints only
   - role: admin

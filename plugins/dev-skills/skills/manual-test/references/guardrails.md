@@ -23,7 +23,7 @@ Before triggering anything that sends (email, push, SMS, webhook, chat message, 
 
 ## G5 - One step at a time
 
-Send one step, wait for the answer. Never send the next step, a preview of the plan's remaining steps, or two features at once. Exception: the plan overview in Phase 2.
+Guided mode only (autonomous steps run sequentially per batch under `autonomous.md`). Send one step, wait for the answer. Never send the next step, a preview of the plan's remaining steps, or two features at once. Exception: the plan overview in Phase 2.
 
 ## G6 - Disposable data, recorded and tagged
 
@@ -36,6 +36,8 @@ Respect the project's branch and worktree rules (AGENTS.md / CLAUDE.md): fixes i
 ## G8 - Never claim a pass without evidence
 
 A step is `passed` only on evidence matching the expected result: the tester's answer, or, for **static content only** (texts, translations, versions, static assets, archived pages), the agent's own verification from the repo or the served HTML (`curl`), recorded as `verified by agent` with the file or URL read. Never for behaviour, rendering, interactions, device-specific or timing results. "Looks fine", an ambiguous reply or no reply => ask again once, then record `not answered`. A pre-check of runtime behaviour (HTTP 200, browser screenshot) can inform a step, never validate it. The final verdict is "green on what the tester or the agent's reading confirmed", split in two counts, with `skipped by tester` (never counted as passed) and `not tested` listed.
+
+**Autonomous mode.** The evidence is the agent's own captured artefacts: a screenshot, a DOM assertion (selector and text actually read), a network or API check, stored under `RUN_DIR`. Never "assumed", never inferred from code or from a 200 status alone for behaviour; a step without captured evidence is `BLOCKED` or `NOT TESTABLE`, not `PASS`. The final verdict counts PASS, FAIL, BLOCKED and NOT TESTABLE separately; the tester's light on-screen check is replaced by asserting the served SHA or visible version marker in the browser.
 
 **Static content is verified by the agent by default.** The tester does a light on-screen check, mandatory once per deployed page group, that the served page matches the code (typically a version number or date), which proves the deployed version is the one the agent read; no screenshot of the content itself. The tester's time goes to runtime behaviour.
 

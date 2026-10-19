@@ -1,7 +1,7 @@
 {
   "name": "dev-skills",
-  "version": "1.9.0",
-  "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, guided manual acceptance tests, safe merges, legal texts and new projects",
+  "version": "1.10.0",
+  "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, guided and autonomous manual acceptance tests, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"
   },
@@ -501,6 +501,16 @@
       "title": "Report language",
       "description": "Language of chat and reports: auto (the user's conversation language, fallback en) or a code such as en or fr (all files and identifiers stay English).",
       "default": "auto"
+    },
+    "manual_test_mode": {
+      "type": "string",
+      "title": "Test mode",
+      "description": "Who tests: guided (a human, one step at a time) or autonomous (the agent runs the steps in a browser and delivers a screenshot report).",
+      "options": [
+        "guided",
+        "autonomous"
+      ],
+      "default": "guided"
     },
     "manual_test_archive_folder": {
       "type": "string",
