@@ -6,7 +6,7 @@
     {
       "name": "dev-skills",
       "source": "./plugins/dev-skills",
-      "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects"
+      "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, manual acceptance tests, safe merges, legal texts and new projects"
     }
   ]
 }

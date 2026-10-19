@@ -1,7 +1,7 @@
 {
   "name": "dev-skills",
-  "version": "1.8.2",
-  "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, safe merges, legal texts and new projects",
+  "version": "1.9.0",
+  "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, guided manual acceptance tests, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"
   },
@@ -494,6 +494,18 @@
       "type": "string",
       "title": "Report language",
       "description": "Language of generated reports and findings: auto (the user's conversation language, fallback en) or a code such as en or fr (all files and identifiers stay English).",
+      "default": "auto"
+    },
+    "manual_test_language": {
+      "type": "string",
+      "title": "Report language",
+      "description": "Language of chat and reports: auto (the user's conversation language, fallback en) or a code such as en or fr (all files and identifiers stay English).",
+      "default": "auto"
+    },
+    "manual_test_archive_folder": {
+      "type": "string",
+      "title": "Archive folder",
+      "description": "Project folder receiving the archived notes: auto detects DOCS/AUDIT/, docs/audit/ or docs/ (else asks), or a project-relative path.",
       "default": "auto"
     }
   }
