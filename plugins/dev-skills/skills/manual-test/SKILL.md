@@ -44,6 +44,15 @@ Central promise: **production is never a target and no code changes while explor
 
 Ask (AskUserQuestion, grouped, max 4 questions per call; absent => plain text) only when: scope, target, mode or devices are unknown, a decision belongs to the human (end of run), or a guardrail is hit. Say when degraded.
 
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: `.claude/manual-test.yml`, an unfinished run under `.claude/manual-test/<RUN_ID>/` (`state.json`: phase, groups done, open remarks), the last archived notes (date, served SHA), commits on the integration branch since that SHA, the last `/full-test` result when its report exists.
+
+Picks: unfinished run => `/manual-test --resume`; remarks recorded but not fixed => `/manual-test --resume` (fix and re-test round); new commits since the last recette => `/manual-test` (guided) and `/manual-test --mode=autonomous` as the alternative; never run here => `/manual-test --dry-run`; nothing new => `/safe-merge`.
+
+Workflow: 1 `/full-test` green -> 2 `--dry-run` (first time) -> 3 `/manual-test` -> 4 fix and re-test -> 5 archive -> 6 `/safe-merge`.
+
 ## Scope
 
 **For:** a human (guided) or the agent in a browser (autonomous) validating user-visible behavior on a deployed preprod (or local) stack: screens, buttons, emails, notifications, admin screens, API docs, offline modes; with data prepared by the skill and a fix + re-test round.

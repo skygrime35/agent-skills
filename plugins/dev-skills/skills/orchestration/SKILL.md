@@ -16,7 +16,7 @@ Central promise: **never write what has not been verified.** No agent type that 
 ## Usage
 
 ```
-/orchestration                              # auto: init if no layer exists, else audit (the choice is printed)
+/orchestration                              # bare: status + recommended next steps (Start menu), runs nothing until you pick
 /orchestration init                         # build the layer (refuses per scope where it exists)
 /orchestration audit                        # grade the existing layer, write nothing, report P0-P3
 /orchestration sync                         # audit, then apply fixes (one plan confirmation)
@@ -56,6 +56,15 @@ Plugin options (change them with `/config`; each maps to the `policy:` field of 
 | `orchestration_check_script_path` | `${user_config.orchestration_check_script_path}` | where the check script goes (`auto`: `.claude/orchestration/`, fixed) |
 | `orchestration_report_language` | `${user_config.orchestration_report_language}` | language of reports to the user |
 
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: base doc and pointer (D1); owned section present, and whether it has the current shape (generic part, `Claude Code` subsection, B9 lifecycle block); installed agent types (D5); `.claude/orchestration.yml` `detected_at.sha` vs HEAD; check script marker version vs `plugin.json`; `models.md` Verified date (over 30 days = stale); an unfinished journal.
+
+Picks: no base doc => `/agents-md init` first; no layer => `/orchestration init --dry-run`, then `/orchestration init`; legacy single-part doctrine, missing B9, outdated check copy or a partial layer => `/orchestration sync`; layer present and fresh => `/orchestration audit`.
+
+Workflow: 1 `/agents-md init` -> 2 `init` -> 3 `audit` -> 4 `sync` -> re-run 3-4 after a plugin upgrade, a model release or a change of agent types.
+
 ## Scope and non-goals
 
 **For:** the rules an orchestrating agent follows to decompose, delegate, parallelize, isolate concurrent work and close finished agents, in a generic part and a Claude Code part; the subagent type files (name, description, model, effort, maxTurns, color) those rules cite and the built-in overrides; the check script aligning doctrine, config and installed types.
@@ -85,7 +94,7 @@ These override any convenience, in all modes.
 
 **Phase 0 - detect.** First detect the harness (probe D0, `${CLAUDE_SKILL_DIR}/references/harness.md` H1) and announce it; on another harness, Claude Code-only scopes and probes degrade as D0 says. Load `${CLAUDE_SKILL_DIR}/references/detection.md`. If `.claude/orchestration/journal.md` shows an in-progress run younger than 24 h, resume at the last completed phase automatically and say so; an older journal is reported and ignored. Load `.claude/orchestration.yml` (and `.claude/orchestration.local.yml` when present) and run the detection probes regardless (independent: fan them out). D11 refreshes `models.md` when stale; D12 measures real spend per agent type by running in place `python3 ${CLAUDE_SKILL_DIR}/scripts/usage_by_agent_type.py` (never copied; default scope: this repo's transcripts since the install date of the current types, both printed; `--all-projects` and `--since YYYY-MM-DD` widen or move the window). On drift of a human-authored field, keep it and report the diff, do not ask. Announce the detected profile, the per-scope mode routing and the output language in a few lines; no confirmation here.
 
-**Mode selection.** Bare `/orchestration`: `init` if no orchestration layer exists (no section, no agent types, no check, no config), else `audit`. Print the choice; do not ask. A **partial layer** (some scopes present, others missing, for example doctrine and agents but no config or check script) is audited as is; `sync` completes the missing scopes in the same plan, built as `init` would build them for those scopes, and the plan says so.
+**Mode selection.** Bare `/orchestration`: the Start menu, whose picks follow this rule. A stated request naming no mode: `init` if no orchestration layer exists (no section, no agent types, no check, no config), else `audit`. Print the choice; do not ask. A **partial layer** (some scopes present, others missing, for example doctrine and agents but no config or check script) is audited as is; `sync` completes the missing scopes in the same plan, built as `init` would build them for those scopes, and the plan says so.
 
 **Phase 1 - resolve policy.** Autopilot by default per the resolution order above and `${CLAUDE_SKILL_DIR}/references/interview.md`. Ask only the three blocking cases listed there. `--interactive` runs the full interview in salvos of at most 4 questions (plain-text questions if AskUserQuestion is absent; report the degradation).
 

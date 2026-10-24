@@ -38,6 +38,15 @@ The project is classified into a canonical type (web app, API, CLI, TUI, library
 
 Plugin options in effect: UI language `${user_config.new_project_ui_language}`, docs language `${user_config.new_project_docs_language}`, look and feel baseline `${user_config.new_project_look_and_feel}`, privacy default `${user_config.new_project_privacy_default}`, auto-name `${user_config.new_project_auto_name}`, host domain pattern `${user_config.new_project_host_domain_pattern}`, port range `${user_config.new_project_port_range_start}`-`${user_config.new_project_port_range_end}`, deploy host `${user_config.new_project_deploy_host}`, hosting enabled `${user_config.new_project_hosting_enabled}` (false = behave as `--no-host` by default), disk floor `${user_config.new_project_min_disk_gb}` GB, agents fallback `${user_config.new_project_agents_fallback}`. Report to the user in the UI language; code, identifiers and commits stay English; README and human docs use the docs language.
 
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: an unfinished `.claude/new-project/journal.md` in the current or default directory, `~/.claude/new-project.yml` (learned tastes present or first run), `~/.claude/new-project-deployments.yml` (hosted projects, teardown candidates), whether the current directory is empty.
+
+Picks: unfinished run => resume it; otherwise ask for the idea in one plain question and offer `/new-project <idea>`, `/new-project --quick <idea>` and `/new-project --dry-run <idea>`; hosted deployments listed => `/new-project --teardown=<name>` as a non-default pick.
+
+Workflow: 1 `--dry-run` (optional) -> 2 `/new-project <idea>` (spec checkpoint, build, live checkpoint, publish) -> 3 `/manual-test` and `/full-test` on later changes.
+
 ## Scope
 
 **For:** greenfield projects, from "an app to track my expenses" to a full written spec, driven to a runnable, deployed, pushed, documented state. Web-reachable types end **hosted on the deploy host** (unless hosting is disabled: `--no-host`, or `${user_config.new_project_hosting_enabled}` false) behind its existing nginx at `<project>.<base-domain>` (the name is the project's own: **never a "demo" label, not even in DNS**). What is hosted is the **complete application** (real backend, database, background jobs, persistent data, every must-have working through the public URL); never a reduced feature set, front-only showcase or mocked data layer. This is stated here once and applies everywhere.
@@ -95,7 +104,7 @@ Register phases with `TaskCreate`. Keep a journal at `<project>/.claude/new-proj
 - `--teardown=<name>`: run the teardown from `${CLAUDE_SKILL_DIR}/references/hosting.md` (**confirm before removing anything**), stop.
 - `--dry-run`: Phases 0-2 read-only; print spec, plan, DoD instance and a section titled `Blind spots`, stop. No directory, scaffold, repo or hosting. **In dry-run run no hosting command of any kind: no `sudo` (not even `sudo -n true`), `docker`, `nginx`, `certbot`, `ss`, no reading of `/etc/nginx`, no `gh` or `ssh` calls, no `git init`, no `mkdir`, no host-safety snapshot.** The only allowed probes are `which <tool>` and `df`. Every skipped check (hosting, ports, name clashes, GitHub login) goes into the blind spots as "not probed in dry-run". The final answer must state in one plain sentence that nothing was written or created. 
 - default: **enter plan mode** unless already in it (Phases 0-2 are read-only by design). Checkpoint 1 is delivered as the plan: the user's plan approval is the GO. `--auto` skips Checkpoint 1 and does not enter plan mode.
-- bare invocation with no idea or spec: ask for the idea in one plain question (no safe default exists).
+- bare invocation with no idea or spec: Start menu, then ask for the idea in one plain question (no safe default exists).
 
 ## Phase 0: Preflight and preferences
 0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.

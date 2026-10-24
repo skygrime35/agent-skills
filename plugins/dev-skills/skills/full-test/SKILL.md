@@ -43,6 +43,15 @@ Central promise: **production is never touched** (not the prod-deploying branch,
 
 Ask only when: a costly suite is selected, a guardrail is hit, or the prod mapping is ambiguous. Without AskUserQuestion, ask in plain text; either way the degradation is not silent: say so in the report.
 
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: `.claude/full-test.yml` (mapping, suites, `detected_at.sha`), unfinished `.claude/full-test/journal.md` or `fix-loop-*/journal.md`, the last run report under `.claude/full-test/` (date, SHA, result) vs HEAD, uncommitted work, current branch vs the mapped preprod branch.
+
+Picks: unfinished run => resume it; never run here => `/full-test --dry-run`; last run red => `/full-test fix-loop`; HEAD ahead of the last green run => `/full-test`; last run green on HEAD => next skill (`/manual-test`, then `/safe-merge`).
+
+Workflow: 1 `--dry-run` (first time) -> 2 `/full-test` -> 3 `fix-loop` when red -> 4 `/manual-test` -> 5 `/safe-merge`.
+
 ## Scope
 
 **For:** exercising a real deployed preprod against a known SHA (E2E, in-container tests, post-deploy smoke, load tests).
@@ -82,7 +91,7 @@ Follow the phases in order; register them with TaskCreate. Placeholders are UPPE
 - `--help` -> print Usage, stop.
 - `--dry-run` -> Phases 0-3 read-only, print the plan, stop.
 - `fix-loop` -> load `references/fix-loop.md`, run Phases 0-2, arm the watchdog (mandatory, see fix-loop.md "Watchdog"), enter the loop.
-- bare invocation -> run all phases; print the mode chosen from detection instead of asking.
+- bare invocation -> Start menu (status, recommended next steps, nothing runs until the user picks); a stated request without flags ("test my branch on preprod") -> run all phases and print the mode chosen from detection instead of asking.
 
 **Fix-loop amendments** (detail in `references/fix-loop.md`):
 - **Phase 3:** redeploy is automatic (pending work committed at iteration 1; fix commits later); G1 re-asserted before every push.

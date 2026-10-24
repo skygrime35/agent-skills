@@ -18,7 +18,7 @@ Reports follow `${user_config.test_coverage_report_language}` (auto = the user's
 ## Usage
 
 ```
-/test-coverage                    # detect the project, auto-select audit, build, verify or speed (routing rule below) and print the choice
+/test-coverage                    # bare: status + recommended next steps (Start menu), runs nothing until you pick
 /test-coverage audit              # inventory features + scenarios, map coverage, P0-P3 gaps; writes inventory + report
 /test-coverage build              # write ALL missing tests (consumes a fresh audit), one global hard gate, runs locally
 /test-coverage verify             # mechanical consistency checks only — near-free, re-runnable, zero writes
@@ -36,6 +36,15 @@ Reports follow `${user_config.test_coverage_report_language}` (auto = the user's
 With `--help`/`-h` and nothing else, print the Usage block verbatim and stop.
 
 **Policy resolution** (every answer): command argument > `.claude/test-coverage.yml` > plugin option > recommended default. Plugin options: `${user_config.test_coverage_default_scope}` (`all` or `drifted-domains`), `${user_config.test_coverage_dynamic_pass}` (dynamic pass on/off), `${user_config.test_coverage_speed_target_minutes}` (used when `speed.target_minutes` is unset). Ask only when no safe default exists or a guardrail is hit. An argument never overrides a **guardrail**: no flag skips the build hard gate, no flag lets a test target a production host, `--gaps=` never shrinks the inventory (excluded gaps stay `missing`), no flag lets `speed` drop, skip or weaken a test (a quarantine entry needs an explicit per-entry human confirmation and is still executed). `--levers=`/`--runners=` narrow a run; the rest stays listed as not-applied / not-measured.
+
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: `.claude/test-coverage.yml` (`last_audit`: sha, date, `treated`, `open_findings`), `.claude/test-coverage/inventory.yml` SHA vs HEAD with the commits since that touch source domains, `speed.baseline` SHA and wall time, an unfinished journal.
+
+Picks: no inventory => `/test-coverage audit` (or `--dry-run` first); audit with open gaps => `/test-coverage build` (P0,P1 first via `--gaps=P0,P1` when there are many); audit stale (source commits since) => `/test-coverage audit` (or `--domains=` on the drifted ones); treated and fresh => `/test-coverage verify`; suite complete but slow or never measured => `/test-coverage speed`.
+
+Workflow: 1 `audit` -> 2 `build` -> 3 `verify` -> 4 `speed` -> then `/full-test` on preprod; re-run 1 on the drifted domains after feature work.
 
 ## Scope
 
@@ -83,7 +92,7 @@ Follow phases in order. TaskCreate the phases at start; append one line per comp
 - `--dry-run` => Phase 0 read-only, then print the plan (domains, fan-out, scenarios to derive, tests to write) and stop. With `speed`: the lever plan is built from a **fresh** `speed.baseline`; none => ask whether to measure now (the baseline JSON is then the only file produced, stated as such) or stop with a plan marked "not measured".
 - `audit` / `build` => Phase 0 => the mode's section.
 - `speed` => Phase 0 (probe P6 included) => **Mode: speed**; loads `speed.md` plus `writing.md` §1 (agent contract), §4 (baseline rules), §5 (prod guardrail).
-- bare `/test-coverage` => Phase 0 => apply the routing rule and **print the choice, no question**: no inventory => audit; fresh inventory + open gaps => build (still behind its hard gate); treated audit => verify; a recorded baseline slower than the speed target => speed.
+- bare `/test-coverage` => Start menu (its picks follow the routing rule below). A stated request naming no mode => Phase 0 => apply the routing rule and **print the choice, no question**: no inventory => audit; fresh inventory + open gaps => build (still behind its hard gate); treated audit => verify; a recorded baseline slower than the speed target => speed.
 
 ## Phase 0 — Resume, config, detection (all modes)
 0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.

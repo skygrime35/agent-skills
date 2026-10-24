@@ -20,7 +20,7 @@ Findings and reports follow `${user_config.legal_report_language}` (auto = the u
 ## Usage
 
 ```
-/legal                          # detect the project, auto-select the mode, print the choice, run it
+/legal                          # bare: status + recommended next steps (Start menu), runs nothing until you pick
 /legal audit                    # full legal analysis: code -> applicable law -> P0-P3 findings; writes only its report and its own config/state files (.claude/legal.yml, gaps:)
 /legal build                    # write/update legal docs via the project's versioning ritual (reuses a fresh audit)
 /legal verify                   # mechanical consistency checks only — near-free, re-runnable, zero writes
@@ -35,6 +35,15 @@ Findings and reports follow `${user_config.legal_report_language}` (auto = the u
 If invoked with `--help`/`-h` and nothing else, print the Usage block above verbatim and stop.
 
 Arguments override questions; anything not passed as an argument is asked interactively. An argument never overrides a **guardrail** — no flag skips the hard gate before touching a published legal text, and `--no-web` never converts an unverified legal point into a confident clause.
+
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: legal corpus present (substrate), `.claude/legal.yml` `last_audit` (sha, date, `treated`, `open_findings`, `kb_state` age over 6 months = stale), commits since that SHA touching features with legal effect (accounts, payments, cookies, trackers, giveaways, processors), an unfinished journal.
+
+Picks: no corpus => `/legal build` (or `--dry-run` first); corpus never audited or audit stale => `/legal audit`; fresh audit with open findings => `/legal build`; treated and fresh => `/legal verify`.
+
+Workflow: 1 `audit` -> 2 `build` (hard gate) -> 3 `verify` -> re-run 1 when features with legal effect change, or every 6 months for the knowledge base.
 
 ## Eight governing principles (these override any convenience)
 
@@ -97,7 +106,7 @@ Follow phases in order. TaskCreate the phases at start. Only `build` keeps a jou
 - `--dry-run` (or "tell me what you would do / without writing anything") → Phase 0 read-only, then print the plan and stop. The plan has exactly these sections: **Required documents** (derived from detected features, each with its trigger), **Questions I would ask**, **Research points**, **Planned writes** (paths and versions only, no drafted legal text), **Flagged, not written**. Zero writes: no `.claude/legal.yml`, no journal, no repo file. A fixture the user asked to set up beforehand is theirs, not a skill write.
 - `audit` / `build` → Phase 0 → the mode's section.
 - **Read-only request** (the user says "do not change anything", "read-only", "don't write", "without writing"): treat as `--dry-run` for every write of the skill itself: no `.claude/legal.yml`, no `.claude/legal/` report, no journal, no scratch file in the repo, and no `git add`/`git commit`/stash of any kind, **including when you build a fixture the user asked for: `git init` and create the files, but never `git add` or commit them** (a repo with no commit has no `AUDIT_SHA`: say `uncommitted`; the answer must never admit a commit, staging or any other write). Still run the full analysis (audit mode) and print the complete report in the chat, with the disclaimer first, and say in one line that nothing was written. Never ask permission to write in that case; just do not write. Fixture rule: build the fixture exactly as described (no extra invented content, no `git add`, no commit, not even to obtain a SHA); in the final answer, put the disclaimer first, then the report, and mention the fixture only in a single last line ("Setup: fixture created as requested, nothing staged or committed, nothing else written."). Never run `git commit` in a read-only request. Before answering, run `git status --short` and `git log --oneline -1` and state their result in the last line, showing that the skill created no commit and changed no file.
-- bare `/legal` → Phase 0 → auto-select the mode and print the choice with its reason, without asking (no legal corpus ⇒ build; corpus + no fresh audit ⇒ audit; fresh audit with open findings ⇒ build; fresh audit `treated: full` ⇒ verify).
+- bare `/legal` → Start menu (its picks follow the routing below). A stated request naming no mode → Phase 0 → auto-select the mode and print the choice with its reason, without asking (no legal corpus ⇒ build; corpus + no fresh audit ⇒ audit; fresh audit with open findings ⇒ build; fresh audit `treated: full` ⇒ verify).
 
 ## Phase 0 — Resume, config, detection, profile (all modes)
 0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.

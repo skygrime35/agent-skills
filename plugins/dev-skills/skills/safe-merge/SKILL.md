@@ -25,6 +25,15 @@ Quality gate for promoting `SOURCE_BRANCH` (dev) into `TARGET_BRANCH` (release/p
 
 With `--help`/`-h` and nothing else, print the Usage block verbatim and stop.
 
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: source and target branches (detected or from `.claude/safe-merge.yml`), commits ahead (`git rev-list --count TARGET..SOURCE`), an unfinished `.claude/safe-merge/journal.md`, the last release (`detected_at`, rollback file under `.claude/safe-merge/`), the last `/full-test` and `/manual-test` results on the source SHA when their reports exist.
+
+Picks: unfinished run => resume it; nothing ahead => say so, no merge pick; source ahead but not tested on preprod => `/full-test` first; tested => `/safe-merge --dry-run`, then `/safe-merge`; the last release reported broken => `/safe-merge revert` (never a default pick otherwise).
+
+Workflow: 1 `/full-test` green -> 2 `/manual-test` -> 3 `--dry-run` -> 4 `/safe-merge` (human go/no-go) -> 5 `revert` only if production breaks.
+
 ## Governing principles (they override any convenience)
 
 1. **Unknown means blind spot, never green.** If the deploy trigger, tests, backups, secret scanner or branch pair cannot be determined with confidence, record it as an explicit blind spot and carry it into the recap. A missing test suite is "zero coverage", never a pass. Ask the human only when no safe default exists.
@@ -60,7 +69,7 @@ Run the phases in order. Register them with `TaskCreate` and update them as you 
 **Mode routing:**
 - `revert` → **Phase R**.
 - `--dry-run` → Phases 0 → 2 (Phase 0 without the authorization question), then the Phase 6 recap, and stop. Zero writes: no journal (start or archive), no config refresh (drift is reported only), no triggers, backups, commits, pushes or merge; prod reads are shown, not run (blind spots). Only `git fetch` (remote-tracking refs) is allowed.
-- Bare invocation → full run; print the auto-selected mode instead of asking.
+- Bare invocation → Start menu (status, recommended next steps; nothing runs until the user picks). A stated request without flags ("merge develop into main") → full run; print the auto-selected mode instead of asking.
 
 ## Phase 0 — Preflight, profiling, preparation authorization
 Detection details: [references/detection.md](references/detection.md). Config and journal formats: [references/config-schema.md](references/config-schema.md). Spawn parallel probes for the independent detections.

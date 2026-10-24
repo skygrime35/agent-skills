@@ -18,7 +18,7 @@ Builds, grades or repairs the file set that tells an AI agent how a repository w
 ## Usage
 
 ```
-/agents-md                  # bare: detect, then auto-pick init (no AGENTS.md) or audit (exists); print the choice
+/agents-md                  # bare: status + recommended next steps (Start menu), runs nothing until you pick
 /agents-md init             # build from scratch (refuses if AGENTS.md already exists)
 /agents-md audit            # grade the existing system, write nothing, report P0-P3
 /agents-md sync             # audit, then apply fixes in batches after one plan confirmation
@@ -34,6 +34,15 @@ With `--help`/`-h` and nothing else, print the Usage block verbatim and stop.
 Guardrail scripts destination: `${user_config.agents_md_guardrail_scripts_path}` (default `.claude/agents-md/`), written `<scripts_path>` below. Resolution: `guardrail_scripts_path` in `.claude/agents-md.yml` > plugin option > `.claude/agents-md/`. No other exception: the default is the same in every project. Every copied checker carries the ownership marker `# dev-skills: agents-md <plugin version>`; copy, stamp, compare and replace rules: `${CLAUDE_SKILL_DIR}/references/guardrail-scripts.md`. The destination must not be git-ignored: `.gitignore` procedure in `${CLAUDE_SKILL_DIR}/references/detection.md` (section 12).
 
 Resolution order for every policy: argument > `.claude/agents-md.yml` > plugin option `${user_config.<KEY>}` > recommended default. The archives policy (dead references inside dated records such as `errors/`, `adr/`, `postmortems/`) resolves as `--archives` > `archives.policy` in the project config > `${user_config.agents_md_archives_policy}` > `tolerate`; see P1.2 and `sync` below. An argument never overrides a **guardrail**: `init` on a repository that already has an AGENTS.md still refuses (switch to `audit`).
+
+
+## Start menu (bare invocation)
+
+A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: `AGENTS.md`, `CLAUDE.md` (pointer or full copy), domain `AGENTS.md` files; `.claude/agents-md.yml` `detected_at.sha` vs HEAD with the commits since that touch manifests, CI, scripts, top-level folders or the docs themselves; guardrail script copies' marker version vs `plugin.json`; an unfinished journal.
+
+Picks: no AGENTS.md => `/agents-md init --dry-run`, then `/agents-md init`; docs present but never audited, stale, or copies outdated => `/agents-md audit`; last audit with open findings => `/agents-md sync`; everything up to date => `/agents-md audit` only after structural changes, plus `/orchestration` when the orchestration section is missing or stale.
+
+Workflow: 1 `init` (once) -> 2 `audit` -> 3 `sync` -> 4 `/orchestration init` -> re-run 2-3 after structural changes or a plugin upgrade.
 
 ## Scope
 
