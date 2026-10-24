@@ -79,7 +79,7 @@ Five questions, so two salvos: Q1.1 to Q1.3, then Q1.4 and Q1.5. Present alongsi
 | Q0.1 | B1 location note + fallback | `agents.location`, `agents.path` | where agent .md files land |
 | Q1.1 | B1 ladder | `local.models_available` | matrix `{LOW}`/`{MID}`/`{TOP}` |
 | Q1.2 | B1 selection sentence, B7, B2 threshold | `policy.cost_posture` | |
-| Q1.3 | B1 effort paragraph, B7 cheap review, B8 second sentence | `policy.matrix`, `agents.types` | 0, 3, 4 or 5 agent files (4 when no low model: see missing tiers) |
+| Q1.3 | subsection C (type list, effort paragraph) | `policy.matrix`, `agents.types` | 0, 3, 4 or 5 agent files (4 when no low model: see missing tiers) |
 | Q1.4 | | `policy.builtin_overrides` | `Explore.md`, settings.json env block (on confirmation) |
 | Q1.5 | B1 deep gate | `policy.deep_gate` | `{TOP}-deep` description |
 | Q2.1 | B2 threshold | `policy.delegation_threshold` | |

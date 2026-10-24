@@ -49,7 +49,7 @@ agents:                          # subagent type definitions
     - {name: Explore, model: haiku, effort: medium, verified: true}
 
 doctrine:
-  blocks: [ladder, escalation, delegation, briefing, parallelism-isolation, ask-before-dispatch, session-naming, reporting]
+  blocks: [ladder, escalation, delegation, briefing, parallelism-isolation, agent-lifecycle, ask-before-dispatch, reporting, claude-code]   # claude-code = subsection C (holds session-naming)
   prohibition_markers: ["git stash", "git add -A", "git checkout", "git reset", "jamais", "obligatoire"]
   prohibitions: 6                # non-regression baseline for sync
 
@@ -100,7 +100,8 @@ local:                           # machine-specific, this file is gitignored
     - {name: opus-standard,   model: opus,   effort: medium, maxTurns: 220}
     - {name: opus-deep,       model: opus,   effort: high,   maxTurns: 250}
     - {name: Explore,         model: haiku,  effort: medium}
-  delegation_capable: true       # harness exposes the Agent tool; unknown => blind spot
+  delegation_capable: true       # harness can launch subagents (D0); unknown => blind spot
+  harness: claude-code           # D0: claude-code | <name> | unknown (the harness that ran this skill last)
 ```
 
 ## Field rules

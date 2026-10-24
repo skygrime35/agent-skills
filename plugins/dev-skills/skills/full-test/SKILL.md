@@ -17,6 +17,8 @@ Central promise: **production is never touched** (not the prod-deploying branch,
 
 **Request to test, run e2e on, or reseed production / the live site / the prod URL:** refuse plainly, do not run anything against it, and do not ask for a confirmation, backup proof or script location to proceed anyway: no confirmation can lift this (G2-G4). Explain why (suites create and delete data, reseed destroys it, the guards exist to make this impossible), propose the same battery on preprod, or a read-only health probe / public-page smoke as a separate activity, and never offer to disable or widen a guard.
 
+**Harness (first step of Phase 0, every mode, dry runs included).** If `${CLAUDE_SKILL_DIR}` still shows as a literal placeholder, the harness is not Claude Code and the skill directory is the folder holding this SKILL.md. Detect the harness per `${CLAUDE_SKILL_DIR}/../orchestration/references/harness.md` (H1) and announce it with the detected profile. **Claude Code**: the agent types, tools and degradations below apply as written; Haiku types are the default for briefed subagents and for every agent launched by a subagent, a higher type being a ceiling for its role, not a start (H2). **Any other harness**: read each agent type below as its role tier (H3: `haiku-*` light, `sonnet-standard` standard, `opus-*` strong), use the harness's own spawn, question, task-list and stop mechanisms, never name a model; without subagents the waves run inline in their planned order with every gate kept, and each degradation is reported (H2, H5). On every harness, close each agent once its report is used and stop stalled ones before moving on (H4).
+
 ## Usage
 
 ```
@@ -90,8 +92,8 @@ Follow the phases in order; register them with TaskCreate. Placeholders are UPPE
 - **Watchdog:** a 10-minute cron resumes a stalled loop from the journal; armed before iteration 1, deleted on every exit (`references/fix-loop.md`).
 
 ## Phase 0 - Preflight, detection, capabilities
-
 Know what "preprod" means in *this* project and that every capability works, before touching anything. Fan out subagents for the independent probes (`references/detection.md`).
+0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.
 
 1. **Resume check.** If `.claude/full-test/journal.md` or a `.claude/full-test/fix-loop-*/journal.md` shows an in-progress run with a heartbeat or update less than 24 h old, resume automatically at the recorded phase (or loop iteration and step) and say so; an older journal: report it and start fresh.
 2. **Load + refresh config.** Read `.claude/full-test.yml` if present; re-run detection regardless. Structural drift: update and report. Drift on a human-authored field (`quirks`, overrides, guardrail fields): **keep the stored value and report the diff, do not ask**. Env-var names only, never values.

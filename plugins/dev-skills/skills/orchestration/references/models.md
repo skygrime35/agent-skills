@@ -31,6 +31,7 @@ Q1.1 prunes these to what is actually available. A missing tier is dropped, neve
 3. **The bottom tier is the large saving.** Haiku 5.5 reads cache 20x cheaper than Opus 5.5 and Sonnet 5.5 under 100k prompt tokens, 4x above.
 4. **Haiku 5.5 trails Sonnet 5.5 on open-ended coding** (FrontierCode 46.4% vs 52.1%). Anthropic positions it as a subagent for coding work, not as a designer. Bottom-tier types therefore take briefed implementation by default, and open design goes one rung up.
 5. **Per-model effort guidance** (official): Haiku 5.5, start at medium, use low for short simple tasks (at low it skips searches and checks more often in long agent prompts), high for longer agent tasks. Sonnet 5.5, medium for well-specified agentic coding, high for harder or longer ones. Opus 5.5, medium is the default and the usual starting point. xhigh and max only where measured gains justify them.
+6. **Haiku 5.5 is the right default for subagents and sub-subagents.** Field use on the reference machine: under 100k tokens of context it handles exploration, verification, review and briefed implementation reliably, and that is where its price advantage is largest (point 3). A subagent's context usually stays under that line; a sub-subagent's almost always does. It was nevertheless under-used: orchestrators kept sending briefed work to the mid tier. The doctrine therefore names it the default subagent model (subsection C, `harness.md` H2), and a context that will clearly exceed 100k tokens is one of the reasons to go one rung up.
 
 ## Practice the doctrine follows
 

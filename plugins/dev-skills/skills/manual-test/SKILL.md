@@ -19,6 +19,8 @@ Central promise: **production is never a target and no code changes while explor
 
 **Request to run manual steps, data preparation or "just a quick check" against production / the live site:** refuse plainly, prepare nothing there, no confirmation lifts it (G1). Offer the same walkthrough on preprod, or read-only observation of public pages by the tester alone.
 
+**Harness (first step of Phase 0, every mode, dry runs included).** If `${CLAUDE_SKILL_DIR}` still shows as a literal placeholder, the harness is not Claude Code and the skill directory is the folder holding this SKILL.md. Detect the harness per `${CLAUDE_SKILL_DIR}/../orchestration/references/harness.md` (H1) and announce it with the detected profile. **Claude Code**: the agent types, tools and degradations below apply as written; Haiku types are the default for briefed subagents and for every agent launched by a subagent, a higher type being a ceiling for its role, not a start (H2). **Any other harness**: read each agent type below as its role tier (H3: `haiku-*` light, `sonnet-standard` standard, `opus-*` strong), use the harness's own spawn, question, task-list and stop mechanisms, never name a model; without subagents the waves run inline in their planned order with every gate kept, and each degradation is reported (H2, H5). On every harness, close each agent once its report is used and stop stalled ones before moving on (H4).
+
 ## Usage
 
 ```
@@ -62,7 +64,7 @@ Ask (AskUserQuestion, grouped, max 4 questions per call; absent => plain text) o
 ## Tooling
 
 - CLIs: `git`, `gh`, `curl` + `jq`, plus the project's own tools (seed, management commands, deploy workflow, `docker`, `ssh` as the project documents).
-- Agents: follow the project's orchestration section (AGENTS.md / CLAUDE.md) if present; else the matrix in `references/analysis.md` (haiku reading and mapping, sonnet grouping, journeys and per-group verification, opus for plan review and ambiguous cases); the project's doctrine wins over the matrix. Missing type => the Agent tool `model` parameter. The chat with the tester is always held by the main loop, never delegated.
+- Agents: follow the project's orchestration section (AGENTS.md / CLAUDE.md) if present; else the matrix in `references/analysis.md` (haiku reading, mapping and per-group verification, sonnet grouping and journeys, opus for plan review and ambiguous cases); the project's doctrine wins over the matrix. Missing type => the Agent tool `model` parameter (another harness: the role tiers of `harness.md` H3). The chat with the tester is always held by the main loop, never delegated.
 - Optional in guided mode: claude-in-chrome or built-in browser MCP to pre-check a link or a screen before sending it (a pre-check never replaces the tester's evidence). Autonomous mode needs a browser driver (`references/autonomous.md`); TaskCreate/TaskUpdate absent => checklist in `state.json`; AskUserQuestion absent => plain-text questions.
 
 ## Reference files (load on demand)
@@ -84,6 +86,7 @@ Follow the phases in order; register them with TaskCreate. Placeholders are UPPE
 **Mode routing (first):** `--help` => print Usage, stop. `--dry-run` => Phases 0-2 read-only, print the plan, stop. `--resume` or an offered unfinished run accepted => load `state.json` (`references/notes-and-state.md`) and continue at the recorded step. Else run all phases.
 
 ## Phase 0 - Preflight and detection
+0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.
 
 Load `references/scoping.md`. Read `.claude/manual-test.yml` if present and re-run detection regardless (drift on human-authored fields: keep the stored value, report the diff). Establish `PROD_BRANCH`, `INTEGRATION_BRANCH`, the environment URL for the target, and the project's data-preparation tools. Hard stop if the target environment cannot be established with certainty or is the production URL: list what is missing and where to declare it. Check `git status --porcelain` and the current branch; the skill needs no clean tree but never modifies the tree during exploration (G3).
 

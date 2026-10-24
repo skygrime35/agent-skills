@@ -1,8 +1,17 @@
 # Detection probes
 
-Contents: D1 Base doc | D2 Existing section | D3 agents-md config | D4 Budget | D5 Agent types | D6 Statusline | D7 Language | D8 Delegation capability | D9 Isolation | D10 Existing checks | D11 Model facts | D12 Measured usage | Output profile
+Contents: D0 Harness | D1 Base doc | D2 Existing section | D3 agents-md config | D4 Budget | D5 Agent types | D6 Statusline | D7 Language | D8 Delegation capability | D9 Isolation | D10 Existing checks | D11 Model facts | D12 Measured usage | Output profile
 
 Run in Phase 0 of every mode. The probes are independent: fan them out. Each yields a verified fact or an explicit unknown; nothing in between. The output is the profile YAML at the end, whose `unknowns:` list is never empty on a real repository. A run that reports zero unknowns has guessed somewhere.
+
+## D0 - Harness
+
+Run first, per `${CLAUDE_SKILL_DIR}/references/harness.md` H1: record `harness` (name and capabilities). It decides what this run can verify and write:
+
+- **Claude Code**: every probe below runs; the `agents` and `checks` scopes apply; subsection C is written.
+- **Other harness**: the doctrine's generic part is written and audited as usual. The `agents` scope writes Claude Code type files only when D5 finds existing ones or the human asks (the project is also used with Claude Code); otherwise it is reported as not applicable, never as a failure. Subsection C is then written only when D5 or a `CLAUDE.md` shows Claude Code use. Phase 4's resolved-model dispatch (Claude Code only) becomes a blind spot. D11's settings probes and D12 are skipped as blind spots.
+
+Corroborating repository evidence of Claude Code use, independent of the running harness: `CLAUDE.md`, `.claude/agents/`, `.claude/settings.json`. Evidence of other harnesses: `GEMINI.md`, `.cursorrules`, `.cursor/`, `.codex/`, `opencode.json`, `.github/copilot-instructions.md`. Record both lists: they tell whether the generic part has other readers.
 
 ## D1 - Base doc file
 
@@ -70,7 +79,7 @@ If the signals disagree, or `--lang` contradicts a stated rule, record the confl
 
 ## D8 - Harness delegation capability
 
-Not probeable from the repository, but observable by the agent running this skill: if its own toolset exposes the Agent tool, record `local.delegation_capable: true`; otherwise `false`. Unknown at write time: blind spot, and block B2 must keep its "if delegation is unavailable" fallback clause unconditionally.
+Not probeable from the repository, but observable by the agent running this skill: D0's `subagents` capability, recorded as `local.delegation_capable`. Unknown at write time: blind spot, and block B2 must keep its "if delegation is unavailable" fallback clause unconditionally.
 
 ## D9 - Isolation substrate
 
@@ -122,6 +131,7 @@ Runs in every mode when transcripts exist: in init it informs Q1.2, Q1.3 and the
 ## Output profile
 
 ```yaml
+harness: {name, subagents, named_types, model_choice, nested_subagents, ask_tool, stop_tool, background, repo_evidence: {claude_code: [...], other: [...]}}
 base_doc: {file, pointer, section_spans, language, evidence}
 scattered_doctrine: [{line, excerpt}]
 legacy_isolation: {line, excerpt}|null   # agents-md "Concurrency isolation" subsection or `agents-md:isolation-stub` line, absorbed not scattered

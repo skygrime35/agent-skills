@@ -1,14 +1,23 @@
 # Doctrine blocks
 
-Contents: B1 Model ladder | B7 Escalation | B2 Delegation | B3 Parallelism and isolation | B4 Ask before dispatch | B5 Session naming | B6 Reporting | B8 Briefing
+Contents: Two parts | B1 Model ladder | B7 Escalation | B2 Delegation | B3 Parallelism and isolation | B4 Ask before dispatch | B5 Session naming | B6 Reporting | B8 Briefing | B9 Agent lifecycle | C Claude Code subsection
 
-The menu of orchestration rules this skill can write into the base doc's owned section. Eight blocks, B1 to B8, generalized from a field-proven production system and from the practices summarized in `references/models.md`. For each: purpose, canonical text (English render source), variation points keyed to interview answers, instruction cost, and when to omit it. Block IDs are stable identifiers, not reading order: the written section follows the order of `templates/doctrine-section.md.tmpl` (B1, B7, B2, B8, B3, B4, B5, B6).
+The menu of orchestration rules this skill can write into the base doc's owned section. Nine blocks, B1 to B9, plus the Claude Code subsection C, generalized from a field-proven production system and from the practices summarized in `references/models.md`. For each: purpose, canonical text (English render source), variation points keyed to interview answers, instruction cost, and when to omit it. Block IDs are stable identifiers, not reading order: the written section follows the order of `templates/doctrine-section.md.tmpl` (B1, B7, B2, B8, B3, B9, B4, B6, then the subsection C with B5).
+
+## Two parts: generic, then Claude Code
+
+AGENTS.md is read by many harnesses (Claude Code, Codex, Gemini CLI, Cursor, OpenCode, ...), so the owned section has two parts:
+
+- **Generic part** (blocks B1 to B9 except B5): rules any orchestrating agent can follow. It **never names a model, a model family, a Claude Code agent type or a Claude Code tool**. The dispatch ladder is expressed as capability tiers ordered by cost: `light` < `standard` < `strong` (`harness.md` H3), the cheapest model or agent kind the running harness offers being `light`.
+- **Claude Code part** (subsection C, heading `Claude Code`, one level below the section heading): what only Claude Code can honour: the agent types and their order, the tier-to-type mapping, the Haiku default, the deep gate, the built-in caveats (`fork`, `Plan`, `Explore`), `TaskStop`, and session naming B5. Written when the agents scope has types, or when probe D0 or D5 shows Claude Code is used on this project; omitted otherwise, and the plan says so.
+
+A generic block whose variation point needs a Claude Code fact moves that fact into C and keeps a tier-only sentence in the generic part. Audit O3.9 and O3.10 keep the split honest.
 
 **Boundary note.** The one-line agents-md stub (marker `agents-md:isolation-stub`) is replaced by B3: remove the line and its marker, its rule is covered by B3 (count it as moved, not dropped, in the non-regression check). A legacy "Concurrency isolation" subsection from older agents-md versions is absorbed into B3 (moved, every ban and rule kept; where it adds a rule B3 lacks, that rule stays in the section); the non-regression count applies. Branch discipline (check the branch and cohabitation before any modification), general output style, and knowledge-graph usage belong to the base doc's behaviour section, owned by `/agents-md`. This skill never writes them; its audit only reports overlap when the owned section restates them.
 
 **Rendering.** The canonical text below is the SOURCE, in English. At write time it is rendered into the output language decided in Phase 0 (a French base doc gets French prose), with the interview's variation points applied. Rendered, not copied: sentence order and idiom may adapt, imperatives and thresholds may not. Sync rewrites the doctrine only inside the recorded `section_spans` (config-schema.md), never elsewhere in the base doc.
 
-**Budget.** The full eight blocks cost roughly 29 to 34 instructions. Phase 2 must show the measured margin from probe D4 before proposing all eight; on a tight budget, propose B1+B7+B2+B3 (the load-bearing four) and justify dropping the rest.
+**Budget.** The nine blocks plus subsection C cost roughly 34 to 42 instructions. Phase 2 must show the measured margin from probe D4 before proposing everything; on a tight budget, propose B1+B7+B2+B3+B9 (the load-bearing five) plus C's first paragraph when types exist, and justify dropping the rest.
 
 ## B1 - Model ladder and orchestrator role
 
@@ -18,20 +27,19 @@ Canonical text:
 
 > Token economy rule: never let a costly model handle a task a cheaper one does correctly.
 >
-> **The orchestrator is a role, not a model**: it is the agent in direct dialogue with the user, whatever model runs it. Its job is to decompose the request and delegate each subtask to the **smallest model adequate for it**. The dispatch ladder is the list of agent types ordered by cost ({TYPE_LADDER}). At planning time, before execution starts, the orchestrator estimates the rung each subtask needs and dispatches at that rung, or one rung below when it hesitates between two; **never two rungs below its estimate**. A slight under-sizing is accepted because a failure escalates ({B7_REF}); a gross one only wastes the attempt. The orchestrator does not itself do work a lower model would do as well.{ABOVE_MATRIX: `{ABOVE}` is not a rung: it has no agent type, it is chosen per invocation with a stated reason, and a verified failure on the highest rung goes back to the user, never up to `{ABOVE}`.}{LOW_DEFAULT: **Delegated implementation starts at `{LOW}-standard`** whenever the orchestrator can write its brief (files, intended behaviour, verification); a higher rung needs a reason: a design choice the brief cannot settle, a cause still unknown, security- or data-sensitive work.}{DEEP_GATE: `{TOP}-deep` runs only when the user explicitly asks to dig deeper, or after `{TOP}-standard` failed on the same task.}
+> **The orchestrator is a role, not a model**: it is the agent in direct dialogue with the user, whatever model runs it. Its job is to decompose the request and delegate each subtask to the **smallest model adequate for it**. The dispatch ladder is the list of capability tiers ordered by cost: `light` < `standard` < `strong` (each harness maps them to its own models or agent kinds{CC_REF: ; under Claude Code, see the subsection below}). At planning time, before execution starts, the orchestrator estimates the rung each subtask needs and dispatches at that rung, or one rung below when it hesitates between two; **never two rungs below its estimate**. A slight under-sizing is accepted because a failure escalates ({B7_REF}); a gross one only wastes the attempt. The orchestrator does not itself do work a lower model would do as well.{LOW_DEFAULT: **Briefable work starts at `light`**: exploration, reading, verification, review, briefed implementation and every agent launched by a subagent, whenever the orchestrator can write the brief (files, intended behaviour, verification); a higher tier needs a reason: a design choice the brief cannot settle, a cause still unknown, security- or data-sensitive work.} If the harness offers no model choice, every agent runs on the session model and the tiers only size the brief.
 >
 > The number of agents follows the task: one for a simple task, more only when the work splits into independent parts. Independent agents are launched **in parallel**, subject to the isolation required by {B3_REF}, which is its precondition, not an optional precaution.
->
-> {EFFORT_AXIS: Model choice and reasoning depth (effort) are calibrated together through dedicated subagent types defined in {AGENTS_PATH}{LOCATION_NOTE}: {TYPE_LIST}. If these types are not available on the executing machine, fall back to model selection alone (the `model` parameter of the Agent tool) and the default session effort.}
 
-Variation points:
-- No model lineup is written ("A > B > C"): models change, the ladder is the agent-type list (`{TYPE_LADDER}`), and dated model facts stay in `references/models.md`, outside the always-loaded doc (audit O3.7).
-- `{ABOVE_MATRIX}` (with `{ABOVE}` = the model above `{TOP}`, for example `fable`) present whenever Q1.1 makes a model above the matrix available. It must say explicitly that this model is not a rung, so that the highest-rung failure rule in B7 cannot be read as a route to it (audit O2.6). Dropped when no such model is available.
-- Q1.2 sets the selection sentence: **cheapest-capable** (recommended) writes it as above; **balanced** replaces it with "default to `{MID}-standard`; go lower only for clearly mechanical work, higher only for clearly hard work"; **capability-first** with "economize only on mechanical tasks". The "never two rungs below" clause is kept under every posture.
+Variation points (generic part; the type-related ones are rendered in subsection C):
+- No model lineup is written ("A > B > C") anywhere in the section: models change, the generic ladder is the tier list, the Claude Code ladder is the agent-type list (`{TYPE_LADDER}`, subsection C), and dated model facts stay in `references/models.md`, outside the always-loaded doc (audit O3.7).
+- `{CC_REF}` present when subsection C is written.
+- `{ABOVE_MATRIX}` (subsection C) (with `{ABOVE}` = the model above `{TOP}`, for example `fable`) present whenever Q1.1 makes a model above the matrix available. It must say explicitly that this model is not a rung, so that the highest-rung failure rule in B7 cannot be read as a route to it (audit O2.6). Dropped when no such model is available.
+- Q1.2 sets the selection sentence: **cheapest-capable** (recommended) writes it as above; **balanced** replaces it with "default to `standard`; go lower only for clearly mechanical work, higher only for clearly hard work"; **capability-first** with "economize only on mechanical tasks". The "never two rungs below" clause is kept under every posture.
 - `{TYPE_LADDER}` lists the generated types cheapest first (for example `haiku-quick` < `haiku-standard` < `sonnet-standard` < `opus-standard` < `opus-deep`); with no types (Q1.3 "None"), it lists the available models cheapest first. A rung is one entry of that list: a task estimated at `sonnet-standard` may start at `haiku-standard`, never at `haiku-quick`. When `{EFFORT_AXIS}` is present, write `{TYPE_LIST}` in that same cheapest-first order and let `{TYPE_LADDER}` point to it ("the types listed below, in that order") instead of listing them twice.
-- `{LOW_DEFAULT}` present when the matrix has a `{LOW}-standard` type and the posture is cheapest-capable. It counters the observed bias: without it, orchestrators sent fully briefed edits to the mid tier and never used the bottom one.
-- `{DEEP_GATE}` per Q1.5: present (recommended) or replaced by "`{TOP}-deep` at the orchestrator's judgment". Dropped when the matrix has no `{TOP}-deep`.
-- `{EFFORT_AXIS}` present only if Q1.3 chose an effort matrix; `{LOCATION_NOTE}` reads "(machine-local configuration, absent if this repo is cloned elsewhere)" when Q0.1 chose global, and is dropped when project-local; `{TYPE_LIST}` names the actually generated types with one clause each. The fallback sentence is **mandatory** whenever `{EFFORT_AXIS}` is present (audit O3.5).
+- `{LOW_DEFAULT}` present when the posture is cheapest-capable. It counters the observed bias: without it, orchestrators sent fully briefed edits to the mid tier and never used the bottom one.
+- `{DEEP_GATE}` (subsection C) per Q1.5: present (recommended) or replaced by "`{TOP}-deep` at the orchestrator's judgment". Dropped when the matrix has no `{TOP}-deep`.
+- `{EFFORT_AXIS}` (subsection C) present only if Q1.3 chose an effort matrix; `{LOCATION_NOTE}` reads "(machine-local configuration, absent if this repo is cloned elsewhere)" when Q0.1 chose global, and is dropped when project-local; `{TYPE_LIST}` names the actually generated types with one clause each. The fallback sentence is **mandatory** whenever `{EFFORT_AXIS}` is present (audit O3.5).
 
 Cost: 7-9 instructions. Omit only if the project runs a single model with no delegation (then B2 is also moot and the doctrine scope is probably not worth writing).
 
@@ -41,11 +49,11 @@ Purpose: make "start small" safe. A cascade only saves money when failures are c
 
 Canonical text:
 
-> A delegated result counts as done only once **checked objectively**: the tests, build or lint the brief named, or a review by another agent. The executing agent's own confidence is not a check.{CHEAP_REVIEW: When no automated check covers the change, a `{LOW}-standard` review of the result is the cheapest objective check.}
+> A delegated result counts as done only once **checked objectively**: the tests, build or lint the brief named, or a review by another agent. The executing agent's own confidence is not a check.{CHEAP_REVIEW: When no automated check covers the change, a `light` review of the result is the cheapest objective check.}
 >
-> On a verified failure, or when the agent reports it could not complete, re-dispatch **one rung higher** on the dispatch ladder with the failed attempt's report, so the next agent starts from it. Never retry the same rung unchanged; a single same-rung retry is allowed only when the failure came from the brief itself and the brief is corrected. A verified failure on the highest rung of the matrix (`{TOP}-deep`, or `{TOP}-standard` when no deep type exists) goes back to the user with the attempts' reports.
+> On a verified failure, or when the agent reports it could not complete, re-dispatch **one rung higher** on the dispatch ladder with the failed attempt's report, so the next agent starts from it. Never retry the same rung unchanged; a single same-rung retry is allowed only when the failure came from the brief itself and the brief is corrected. A verified failure on the highest rung goes back to the user with the attempts' reports.
 
-Variation points: `{CHEAP_REVIEW}` present only if the matrix has a `{LOW}-standard` type. The highest-rung wording is fixed to the matrix: a model above it (B1 `{ABOVE_MATRIX}`) is never a rung and never a step in this paragraph. Under the capability-first posture, the escalation paragraph may shrink to its last sentence; the verification paragraph stays.
+Variation points: `{CHEAP_REVIEW}` present unless the harness has a single model and no review agent. Subsection C names the highest Claude Code rung (`{TOP}-deep`, or `{TOP}-standard` when no deep type exists). The highest-rung wording is fixed to the matrix: a model above it (B1 `{ABOVE_MATRIX}`) is never a rung and never a step in this paragraph. Under the capability-first posture, the escalation paragraph may shrink to its last sentence; the verification paragraph stays.
 
 Cost: 4-5 instructions. Omit only when the doctrine has no delegation at all.
 
@@ -61,13 +69,11 @@ Canonical text:
 >
 > {FALLBACK: If delegation is unavailable (harness restricting agent launch, permission denied), the main agent executes itself and says so. An optimization rule never blocks the task.}
 >
-> {FORK_PLAN: `fork` and `Plan` run on the orchestrator's model: never use them for briefable work.}
->
 > The delegated agent's tier follows the calibration above. Context economy does not exempt from token economy; the two combine.
 
-Variation points: `{RATIONALE}` included per Q2.2 (one sentence, costs one instruction); threshold wording follows Q2.1 ("mandatory" softens to "preferred" on the advisory answer); `{FALLBACK}` wording follows Q2.3, and if the human insists on "stop and ask" instead, write it but flag that an absolute with no workable exception is audit finding O3.2 territory. `{FORK_PLAN}` is optional: proposed only when the measured spend on `fork` and `Plan` is material (audit O8.4, at least 10% of subagent spend over the window); otherwise dropped.
+Variation points: `{RATIONALE}` included per Q2.2 (one sentence, costs one instruction); threshold wording follows Q2.1 ("mandatory" softens to "preferred" on the advisory answer); `{FALLBACK}` wording follows Q2.3, and if the human insists on "stop and ask" instead, write it but flag that an absolute with no workable exception is audit finding O3.2 territory. `{FORK_PLAN}` (subsection C) is optional: proposed only when the measured spend on `fork` and `Plan` is material (audit O8.4, at least 10% of subagent spend over the window); otherwise dropped.
 
-Cost: 4-5 instructions (6 with `{FORK_PLAN}`). Omit if Q2.1 answered advisory AND the budget is tight; a preference is not worth three rules.
+Cost: 4-5 instructions (`{FORK_PLAN}` adds one in C). Omit if Q2.1 answered advisory AND the budget is tight; a preference is not worth three rules.
 
 ## B3 - Parallelism under mandatory isolation
 
@@ -88,6 +94,16 @@ Variation points: Q3.1 "never parallelize" collapses the whole block to two line
 
 Cost: 6-7 instructions. Never omitted while any rule in the doc permits concurrent agents.
 
+## B9 - Agent lifecycle
+
+Purpose: agents left open after their report hold resources and may later act on a tree that moved on. Observed in the field: subagents waiting on a command that never returned (dev server, watcher, interactive prompt) stayed open long after their result was used.
+
+Canonical text:
+
+> Once an agent's report is read and verified, and no follow-up to that agent is planned, **close it** together with any background command it left running. An agent with no progress and no report past its task's expected duration is stopped, its partial output read, and its work re-dispatched or finished inline. Before reporting to the user, the orchestrator checks that no agent or background command it started is still running, or names the ones kept and why.
+
+Variation points: none in the generic part; subsection C names the Claude Code tool (`TaskStop`). Cost: 3 instructions. Never omitted when the doctrine permits delegation.
+
 ## B4 - Ask before dispatch
 
 Purpose: catch misunderstood intent before subagents faithfully execute it.
@@ -98,7 +114,7 @@ Canonical text:
 
 Cost: 2 instructions. Omit per Q4.1 (bias-to-action posture), and omit automatically when the base doc already contains an equivalent ask-on-ambiguity / think-before-coding rule, whoever wrote it (config `policy.ask_before_dispatch: omitted-redundant`, stated in the plan).
 
-## B5 - Session naming
+## B5 - Session naming (subsection C)
 
 Purpose: let the user see at a glance which model and effort run which task.
 
@@ -126,8 +142,26 @@ Purpose: brief quality is the first lever on delegated quality, and the cheaper 
 
 Canonical text:
 
-> Every brief states the objective, the file perimeter, the expected report, and the verification command to run. For a `{LOW}` type the brief names the files, the expected behaviour and the check; an open design question is settled in the brief, or moves the task one rung up.
+> Every brief states the objective, the file perimeter, the expected report, and the verification command to run. Every brief also tells the agent to bound each command with a timeout, to stop the background processes it started, and to report "could not complete" rather than wait. For a `light` agent the brief names the files, the expected behaviour and the check; an open design question is settled in the brief, or moves the task one rung up.
 
-Variation points: the second sentence is dropped when the matrix has no `{LOW}` type.
+Variation points: the last sentence is dropped when the harness offers a single model.
 
-Cost: 2-3 instructions. Never omitted when a `{LOW}` type exists; otherwise optional on a tight budget.
+Cost: 3-4 instructions. Never omitted when delegation exists (the termination sentence is what B9 relies on).
+
+## C - Claude Code subsection
+
+Purpose: carry every rule that only Claude Code can honour, so the generic part stays valid for any harness. Heading `Claude Code` (rendered in the output language when the doc is not English), one level below the section heading, after B6.
+
+Canonical text:
+
+> Under Claude Code, the tiers map to agent types{EFFORT_AXIS: defined in {AGENTS_PATH}{LOCATION_NOTE}, which calibrate model and reasoning depth together}: {TYPE_LIST} (`light` = the `{LOW}` types, `standard` = `{MID}-standard`, `strong` = the `{TOP}` types). If these types are not available on the executing machine, fall back to the Agent tool's `model` parameter and the default session effort.
+>
+> {LOW_DEFAULT_CC: **`{LOW}` is the default subagent model**: it is strong below about 100k tokens of context, which is the normal size of a subagent's context. Briefed work starts at `{LOW}-standard` (`{LOW}-quick` when purely mechanical), and every agent launched by a subagent starts on a `{LOW}` type; a context that will clearly exceed 100k tokens is a reason to go one rung up.}{DEEP_GATE: `{TOP}-deep` runs only when the user explicitly asks to dig deeper, or after `{TOP}-standard` failed on the same task.} A verified failure on `{HIGHEST_TYPE}` goes back to the user.{ABOVE_MATRIX: `{ABOVE}` is not a rung: it has no agent type, it is chosen per invocation with a stated reason, and a verified failure on the highest rung goes back to the user, never up to `{ABOVE}`.}
+>
+> {FORK_PLAN: `fork` and `Plan` run on the orchestrator's model: never use them for briefable work.} Closing an agent (B9) means `TaskStop` on the agent or background shell still listed as running; an agent kept for a follow-up `SendMessage` is closed after it.
+>
+> {B5_SESSION_NAMING}
+
+Variation points: `{TYPE_LIST}` names the generated types cheapest first, one clause each; with no types (Q1.3 "None") it reads "the Agent tool's `model` parameter, `{LOW}` < `{MID}` < `{TOP}`" and the fallback sentence is dropped. `{LOW_DEFAULT_CC}` present when a `{LOW}` model is available and the posture is cheapest-capable (it is not a fixed starting rung: the never-two-rungs-below rule of B1 still applies, so O8.5 does not fire). `{HIGHEST_TYPE}` = `{TOP}-deep`, or `{TOP}-standard` without a deep type. The other points keep the definitions given under B1, B2 and B5. The fallback sentence is **mandatory** whenever types are cited (audit O3.5).
+
+Cost: 5-8 instructions (B5 included). Omitted when probes D0 and D5 show no Claude Code use on this project; then the plan says the generic part stands alone.

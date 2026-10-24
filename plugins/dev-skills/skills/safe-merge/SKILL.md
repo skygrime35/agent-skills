@@ -11,6 +11,8 @@ Plugin options appear in this file as their configured value. In reference files
 
 Quality gate for promoting `SOURCE_BRANCH` (dev) into `TARGET_BRANCH` (release/prod) when a mistake reaches real users. Not for feature-branch merges without a production surface (use plain git), nor for rewriting history. It never touches production data destructively, except a DB restore confirmed in Phase R. Project specifics are auto-detected each run and the non-guessable ones remembered in `.claude/safe-merge.yml`.
 
+**Harness (first step of Phase 0, every mode, dry runs included).** If `${CLAUDE_SKILL_DIR}` still shows as a literal placeholder, the harness is not Claude Code and the skill directory is the folder holding this SKILL.md. Detect the harness per `${CLAUDE_SKILL_DIR}/../orchestration/references/harness.md` (H1) and announce it with the detected profile. **Claude Code**: the agent types, tools and degradations below apply as written; Haiku types are the default for briefed subagents and for every agent launched by a subagent, a higher type being a ceiling for its role, not a start (H2). **Any other harness**: read each agent type below as its role tier (H3: `haiku-*` light, `sonnet-standard` standard, `opus-*` strong), use the harness's own spawn, question, task-list and stop mechanisms, never name a model; without subagents the waves run inline in their planned order with every gate kept, and each degradation is reported (H2, H5). On every harness, close each agent once its report is used and stop stalled ones before moving on (H4).
+
 ## Usage
 
 ```
@@ -61,8 +63,8 @@ Run the phases in order. Register them with `TaskCreate` and update them as you 
 - Bare invocation → full run; print the auto-selected mode instead of asking.
 
 ## Phase 0 — Preflight, profiling, preparation authorization
-
 Detection details: [references/detection.md](references/detection.md). Config and journal formats: [references/config-schema.md](references/config-schema.md). Spawn parallel probes for the independent detections.
+0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.
 
 1. **Resume.** If `.claude/safe-merge/journal.md` shows an in-progress run updated in the last 24 h (so backups and test results are still fresh) and SOURCE/TARGET SHAs are unchanged, resume at the last completed phase and say so. Otherwise start over and archive the old journal (skipped in `--dry-run`).
 2. **Config.** Read `.claude/safe-merge.yml` if present and re-run detection regardless. Structural drift: update and report. Drift on a human-authored `quirks`/override field: keep the stored value and report the difference (never ask, never overwrite). In `--dry-run` nothing is written; drift is reported only. Config holds env-var **names**, never values.

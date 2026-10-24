@@ -13,6 +13,8 @@ Skill directory: `${CLAUDE_SKILL_DIR}`. Reference files mark bundled paths with 
 
 Builds, grades or repairs the file set that tells an AI agent how a repository works, what it must never do, and where detailed knowledge lives. Portable: every run measures the repository; non-guessable specifics go in `.claude/agents-md.yml`. Central promise: **it never writes what it has not verified** (no unexecuted command, no unstat'd path, no inferred convention).
 
+**Harness (first step of Phase 0, every mode, dry runs included).** If `${CLAUDE_SKILL_DIR}` still shows as a literal placeholder, the harness is not Claude Code and the skill directory is the folder holding this SKILL.md. Detect the harness per `${CLAUDE_SKILL_DIR}/../orchestration/references/harness.md` (H1) and announce it with the detected profile. **Claude Code**: the agent types, tools and degradations below apply as written; Haiku types are the default for briefed subagents and for every agent launched by a subagent, a higher type being a ceiling for its role, not a start (H2). **Any other harness**: read each agent type below as its role tier (H3: `haiku-*` light, `sonnet-standard` standard, `opus-*` strong), use the harness's own spawn, question, task-list and stop mechanisms, never name a model; without subagents the waves run inline in their planned order with every gate kept, and each degradation is reported (H2, H5). On every harness, close each agent once its report is used and stop stalled ones before moving on (H4).
+
 ## Usage
 
 ```
@@ -51,7 +53,7 @@ These override convenience, in all three modes.
 
 Builds the system from scratch. **Refuses and switches to `audit` if a root AGENTS.md already exists** (say so plainly, do not overwrite).
 
-**Phase 0 - measure.** Run the detection probes in `references/detection.md` (including script triage, canonical-copy comparison and the `.gitignore` probes). They are independent: fan them out. Produce a factual profile of the repository: languages, package managers, real commands, sub-projects, branch-to-environment mapping, commit conventions, existing quality tooling, dominant language of the existing prose.
+**Phase 0 - measure.** Detect the harness first (**Harness** paragraph above). Then run the detection probes in `references/detection.md` (including script triage, canonical-copy comparison and the `.gitignore` probes). They are independent: fan them out. Produce a factual profile of the repository: languages, package managers, real commands, sub-projects, branch-to-environment mapping, commit conventions, existing quality tooling, dominant language of the existing prose.
 
 **Phase 1 - size it.** Resolve the tier: `--tier` > `.claude/agents-md.yml` > `${user_config.agents_md_tier_policy}` > the tier measured from the repository (see `${CLAUDE_SKILL_DIR}/references/structure.md`). Report the per-session token cost. With `auto`, never pick tier 3 for a small repository: an instruction file that is not earned is a permanent tax. A forced `--tier=3` on a small repository prints a warning with that cost and proceeds.
 

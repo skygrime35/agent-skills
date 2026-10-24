@@ -2,6 +2,8 @@
 
 Claude Code plugin marketplace holding personal skills.
 
+The skills are harness-portable: each one detects first whether it runs under Claude Code or another harness (Codex, Gemini CLI, Cursor, OpenCode, ...) and adapts its orchestration (`plugins/dev-skills/skills/orchestration/references/harness.md`). Under Claude Code they use the agent types and models as named; elsewhere they dispatch by capability tier (light, standard, strong) without naming a model.
+
 ## Install
 
 ```bash
@@ -18,7 +20,7 @@ Skills are then available as `/dev-skills:<skill>` (and by their short name when
 | Skill | Purpose |
 |---|---|
 | agents-md | Create, audit or repair a project's agentic docs (AGENTS.md, CLAUDE.md pointer, domain docs, ADRs, guardrail scripts) |
-| orchestration | Create, audit or sync the agent-orchestration layer: model ladder, delegation, parallelism under isolation, subagent types |
+| orchestration | Create, audit or sync the agent-orchestration layer: a generic part for any harness (tier ladder, delegation, parallelism under isolation, agent lifecycle) and a Claude Code part (subagent types, Haiku as default subagent model) |
 | test-coverage | Grow a test suite toward full-scenario coverage; speed it up without losing a test |
 | full-test | Run the full test battery against preprod, with an optional autonomous fix loop |
 | manual-test | Manual acceptance test (recette) of new features, guided with a human or autonomous in a browser with a screenshot report: notes, fixes, re-test, archive |

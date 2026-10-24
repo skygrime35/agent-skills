@@ -13,6 +13,8 @@ Auto-detects surfaces, test frameworks, launchability and persists its state in 
 
 Reports follow `${user_config.test_coverage_report_language}` (auto = the user's conversation language, fallback en); every file, identifier and comment is English. The report templates in `references/` are written in English; when the report language differs, translate their headings and labels (the meaning and every rule stay identical).
 
+**Harness (first step of Phase 0, every mode, dry runs included).** If `${CLAUDE_SKILL_DIR}` still shows as a literal placeholder, the harness is not Claude Code and the skill directory is the folder holding this SKILL.md. Detect the harness per `${CLAUDE_SKILL_DIR}/../orchestration/references/harness.md` (H1) and announce it with the detected profile. **Claude Code**: the agent types, tools and degradations below apply as written; Haiku types are the default for briefed subagents and for every agent launched by a subagent, a higher type being a ceiling for its role, not a start (H2). **Any other harness**: read each agent type below as its role tier (H3: `haiku-*` light, `sonnet-standard` standard, `opus-*` strong), use the harness's own spawn, question, task-list and stop mechanisms, never name a model; without subagents the waves run inline in their planned order with every gate kept, and each degradation is reported (H2, H5). On every harness, close each agent once its report is used and stop stalled ones before moving on (H4).
+
 ## Usage
 
 ```
@@ -84,6 +86,7 @@ Follow phases in order. TaskCreate the phases at start; append one line per comp
 - bare `/test-coverage` => Phase 0 => apply the routing rule and **print the choice, no question**: no inventory => audit; fresh inventory + open gaps => build (still behind its hard gate); treated audit => verify; a recorded baseline slower than the speed target => speed.
 
 ## Phase 0 — Resume, config, detection (all modes)
+0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.
 
 1. **Resume.** A recent in-progress run in `journal.md` resumes automatically at its last completed phase (a half-written build continues from its last completed test file; a half-applied `speed` at its next lever with gate answers kept, never re-measuring a fresh baseline). Say so in one line.
 2. **Config.** Read `.claude/test-coverage.yml` (`config-schema.md`). **Re-run detection regardless** (config goes stale). On drift of a human-authored field (`quirks`, `accepted_risks`, confirmed `prod_hosts`, `speed.serial_groups`, `speed.quarantine`, `speed.target_minutes`): **keep the human value and report the diff; never overwrite.** Env-var **names** only, never values.

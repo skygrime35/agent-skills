@@ -11,7 +11,7 @@ Two axes: **model capability** (which model) and **reasoning effort** (how hard 
 | Type | Tier | Effort | maxTurns | Color | Spawn when |
 |---|---|---|---|---|---|
 | `{LOW}-quick` | low | low | 30 | green | mechanical, bounded, already located: rename, format, targeted edit, search, extraction. No judgment expected |
-| `{LOW}-standard` | low | medium | 60 | cyan | **default rung for delegated implementation**: any change the orchestrator can brief (files, intended behaviour, verification), such as bug fixes, small features, UI tweaks, tests, doc and text edits, git chores; also exploration and verification of another agent's result |
+| `{LOW}-standard` | low | medium | 60 | cyan | **default subagent**: any task the orchestrator can brief (files, intended behaviour, verification), such as bug fixes, small features, UI tweaks, tests, doc and text edits, git chores; exploration, reading and mapping; verification and review of another agent's result; every agent launched by a subagent. Strongest value under about 100k tokens of context |
 | `{MID}-standard` | mid | medium | 80 | blue | a design choice that the brief cannot settle, debugging whose cause is still unknown, a change whose shape depends on judgment across several layers |
 | `{TOP}-standard` | top | medium | 120 | yellow | real reasoning: non-trivial debugging, refactoring, heavy context intake, security-sensitive or data-sensitive work. Chosen freely by the orchestrator when it judges the task needs it |
 | `{TOP}-deep` | top | high | 150 | red | only when the user explicitly asks to dig deeper, or after `{TOP}-standard` failed on the same task. Never a first choice |
@@ -33,6 +33,8 @@ Two axes: **model capability** (which model) and **reasoning effort** (how hard 
 - No low model: drop `{LOW}-standard`, and the quick row becomes `{MID}-quick` (mid tier, low effort, green).
 - No top model: drop both top rows; `{MID}-standard` becomes the highest rung of the dispatch ladder and B1's deep gate is dropped.
 - A type whose model is unavailable on this machine is finding O1.2. Never written.
+
+**Other harnesses.** Agent type files are a Claude Code mechanism. When probe D0 finds another harness and the project shows no Claude Code use, the `agents` scope writes nothing and says so; the generic doctrine's tiers (`light`, `standard`, `strong`) carry the same matrix in words (`harness.md` H3).
 
 ## Built-in overrides
 
@@ -88,6 +90,8 @@ The body is the type's system prompt. Written in the output language. Three cons
 1. **Second person, short.** Two to four sentences. It frames posture, it does not re-teach the craft.
 2. **Scope-bounded.** The bottom tier must stop and report on ambiguity rather than guess: an explicit "could not complete" is a valid escalation signal (B7), a confident guess is not. The deep tiers explicitly license thinking before acting.
 3. **Ends with a reporting instruction.** Every body's last clause tells the agent how to report: result, files touched, the verification run and its outcome. A body without it is finding O6.3.
+
+Every body also carries the termination clause of B8/B9: bound each command with a timeout, never leave a foreground command waiting forever, stop the background processes you started before reporting, and report "could not complete" rather than wait.
 
 Canonical bodies (English render source):
 

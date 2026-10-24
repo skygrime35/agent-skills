@@ -15,6 +15,8 @@ Makes a web project's legal corpus (CGU, CGV, mentions légales, privacy/cookie 
 
 Findings and reports follow `${user_config.legal_report_language}` (auto = the user's conversation language, fallback en); published legal texts follow the project audience's language (French for French law, the binding version).
 
+**Harness (first step of Phase 0, every mode, dry runs included).** If `${CLAUDE_SKILL_DIR}` still shows as a literal placeholder, the harness is not Claude Code and the skill directory is the folder holding this SKILL.md. Detect the harness per `${CLAUDE_SKILL_DIR}/../orchestration/references/harness.md` (H1) and announce it with the detected profile. **Claude Code**: the agent types, tools and degradations below apply as written; Haiku types are the default for briefed subagents and for every agent launched by a subagent, a higher type being a ceiling for its role, not a start (H2). **Any other harness**: read each agent type below as its role tier (H3: `haiku-*` light, `sonnet-standard` standard, `opus-*` strong), use the harness's own spawn, question, task-list and stop mechanisms, never name a model; without subagents the waves run inline in their planned order with every gate kept, and each degradation is reported (H2, H5). On every harness, close each agent once its report is used and stop stalled ones before moving on (H4).
+
 ## Usage
 
 ```
@@ -98,6 +100,7 @@ Follow phases in order. TaskCreate the phases at start. Only `build` keeps a jou
 - bare `/legal` → Phase 0 → auto-select the mode and print the choice with its reason, without asking (no legal corpus ⇒ build; corpus + no fresh audit ⇒ audit; fresh audit with open findings ⇒ build; fresh audit `treated: full` ⇒ verify).
 
 ## Phase 0 — Resume, config, detection, profile (all modes)
+0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.
 
 1. **Resume check** (build only). If `.claude/legal/journal.md` shows an in-progress run less than 7 days old, resume automatically at the last completed step and say so; an older journal is reported and ignored.
 2. **Load + refresh config.** Read `.claude/legal.yml` (schema: `references/config-schema.md`). **Re-run detection regardless — config goes stale.** On drift between detected and stored values, report it; if the drift touches a human-authored field (`quirks`, `checks` with `origin: human`, `accepted_risks`, interview-answered identity), **keep the stored value and report the diff**; never overwrite it silently. Secrets: see `references/config-schema.md`.

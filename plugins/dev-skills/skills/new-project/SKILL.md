@@ -13,6 +13,8 @@ Start a project from **an idea or a spec** and deliver **a finished, live thing*
 
 The project is classified into a canonical type (web app, API, CLI, TUI, library, static site, bot/worker, browser extension, or off-matrix with explicit blind spots); the type pilots stack, scaffold, linters, artifact form and proof.
 
+**Harness (first step of Phase 0, every mode, dry runs included).** If `${CLAUDE_SKILL_DIR}` still shows as a literal placeholder, the harness is not Claude Code and the skill directory is the folder holding this SKILL.md. Detect the harness per `${CLAUDE_SKILL_DIR}/../orchestration/references/harness.md` (H1) and announce it with the detected profile. **Claude Code**: the agent types, tools and degradations below apply as written; Haiku types are the default for briefed subagents and for every agent launched by a subagent, a higher type being a ceiling for its role, not a start (H2). **Any other harness**: read each agent type below as its role tier (H3: `haiku-*` light, `sonnet-standard` standard, `opus-*` strong), use the harness's own spawn, question, task-list and stop mechanisms, never name a model; without subagents the waves run inline in their planned order with every gate kept, and each degradation is reported (H2, H5). On every harness, close each agent once its report is used and stop stalled ones before moving on (H4).
+
 ## Usage
 
 ```
@@ -96,6 +98,7 @@ Register phases with `TaskCreate`. Keep a journal at `<project>/.claude/new-proj
 - bare invocation with no idea or spec: ask for the idea in one plain question (no safe default exists).
 
 ## Phase 0: Preflight and preferences
+0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.
 
 1. **Load** `~/.claude/new-project.yml` (learned tastes, `${CLAUDE_SKILL_DIR}/references/config-schema.md`). Missing is normal on a first run: matrix defaults, file created at the end.
 2. **Detect capabilities** in parallel: `git`, `gh auth status`, `ssh -T git@github.com`, installed runtimes, the dedicated agent types (see `${CLAUDE_SKILL_DIR}/references/orchestration.md`; missing ones fall back to the Agent tool's `model` parameter), and the host per `${CLAUDE_SKILL_DIR}/references/hosting.md` (reverse proxy, sudo, base domain from the domain-pattern option, ports in use, registry). Take the **host-safety snapshot**: `NP_MIN_DISK_GB=${user_config.new_project_min_disk_gb} ${CLAUDE_SKILL_DIR}/scripts/check-host-safety.sh snapshot <dir>` (scratchpad now, moved to `<project>/.claude/new-project/host-snapshot/` at scaffold). Insufficient disk for the planned build: surface it now. Failures here constrain choices and become blind spots ("no sudo: hosting unavailable, `--no-host` behavior, said out loud now"). When hosting is disabled (`--no-host` or `${user_config.new_project_hosting_enabled}` false), skip the host detection and the snapshot: nothing on the host is written, so there is nothing to prove.
