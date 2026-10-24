@@ -1,8 +1,8 @@
 ---
 name: manual-test
-argument-hint: "[--scope=develop..main|<ref>..<ref>|branch|all|features:\"a,b\"] [--target=preprod|local] [--mode=guided|autonomous] [--resume] [--dry-run] [--help]"
-description: "Runs a manual acceptance test (recette) of a project's user-visible features on preprod or local: scopes the change set, groups it by feature, derives the user journeys, then either walks a human tester through them one short step at a time (guided) or executes them itself in a browser and delivers a screenshot report (autonomous), preparing the needed data itself. Records every remark in a notes file without touching code, then runs a fix and re-test round and archives the notes. Production is never a target. Counterpart of /full-test with a human or a browser agent as tester."
-when_to_use: "manual test, recette, autonomous manual test, agent-driven browser acceptance run with screenshot report, acceptance test, guided walkthrough of new features, test the new features with me on preprod, check what changed by hand, user acceptance, UAT, resume a manual test session; also when asked to run manual steps or data-preparing actions against production (this skill must be loaded to refuse and redirect to preprod)"
+argument-hint: "[fix-loop] [--scope=develop..main|<ref>..<ref>|branch|all|features:\"a,b\"] [--target=preprod|local] [--mode=guided|autonomous] [--resume] [--dry-run] [--help]"
+description: "Runs a manual acceptance test (recette) of a project's user-visible features on preprod or local: scopes the change set, groups it by feature, derives the user journeys, then either walks a human tester through them one short step at a time (guided) or executes them itself in a browser and delivers a screenshot report (autonomous), preparing the needed data itself. Records every remark in a notes file without touching code, then runs a fix and re-test round and archives the notes; fix-loop mode iterates fix, integrate, deploy, autonomous review until no finding is left in the aspects the user chose, with opt-in simplifications that never weaken legal or safety steps. Production is never a target. Counterpart of /full-test with a human or a browser agent as tester."
+when_to_use: "manual test, recette, autonomous manual test, manual-test fix-loop, review loop until no defect is left, fix and re-review continuously on preprod, simplify the UX safely, agent-driven browser acceptance run with screenshot report, acceptance test, guided walkthrough of new features, test the new features with me on preprod, check what changed by hand, user acceptance, UAT, resume a manual test session; also when asked to run manual steps or data-preparing actions against production (this skill must be loaded to refuse and redirect to preprod)"
 ---
 
 # /manual-test
@@ -24,8 +24,10 @@ Central promise: **production is never a target and no code changes while explor
 ## Usage
 
 ```
-/manual-test [--scope=develop..main|<ref>..<ref>|branch|all|features:"a,b"] [--target=preprod|local] [--mode=guided|autonomous] [--resume] [--dry-run] [--help]
+/manual-test [fix-loop] [--scope=develop..main|<ref>..<ref>|branch|all|features:"a,b"] [--target=preprod|local] [--mode=guided|autonomous] [--resume] [--dry-run] [--help]
 ```
+
+- `fix-loop`: continuous review loop (`references/fix-loop.md`): fix -> integrate -> full local checks -> push -> deploy preprod -> autonomous browser review -> fix the new findings, until a full review finds nothing in the chosen aspects, confirmed by a final strong-tier review. Asks at launch what to fix besides obvious problems, whether to apply simplifications (default no; never on legal, payment, consent or safety steps), the iteration cap and what follows the loop. Flags: `--aspects=minor,ideas`, `--simplify=no|propose|auto`, `--max-iterations=N|none`; with `--dry-run` it prints the domains, roles, interview and loop plan, zero writes. Forces `--mode=autonomous`.
 
 - `--scope=` what to test (`references/scoping.md`): `develop..main` (default: integration vs production branch, both detected), `<ref>..<ref>` two refs, `branch` current branch vs its merge-base, `all` every user-facing feature, `features:"a,b"` a named list. Missing => asked.
 - `--target=preprod|local`: environment of the walkthrough (default preprod). `production` does not exist as a value (G1).
@@ -34,12 +36,15 @@ Central promise: **production is never a target and no code changes while explor
 - `--dry-run`: Phases 0-2 read-only: prints scope, feature groups and the ordered plan (and, in autonomous mode, the browser driver and the NOT TESTABLE steps), then stops. Zero writes (no `.claude/manual-test/`, no config, no data preparation) and ends with a line confirming it.
 - `--help` / `-h` alone: print this Usage block and stop.
 
-**Resolution order for every policy answer:** command argument > `.claude/manual-test.yml` > plugin option > recommended default. **Arguments never override G1-G8.**
+**Resolution order for every policy answer:** command argument > `.claude/manual-test.yml` > plugin option > recommended default. **Arguments never override G1-G9.**
 
 | Plugin option | Default | Meaning |
 |---|---|---|
 | `${user_config.manual_test_language}` | `auto` | language of chat and reports |
 | `${user_config.manual_test_mode}` | `guided` | who tests: `guided` or `autonomous` (`.claude/manual-test.yml` key `mode`) |
+| `${user_config.manual_test_fix_loop_aspects}` | `evident` | fix-loop: aspects preselected besides obvious problems (`evident` = none, or `minor`, `ideas`, `minor,ideas`) |
+| `${user_config.manual_test_fix_loop_simplification}` | `no` | fix-loop: preselected simplification answer (`no`, `propose`, `auto`) |
+| `${user_config.manual_test_fix_loop_max_iterations}` | `15` | fix-loop: preselected iteration cap |
 | `${user_config.manual_test_archive_folder}` | `auto` | project folder receiving the archived notes; `auto` = detect (`DOCS/AUDIT/`, `docs/audit/`, `docs/`, else ask) |
 
 Ask (AskUserQuestion, grouped, max 4 questions per call; absent => plain text) only when: scope, target, mode or devices are unknown, a decision belongs to the human (end of run), or a guardrail is hit. Say when degraded.
@@ -49,26 +54,27 @@ Ask (AskUserQuestion, grouped, max 4 questions per call; absent => plain text) o
 
 A bare invocation shows status and a menu and never auto-runs a mode: rules, freshness and output format in `${CLAUDE_SKILL_DIR}/../orchestration/references/start-menu.md`. State probes: `.claude/manual-test.yml`, an unfinished run under `.claude/manual-test/<RUN_ID>/` (`state.json`: phase, groups done, open remarks), the last archived notes (date, served SHA), commits on the integration branch since that SHA, the last `/full-test` result when its report exists.
 
-Picks: unfinished run => `/manual-test --resume`; remarks recorded but not fixed => `/manual-test --resume` (fix and re-test round); new commits since the last recette => `/manual-test` (guided) and `/manual-test --mode=autonomous` as the alternative; never run here => `/manual-test --dry-run`; nothing new => `/safe-merge`.
+Picks: unfinished run or fix-loop => `/manual-test --resume`; a recent autonomous report with many FAIL rows, or the user wants the product brought to zero visible defects => `/manual-test fix-loop`; remarks recorded but not fixed => `/manual-test --resume` (fix and re-test round); new commits since the last recette => `/manual-test` (guided) and `/manual-test --mode=autonomous` as the alternative; never run here => `/manual-test --dry-run`; nothing new => `/safe-merge`.
 
-Workflow: 1 `/full-test` green -> 2 `--dry-run` (first time) -> 3 `/manual-test` -> 4 fix and re-test -> 5 archive -> 6 `/safe-merge`.
+Workflow: 1 `/full-test` green -> 2 `--dry-run` (first time) -> 3 `/manual-test` (or `fix-loop` for many findings) -> 4 fix and re-test -> 5 archive -> 6 `/safe-merge`.
 
 ## Scope
 
-**For:** a human (guided) or the agent in a browser (autonomous) validating user-visible behavior on a deployed preprod (or local) stack: screens, buttons, emails, notifications, admin screens, API docs, offline modes; with data prepared by the skill and a fix + re-test round.
+**For:** a human (guided) or the agent in a browser (autonomous) validating user-visible behavior, or a fix-loop driving it to zero visible defects, on a deployed preprod (or local) stack: screens, buttons, emails, notifications, admin screens, API docs, offline modes; with data prepared by the skill and a fix + re-test round.
 **Not for:** automatic batteries (`/full-test`), writing tests (`/test-coverage`), merging or releasing (`/safe-merge`), testing production, load or security testing.
 
 ## Governing principles (override any convenience)
 
 1. **One step at a time, short** (also the unit of an autonomous script). 1 to 3 actions, a direct link, the exact expected result, the evidence to send. Never a batch of steps, never a wall of text.
 2. **Evidence or it did not pass.** A step is passed only on the tester's answer or evidence (autonomous: the agent's captured artefact), compared to the expected result; for static content (legal texts, versions, translations) the agent's own reading of the repo or served HTML counts, recorded `verified by agent` (G8). Silence, "ok" to a different question or an inference never validate.
-3. **Explore read-only.** No code change, no commit, no fix while the tester explores; every remark is noted, not acted on. Short clarification rounds are allowed (`references/step-format.md`).
+3. **Explore read-only.** No code change, no commit, no fix while the tester explores (fix-loop: reviewers stay read-only, fixes happen only in lots, `references/fix-loop.md`); every remark is noted, not acted on. Short clarification rounds are allowed (`references/step-format.md`).
 4. **The skill prepares the state, never the tester.** Accounts, entities, notifications, consent resets are created by the skill through the project's own tools, on disposable preprod data only.
 5. **No real third party is ever reached.** Verify before triggering anything that sends (email, push, webhook, chat message, payment).
 6. **Disposable by default, reversible when not.** Prefer data the skill created and tagged; record every preparation so it can be listed and cleaned.
 7. **Unknown => ask or declare, never assume green.** A journey that cannot be exercised (no device, no data route) is "not tested" in the report.
 8. **Verify before sending.** Expected results come from the code, not the feature's purpose: a strong plan review for large plans, a code check of each group just before it is sent (`references/analysis.md`).
 9. **Any step can be skipped** by the tester: `skipped by tester`, never failed, offered again at re-test.
+10. **A simplification never breaks or weakens.** Opt-in only; nothing protected by the Simplification guard (payment confirmation, legal and consumer information, consent, safety steps) is ever removed or weakened (`references/fix-loop.md`).
 
 ## Tooling
 
@@ -78,13 +84,14 @@ Workflow: 1 `/full-test` green -> 2 `--dry-run` (first time) -> 3 `/manual-test`
 
 ## Reference files (load on demand)
 
-- `${CLAUDE_SKILL_DIR}/references/guardrails.md`: **canonical G1-G8**, proof of target, third-party check. Load before Phase 3.
+- `${CLAUDE_SKILL_DIR}/references/guardrails.md`: **canonical G1-G9**, proof of target, third-party check. Load before Phase 3.
 - `${CLAUDE_SKILL_DIR}/references/scoping.md`: Phase 0-1: scope forms, branch detection, environment, devices, config schema.
 - `${CLAUDE_SKILL_DIR}/references/analysis.md`: Phase 2: agent matrix, feature grouping, journey derivation, plan format.
 - `${CLAUDE_SKILL_DIR}/references/step-format.md`: Phase 3: exact step format with examples, data preparation, re-sends.
 - `${CLAUDE_SKILL_DIR}/references/autonomous.md`: autonomous mode: driver resolution, execution rules, screenshots, NOT TESTABLE, delegation, report. Load when the mode is autonomous.
 - `${CLAUDE_SKILL_DIR}/references/notes-and-state.md`: notes file, `state.json`, report and screenshots layout, resume.
 - `${CLAUDE_SKILL_DIR}/references/end-of-run.md`: Phases 4-6: summary, decisions, fix batches, re-test, archive.
+- `${CLAUDE_SKILL_DIR}/references/fix-loop.md`: fix-loop: launch interview, severity and aspects, simplification guard, roles, iteration cycle, review mechanics, stop rules, watchdog. **Load whenever `fix-loop` is invoked**, with `autonomous.md` and `guardrails.md`.
 
 ---
 
@@ -92,7 +99,7 @@ Workflow: 1 `/full-test` green -> 2 `--dry-run` (first time) -> 3 `/manual-test`
 
 Follow the phases in order; register them with TaskCreate. Placeholders are UPPERCASE: `PROD_BRANCH`, `INTEGRATION_BRANCH`, `ENV_URL`, `RUN_ID` (`YYYYMMDD-HHMM`), `RUN_DIR` (`.claude/manual-test/<RUN_ID>/`).
 
-**Mode routing (first):** `--help` => print Usage, stop. `--dry-run` => Phases 0-2 read-only, print the plan, stop. `--resume` or an offered unfinished run accepted => load `state.json` (`references/notes-and-state.md`) and continue at the recorded step. Else run all phases.
+**Mode routing (first):** `--help` => print Usage, stop. `fix-loop` => load `references/fix-loop.md`, run Phases 0-1, the launch interview, the loop plan and its single go, arm the watchdog, then the loop (iteration 0, then cycles) instead of Phases 2-5, then Phase 6; with `--dry-run`, print the plan and the interview questions and stop. `--dry-run` => Phases 0-2 read-only, print the plan, stop. `--resume` or an offered unfinished run accepted => load `state.json` (`references/notes-and-state.md`) and continue at the recorded step. Else run all phases.
 
 ## Phase 0 - Preflight and detection
 0. **Harness.** Detect and announce it first (**Harness** paragraph above, `harness.md` H1); everything below dispatches through the selected profile.

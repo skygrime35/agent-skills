@@ -57,6 +57,14 @@ prepare:                             # the project's own data tools, verbatim
     - name: send-test-notification
       run: "docker compose exec backend python manage.py send_test_push <user>"
       sends_to: "tester device only"   # G4 evidence
+fix_loop:                            # fix-loop defaults, preselected in the launch interview
+  aspects: []                        # [] = obvious problems only; minor, ideas
+  simplification: no                 # no | propose | auto (always under G9)
+  max_iterations: 15
+  domains: []                        # optional fixed split, e.g. [{name: money, paths: [...]}]
+  local_checks: "scripts/ci_local.sh" # the project's full local check command
+  protected_accounts: ["owner@example.com"]   # never acted upon
+  release_checklist: PROD_RELEASE_TODO.md     # optional, updated by the integration agent
 archive:
   folder: DOCS/AUDIT/                # else plugin option, else detection
   index: DOCS/AUDIT/README.md        # optional

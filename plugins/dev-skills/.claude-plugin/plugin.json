@@ -1,7 +1,7 @@
 {
   "name": "dev-skills",
-  "version": "1.12.0",
-  "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, guided and autonomous manual acceptance tests, safe merges, legal texts and new projects",
+  "version": "1.13.0",
+  "description": "Governed workflows for agentic docs, agent orchestration, test coverage, preprod testing, guided and autonomous manual acceptance tests with a review fix-loop, safe merges, legal texts and new projects",
   "author": {
     "name": "Romain Gadani"
   },
@@ -358,7 +358,11 @@
       "type": "string",
       "title": "Subagent report style",
       "description": "Style imposed on subagent reports; in-agents-md-section leaves reporting to the agents-md behaviour section.",
-      "options": ["high-density", "free", "in-agents-md-section"],
+      "options": [
+        "high-density",
+        "free",
+        "in-agents-md-section"
+      ],
       "default": "high-density"
     },
     "orchestration_parallelism": {
@@ -511,6 +515,35 @@
         "autonomous"
       ],
       "default": "guided"
+    },
+    "manual_test_fix_loop_aspects": {
+      "type": "string",
+      "title": "Fix-loop aspects",
+      "description": "Aspects preselected in the fix-loop launch interview besides obvious problems (always fixed): evident (none), minor, ideas, or minor,ideas.",
+      "options": [
+        "evident",
+        "minor",
+        "ideas",
+        "minor,ideas"
+      ],
+      "default": "evident"
+    },
+    "manual_test_fix_loop_simplification": {
+      "type": "string",
+      "title": "Fix-loop simplification",
+      "description": "Preselected simplification answer: no, propose (each one approved first) or auto (guard-safe ones applied, others proposed). Never touches legal, payment, consent or safety steps.",
+      "options": [
+        "no",
+        "propose",
+        "auto"
+      ],
+      "default": "no"
+    },
+    "manual_test_fix_loop_max_iterations": {
+      "type": "number",
+      "title": "Fix-loop iteration cap",
+      "description": "Preselected iteration cap of the fix-loop.",
+      "default": 15
     },
     "manual_test_archive_folder": {
       "type": "string",

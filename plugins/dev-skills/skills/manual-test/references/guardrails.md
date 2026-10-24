@@ -1,6 +1,6 @@
 # Guardrails
 
-Canonical text of G1-G8 (SKILL.md links here). Arguments never override them. Assert in Phase 0, re-assert immediately before the action each one protects.
+Canonical text of G1-G9 (SKILL.md links here). Arguments never override them. Assert in Phase 0, re-assert immediately before the action each one protects.
 
 ## G1 - Production is never a target
 
@@ -33,6 +33,8 @@ Create test data with a recognizable tag (name prefix `manual-test-<RUN_ID>`, a 
 
 Respect the project's branch and worktree rules (AGENTS.md / CLAUDE.md): fixes in an isolated worktree when the project says so, never on `PROD_BRANCH`, never merge into it, never push to it, never change branch without the user's agreement. Pushing to a branch that deploys preprod is allowed in Phase 5 only if the project's flow says so and the user agreed to fixes. Read the project docs before the first fix batch.
 
+**Fix-loop extension.** Reviewers stay under G3 for the whole loop (no code change, no commit); fix lots write only in their own worktree and branch; the integration agent alone pushes, and only the integration branch that deploys preprod. The launch go of `fix-loop.md` is the user's agreement for those pushes; it never covers `PROD_BRANCH`, a merge into it, a force-push, or a widened guard.
+
 ## G8 - Never claim a pass without evidence
 
 A step is `passed` only on evidence matching the expected result: the tester's answer, or, for **static content only** (texts, translations, versions, static assets, archived pages), the agent's own verification from the repo or the served HTML (`curl`), recorded as `verified by agent` with the file or URL read. Never for behaviour, rendering, interactions, device-specific or timing results. "Looks fine", an ambiguous reply or no reply => ask again once, then record `not answered`. A pre-check of runtime behaviour (HTTP 200, browser screenshot) can inform a step, never validate it. The final verdict is "green on what the tester or the agent's reading confirmed", split in two counts, with `skipped by tester` (never counted as passed) and `not tested` listed.
@@ -40,6 +42,10 @@ A step is `passed` only on evidence matching the expected result: the tester's a
 **Autonomous mode.** The evidence is the agent's own captured artefacts: a screenshot, a DOM assertion (selector and text actually read), a network or API check, stored under `RUN_DIR`. Never "assumed", never inferred from code or from a 200 status alone for behaviour; a step without captured evidence is `BLOCKED` or `NOT TESTABLE`, not `PASS`. The final verdict counts PASS, FAIL, BLOCKED and NOT TESTABLE separately; the tester's light on-screen check is replaced by asserting the served SHA or visible version marker in the browser.
 
 **Static content is verified by the agent by default.** The tester does a light on-screen check, mandatory once per deployed page group, that the served page matches the code (typically a version number or date), which proves the deployed version is the one the agent read; no screenshot of the content itself. The tester's time goes to runtime behaviour.
+
+## G9 - Simplifications never weaken legal or safety steps
+
+Fix-loop only. No simplification removes, merges away, hides, pre-checks or weakens anything on the protected list of `fix-loop.md` (payment confirmation and recap, legal and consumer information, consent, privacy, destructive-action confirmations, security steps, required accessibility). In doubt it is protected. No answer, flag or automatic mode lifts this: a card that touches the list is `blocked by guard` and becomes a question in the final report.
 
 ## Edge cases
 
