@@ -1,4 +1,4 @@
-# claude-skills
+# agent-skills
 
 Claude Code plugin marketplace holding personal skills.
 
@@ -7,7 +7,7 @@ The skills are harness-portable: each one detects first whether it runs under Cl
 ## Install
 
 ```bash
-claude plugin marketplace add skygrime35/claude-skills
+claude plugin marketplace add skygrime35/agent-skills
 claude plugin install dev-skills@skygrime
 ```
 
