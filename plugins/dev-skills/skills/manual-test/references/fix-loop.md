@@ -1,8 +1,12 @@
 # fix-loop mode
 
-Contents: Launch interview | Severity and aspects | Simplification guard | Roles | The iteration cycle | Review mechanics | Stop rules | After the loop | Standing rules | Watchdog, journal, resume
+Contents: Loop branch | Launch interview | Proposals | Severity and aspects | Simplification guard | Roles | The iteration cycle | Review mechanics | Stop rules | After the loop | Standing rules | Watchdog, journal, resume
 
 `/manual-test fix-loop` is a continuous review loop: **fix -> integrate -> full checks -> push -> deploy preprod -> autonomous browser review -> fix the new findings**, until a full review finds nothing left in the aspects the user chose. It is the autonomous-tester counterpart of `/full-test fix-loop`: the tester is the agent (`autonomous.md`), the fixes are orchestrated agents, the main session is the orchestrator. Guardrails G1-G8 stay in force with the fix-loop extensions of `guardrails.md`.
+
+## Loop branch
+
+The loop never commits on the integration branch directly. At launch it creates **`review-loop/<RUN_ID>`** from `INTEGRATION_BRANCH`; lot worktrees branch from it, the integration agent merges and pushes into it, and preprod is gated on its SHA. Precondition: that branch deploys preprod. Check it from the project's deploy mapping (`.claude/full-test.yml`, the deploy workflow's branch filters, the project docs); when it does not, say so in the loop plan and offer the alternatives: a branch name the mapping deploys, a one-off deploy dispatch per iteration when the workflow allows it, or the current branch (the user's explicit choice). **At the end**, the merge of `review-loop/<RUN_ID>` into `INTEGRATION_BRANCH` (`--no-ff`, full local checks after the merge) is a question in the final message, done only on the user's yes; never into `PROD_BRANCH`.
 
 ## Launch interview
 
@@ -13,7 +17,11 @@ Asked once, after Phases 0-1 (scope, target) and before iteration 0, **in one sa
 3. **Iteration cap?** `${user_config.manual_test_fix_loop_max_iterations}` (default 15), 30, none. State what reaching it means (see Stop rules).
 4. **After the loop?** Options: run `/full-test fix-loop` then the final report (recommended when the project has a preprod battery); final report only.
 
-Then show the loop plan once (domains, roles, cap, aspects, simplification mode, the protected list of the guard, the branch that receives pushes) and ask for one go. **That go is the user's agreement for fixes and pushes required by G7 for the whole loop**; no further approval question until the stop, except simplification proposals and decisions only the owner can take.
+Then show the loop plan once (domains, roles, cap, aspects, simplification mode, the protected list of the guard, the loop branch and whether it deploys preprod) and ask for one go. **That go is the user's agreement for fixes and pushes required by G7 for the whole loop**; no further approval question until the stop, except simplification proposals and decisions only the owner can take.
+
+## Proposals: non-blocking approval
+
+The loop is **fully autonomous**: no human checkpoint between iterations, it never stops to wait for an answer before the stop rules fire. Everything that needs the owner's approval (simplification cards in `propose` mode, guard-blocked cards, `idea` findings) goes to `loop/SIMPLIFICATIONS.md` and `loop/IDEAS.md`, one card each with a `decision:` line set to `pending`. Tell the user once, at the go, where the files are and that they can set `decision: approve` or `decision: reject` (or answer in chat) at any time. At every backlog step the orchestrator re-reads the files: approved cards join the next lots, rejected ones are closed, pending ones wait without blocking anything. Pending cards at the end are listed in the final message. Checks impossible headless (real device, push, real payment) are listed once in the final message too, never asked mid-loop.
 
 ## Severity and aspects
 
@@ -31,7 +39,7 @@ Every finding gets one severity:
 
 ## Simplification guard
 
-A simplification **must not break anything and must not make anything illegal or less safe**. Each one is a card in `loop/SIMPLIFICATIONS.md`: what changes (before / after), what is removed, the guard check below, the tests that prove the outcome is unchanged, and `status` (`proposed`, `approved`, `applied`, `rejected`, `blocked by guard`).
+A simplification **must not break anything and must not make anything illegal or less safe**. Each one is a card in `loop/SIMPLIFICATIONS.md`: what changes (before / after), what is removed, the guard check below, the tests that prove the outcome is unchanged, and `decision` (`pending`, `approve`, `reject`, set by the owner) and `status` (`proposed`, `applied`, `rejected`, `blocked by guard`, set by the loop).
 
 **Protected: never removed, merged away, hidden, pre-checked or weakened by a simplification**, whatever the mode:
 - Payment and contract steps: the final confirmation before an order with payment obligation (a "double click" or recap screen before paying), the order recap, the explicit "order with obligation to pay" wording, price display with taxes and recurring terms, renewal and cancellation mentions.
@@ -64,8 +72,8 @@ Escalation (B7): a fix the next review shows did not work is re-dispatched one r
 Each iteration `N` then runs:
 
 1. **Backlog.** Turn the previous review's findings, filtered by the selected aspects, into `loop/BACKLOG-iterN.md`: one block per finding (id, severity, observed, expected as an observable fact, files if known), grouped into **lots** of 1-6 related items with **no file overlap between lots**. When a pattern repeats, make one lot that fixes the class (a shared formatter, one rule, one sweep) instead of each instance.
-2. **Lots.** One fix agent per lot, launched in parallel, each in its own worktree from the integration branch (`git worktree add ../<repo>-mtN-kNN -b fix/mtN-kNN <integration-branch>`). The brief names: the findings, the file perimeter, the other lots in flight and their files, the expected behaviour, the tests and checks to run, the project rules to read first, commit convention, staging file by file, no `stash`/`reset`/`checkout` on a shared tree, no frontend build (integration runs it), bounded commands (H4), "do not push or merge", and the report format (commits, tests run, not run, assumptions, what the review should check).
-3. **Integration.** When the lots are done, one integration agent merges them, runs the project's full local checks (lint, unit, build, the CI script when the project has one), fixes failures without weakening any guard or test, updates the release checklist the project keeps (migrations, decisions, lawyer questions, post-deploy checks), pushes the integration branch that deploys preprod, removes merged worktrees and branches. **G1 and G7 re-asserted before the push**: never `PROD_BRANCH`.
+2. **Lots.** One fix agent per lot, launched in parallel, each in its own worktree from the loop branch (`git worktree add ../<repo>-mtN-kNN -b fix/mtN-kNN review-loop/<RUN_ID>`). The brief names: the findings, the file perimeter, the other lots in flight and their files, the expected behaviour, the tests and checks to run, the project rules to read first, commit convention, staging file by file, no `stash`/`reset`/`checkout` on a shared tree, no frontend build (integration runs it), bounded commands (H4), "do not push or merge", and the report format (commits, tests run, not run, assumptions, what the review should check).
+3. **Integration.** When the lots are done, one integration agent merges them, runs the project's full local checks (lint, unit, build, the CI script when the project has one), fixes failures without weakening any guard or test, updates the release checklist the project keeps (migrations, decisions, lawyer questions, post-deploy checks), pushes `review-loop/<RUN_ID>`, removes merged worktrees and branches. **G1 and G7 re-asserted before the push**: only the loop branch, never `PROD_BRANCH`.
 4. **Deploy gate.** Poll the version endpoint until preprod serves the pushed SHA (prefix compare). No review on an unverified SHA. A stolen shared slot: wait, re-gate; three stolen attempts in a row abort the loop.
 5. **Review.** Per domain, in parallel: one replay agent and one focus agent, sharing `loop/iterN/BRIEF.md`, built by copying the previous brief and appending an "Iteration N specifics" section that overrides it: the SHA to expect, the data prefix `mt<RUN_ID>-I<N>`, the baseline to compare with, the fixes to verify per domain with exact expected texts, sizes and viewports, harness changes.
 6. **Triage.** Read the reports, classify each finding (severity, `pre-existing` or `introduced by the loop`, fixed-and-holding or regressed), journal the counts, and start the next lots as soon as a domain's report arrives (pipelining). Close every agent of the iteration once its report is used (H4).
@@ -89,9 +97,9 @@ Each iteration `N` then runs:
 
 ## After the loop
 
-1. When chosen at launch: `/full-test fix-loop` on the same branch (its own guardrails and watchdog).
+1. When chosen at launch: `/full-test fix-loop` on the loop branch (its own guardrails and watchdog).
 2. Final report `RUN_DIR/report.md` (`autonomous.md` Report, plus: iterations run, findings per severity per iteration, fixes with commit SHAs, accepted pre-existing findings, simplification cards with status, `blocked by guard` cards as questions).
-3. **One single final message** to the owner: decisions to take, simplifications and ideas awaiting approval, lawyer questions, test data to clean, checks to do on a real device. Then Phase 6 (archive) as usual. The integration branch is never merged into `PROD_BRANCH` here: that is `/safe-merge`.
+3. **One single final message** to the owner: the merge of `review-loop/<RUN_ID>` into `INTEGRATION_BRANCH` (question), decisions to take, pending simplification and idea cards, lawyer questions, test data to clean, checks to do on a real device. Then Phase 6 (archive) as usual. Nothing is merged into `PROD_BRANCH` here: that is `/safe-merge`.
 
 ## Standing rules (learned the hard way)
 

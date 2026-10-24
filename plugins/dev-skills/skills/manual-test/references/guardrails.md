@@ -33,7 +33,7 @@ Create test data with a recognizable tag (name prefix `manual-test-<RUN_ID>`, a 
 
 Respect the project's branch and worktree rules (AGENTS.md / CLAUDE.md): fixes in an isolated worktree when the project says so, never on `PROD_BRANCH`, never merge into it, never push to it, never change branch without the user's agreement. Pushing to a branch that deploys preprod is allowed in Phase 5 only if the project's flow says so and the user agreed to fixes. Read the project docs before the first fix batch.
 
-**Fix-loop extension.** Reviewers stay under G3 for the whole loop (no code change, no commit); fix lots write only in their own worktree and branch; the integration agent alone pushes, and only the integration branch that deploys preprod. The launch go of `fix-loop.md` is the user's agreement for those pushes; it never covers `PROD_BRANCH`, a merge into it, a force-push, or a widened guard.
+**Fix-loop extension.** Reviewers stay under G3 for the whole loop (no code change, no commit); fix lots write only in their own worktree and branch; the integration agent alone pushes, and only the loop branch `review-loop/<RUN_ID>` (or the branch the user chose instead at launch); the merge into the integration branch happens only on the user's yes in the final message. The launch go of `fix-loop.md` is the user's agreement for those pushes; it never covers `PROD_BRANCH`, a merge into it, a force-push, or a widened guard.
 
 ## G8 - Never claim a pass without evidence
 
